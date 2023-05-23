@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 @SuppressWarnings(value = "unused")
 public abstract class Frame extends JFrame implements FieldType, DrawType {
@@ -17,6 +18,8 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
     private final Dimension2d dimension;
 
     private double pixelsInOneUnit;
+
+    private final List<JFrame> graphs = new ArrayList<>();
 
     public Frame(String title, Dimension2d frameSize, Color background, double pixelsInOneUnit) {
         super(title);
@@ -48,6 +51,12 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
         this(title, frameSize, Color.WHITE, 1);
     }
 
+    @Override
+    public void repaint() {
+        super.repaint();
+        this.graphs.forEach(Component::repaint);
+    }
+
     public Dimension2d convertDimension(Dimension2d dimension) {
         return new Dimension2d(convertX(dimension.getX(), this.dimension), convertY(dimension.getY(), this.dimension));
     }
@@ -71,6 +80,13 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
 
     protected int convertYWithSize(double y, double size, Dimension2d dimension) {
         return convertY(convertYWithSize(y, size), dimension);
+    }
+
+    public void addGraph(String title, Supplier<List<Double>> values) {
+        JFrame graph = Graph.createAndShowGui(title, values);
+        graph.addKeyListener(new KeyHandler());
+        graph.addMouseListener(new MouseHandler());
+        graphs.add(graph);
     }
 
     public void clearFrame() {

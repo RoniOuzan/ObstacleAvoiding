@@ -1,23 +1,32 @@
 package obstacleavoiding.path;
 
+import obstacleavoiding.math.MathUtil;
 import obstacleavoiding.math.geometry.Pose2d;
 import obstacleavoiding.math.geometry.Rotation2d;
 import obstacleavoiding.math.geometry.Translation2d;
+import obstacleavoiding.path.pid.PIDController;
 import obstacleavoiding.path.pid.PIDPreset;
 import obstacleavoiding.path.pid.ProfiledPIDController;
 import obstacleavoiding.path.util.Waypoint;
 
+import javax.swing.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class PurePursuit {
+
     private final List<Waypoint> waypoints;
 
     private final ProfiledPIDController driveController;
+    private final PIDController angleController;
     private final ProfiledPIDController omegaController;
 
+    private final Constants constants;
+
     private final Robot robot;
+
+    private Rotation2d drivingAngle = null;
 
     private int currentWaypoint = 1;
     private boolean isFinished = false;
@@ -25,9 +34,12 @@ public class PurePursuit {
 
     public PurePursuit(Robot robot, Constants constants, List<Waypoint> waypoints) {
         this.robot = robot;
+        this.constants = constants;
         this.waypoints = waypoints;
 
         this.driveController = new ProfiledPIDController(constants.drivePreset);
+        this.angleController = new PIDController(0.35, 0, 0);
+        this.angleController.enableContinuousInput(-180, 180);
         this.omegaController = new ProfiledPIDController(constants.omegaPreset);
     }
 
@@ -37,17 +49,45 @@ public class PurePursuit {
 
     public void update() {
         if (this.isRunning && !this.isFinished) {
-            Pose2d velocity = new Pose2d(
-                    new Translation2d(
-                            this.driveController.calculate(this.getDistanceToFinalWaypoint()),
-                            this.robot.getPosition().getTranslation().minus(this.getCurrentWaypoint()).getAngle()
-                    ),
-                    Rotation2d.fromDegrees(
-                            this.omegaController.calculate(this.robot.getPosition().getRotation().getDegrees(),
-                                    this.getCurrentWaypoint().getHeading()))
-            );
+            double distance = this.getDistanceToFinalWaypoint();
+            double velocity = -this.driveController.calculate(distance, 0);
+            double omega = this.omegaController.calculate(this.robot.getPosition().getRotation().getDegrees(), this.getCurrentWaypoint().getHeading());
 
-            this.robot.drive(velocity);
+            Rotation2d targetDrivingAngle = this.getCurrentWaypoint().minus(this.robot.getPosition().getTranslation()).getAngle();
+            if (this.drivingAngle == null || Math.abs(velocity) <= 0.4
+                    || Math.abs(drivingAngle.minus(targetDrivingAngle).getDegrees()) <= 15) {
+                drivingAngle = targetDrivingAngle;
+            } else {
+                drivingAngle = drivingAngle.rotateBy(Rotation2d.fromDegrees(
+                        angleController.calculate(drivingAngle.getDegrees(), targetDrivingAngle.getDegrees())));
+            }
+
+            this.robot.drive(new Pose2d(
+                    new Translation2d(velocity, drivingAngle),
+                    Rotation2d.fromDegrees(omega)
+            ));
+
+//            Pose2d vector = new Pose2d(
+//                    new Translation2d(
+//                            this.driveController.calculate(this.getDistanceToFinalWaypoint()),
+//                            this.angleController.calculate(
+//                                    this.robot.getVelocity().getTranslation().getAngle().getDegrees(),
+//                                    this.robot.getPosition().getTranslation().minus(this.getCurrentWaypoint()).getAngle().getDegrees()
+//                            )
+//                    ),
+//                    Rotation2d.fromDegrees(
+//                            this.omegaController.calculate(this.robot.getPosition().getRotation().getDegrees(),
+//                                    this.getCurrentWaypoint().getHeading()))
+//            );
+//
+//            Rotation2d angleAccel = this.robot.getVelocity().getTranslation().getAngle().minus(vector.getTranslation().getAngle());
+//            double velocity = Math.min(vector.getTranslation().getNorm(), this.constants.maxVel) - Math.tan(5 * angleAccel.getRadians());
+//
+//            this.robot.drive(new Pose2d(
+//                    new Translation2d(velocity,
+//                            ))),
+//                    vector.getRotation()
+//            ));
 
             if (this.getCurrentWaypoint().isPassedWaypoint(this.robot)) {
                 this.currentWaypoint++;
@@ -61,6 +101,10 @@ public class PurePursuit {
     public void reset() {
         this.currentWaypoint = 1;
         this.robot.setPosition(new Pose2d(this.getStartWaypoint(), Rotation2d.fromDegrees(this.getStartWaypoint().getHeading())));
+        this.robot.drive(new Pose2d());
+
+        this.drivingAngle = null;
+
         this.resetControllers();
         this.isFinished = false;
     }
@@ -139,5 +183,5 @@ public class PurePursuit {
         this.waypoints.set(index, waypoint);
     }
 
-    public record Constants(PIDPreset drivePreset, PIDPreset omegaPreset) {}
+    public record Constants(double maxVel, PIDPreset drivePreset, PIDPreset omegaPreset) {}
 }

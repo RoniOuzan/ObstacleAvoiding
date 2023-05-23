@@ -11,17 +11,21 @@ import obstacleavoiding.math.geometry.Translation2d;
 import obstacleavoiding.path.pid.PIDPreset;
 import obstacleavoiding.path.util.Waypoint;
 
+import java.util.List;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
+import java.util.ArrayList;
 
 public class GUI extends Frame implements ZeroCenter, DrawCentered {
     private static final boolean IS_CHARGED_UP_FIELD = true;
 
-    private static final double DEFAULT_MAX_VALUE = 10;
+    private static final double DEFAULT_MAX_VALUE = 8.27;
     private static final Dimension2d DIMENSION = new Dimension2d(1713, 837);
+    private static final double DEFAULT_MAX_Y = DEFAULT_MAX_VALUE * ((double) DIMENSION.getY() / DIMENSION.getX());
     private static final double PIXELS_IN_ONE_UNIT = convertMaxValueToPixels(DEFAULT_MAX_VALUE);
 
     private static final double FPS = 20;
@@ -33,6 +37,8 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
     private final PurePursuit purePursuit;
     private final Robot robot;
 
+    private final List<Double> velocities = new ArrayList<>();
+
     private double maxValue = DEFAULT_MAX_VALUE;
 
     public GUI() {
@@ -43,16 +49,18 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
 
         this.purePursuit = new PurePursuit(
                 this.robot,
-                new PurePursuit.Constants(
+                new PurePursuit.Constants(4.5,
                         new PIDPreset(2, 0, 0, 1, 10),
                         new PIDPreset(2, 0, 0, 5, 10)
                 ),
                 new Waypoint(0, 0, (r, w) -> true),
-                new Waypoint(1, 0, (r, w) -> Math.abs(r.getPosition().getX()) + 0.1 > Math.abs(w.getX()) &&
-                        MathUtil.inTolerance(r.getPosition().getY(), w.getY(), 0.3)),
-                new Waypoint(1, 2, (r, w) -> MathUtil.inTolerance(r.getPosition().getTranslation().getY(), w.getY(), 0.4)),
-                new Waypoint(1, 1, (r, w) -> r.getPosition().getTranslation().getDistance(w) <= 0.05)
+                new Waypoint(DEFAULT_MAX_VALUE - 2.8, 4.585 - DEFAULT_MAX_Y, (r, w) -> Math.abs(r.getPosition().getX()) + 0.2 > Math.abs(w.getX()) &&
+                        MathUtil.inTolerance(r.getPosition().getY(), w.getY(), 0.5)),
+                new Waypoint(DEFAULT_MAX_VALUE - 1.9 - 0.3, 0.5112 - DEFAULT_MAX_Y, (r, w) -> MathUtil.inTolerance(r.getPosition().getTranslation().getY(), w.getY(), 0.4)),
+                new Waypoint(DEFAULT_MAX_VALUE - 1.9, 0.5112 - DEFAULT_MAX_Y, (r, w) -> r.getPosition().getTranslation().getDistance(w) <= 0.05)
         );
+
+        this.addGraph("Velocities", () -> velocities);
 
         this.purePursuit.reset();
         this.start();
@@ -110,6 +118,12 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
         }
     }
 
+    public void updateValues() {
+        if (this.purePursuit.isRunning() && !this.purePursuit.isFinished()) {
+            this.velocities.add(this.robot.getVelocity().getTranslation().getNorm());
+        }
+    }
+
     @Override
     public void mouseDragged(MouseEvent e) {
         Translation2d mouseLocation = this.getMouseTranslation(e);
@@ -127,6 +141,7 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
     public void keyPressed(KeyEvent e) {
         if (e.getKeyChar() == 'r' || e.getKeyChar() == 'R') {
             this.purePursuit.reset();
+            this.velocities.clear();
         } else if (e.getKeyChar() == 't' || e.getKeyChar() == 'T') {
             this.purePursuit.setRunning(!this.purePursuit.isRunning());
         }
@@ -149,6 +164,7 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
             this.clearFrame();
             this.drawBackground();
             this.purePursuit.update();
+            this.updateValues();
             this.displayRobot();
             this.writeValues();
             this.repaint();
