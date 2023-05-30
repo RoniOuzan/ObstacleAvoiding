@@ -1,6 +1,5 @@
 package obstacleavoiding.path;
 
-import obstacleavoiding.math.MathUtil;
 import obstacleavoiding.math.geometry.Pose2d;
 import obstacleavoiding.math.geometry.Rotation2d;
 import obstacleavoiding.math.geometry.Translation2d;
@@ -9,7 +8,6 @@ import obstacleavoiding.path.pid.PIDPreset;
 import obstacleavoiding.path.pid.ProfiledPIDController;
 import obstacleavoiding.path.util.Waypoint;
 
-import javax.swing.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -27,10 +25,13 @@ public class PurePursuit {
     private final Robot robot;
 
     private Rotation2d drivingAngle = null;
+    private Rotation2d lastDrivingAngle = null;
 
     private int currentWaypoint = 1;
     private boolean isFinished = false;
     private boolean isRunning = true;
+
+    private long lastUpdate;
 
     public PurePursuit(Robot robot, Constants constants, List<Waypoint> waypoints) {
         this.robot = robot;
@@ -38,7 +39,7 @@ public class PurePursuit {
         this.waypoints = waypoints;
 
         this.driveController = new ProfiledPIDController(constants.drivePreset);
-        this.angleController = new PIDController(0.35, 0, 0);
+        this.angleController = new PIDController(0.2, 0, 0);
         this.angleController.enableContinuousInput(-180, 180);
         this.omegaController = new ProfiledPIDController(constants.omegaPreset);
     }
@@ -49,45 +50,34 @@ public class PurePursuit {
 
     public void update() {
         if (this.isRunning && !this.isFinished) {
+            double period = (System.nanoTime() - this.lastUpdate) / 1_000_000_000d;
             double distance = this.getDistanceToFinalWaypoint();
-            double velocity = -this.driveController.calculate(distance, 0);
+            double velocity = Math.min(-this.driveController.calculate(distance, 0), this.constants.maxVel);
             double omega = this.omegaController.calculate(this.robot.getPosition().getRotation().getDegrees(), this.getCurrentWaypoint().getHeading());
 
             Rotation2d targetDrivingAngle = this.getCurrentWaypoint().minus(this.robot.getPosition().getTranslation()).getAngle();
             if (this.drivingAngle == null || Math.abs(velocity) <= 0.4
-                    || Math.abs(drivingAngle.minus(targetDrivingAngle).getDegrees()) <= 15) {
-                drivingAngle = targetDrivingAngle;
+                    || Math.abs(targetDrivingAngle.minus(this.drivingAngle).getDegrees()) <= this.constants.maxDriftAngle) {
+                this.drivingAngle = targetDrivingAngle;
             } else {
-                drivingAngle = drivingAngle.rotateBy(Rotation2d.fromDegrees(
-                        angleController.calculate(drivingAngle.getDegrees(), targetDrivingAngle.getDegrees())));
+                this.drivingAngle = this.drivingAngle.rotateBy(Rotation2d.fromDegrees(
+                        Math.signum(targetDrivingAngle.minus(this.drivingAngle).getDegrees()) * this.constants.maxDriftAngle));
+//                this.drivingAngle = this.drivingAngle.rotateBy(Rotation2d.fromDegrees(
+//                        angleController.calculate(this.drivingAngle.getDegrees(), targetDrivingAngle.getDegrees())));
+            }
+
+            if (this.lastDrivingAngle != null)
+                velocity = Math.min(velocity, this.constants.maxVel - (2 * Math.abs(this.lastDrivingAngle.minus(this.drivingAngle).getDegrees()) / this.constants.maxDriftAngle));
+
+            if (Math.abs(this.robot.getVelocity().getTranslation().getNorm() - velocity) / period >= this.constants.maxAccel) {
+                velocity = this.robot.getVelocity().getTranslation().getNorm() +
+                        (Math.signum(velocity - this.robot.getVelocity().getTranslation().getNorm()) * this.constants.maxAccel * period);
             }
 
             this.robot.drive(new Pose2d(
-                    new Translation2d(velocity, drivingAngle),
+                    new Translation2d(velocity, this.drivingAngle),
                     Rotation2d.fromDegrees(omega)
             ));
-
-//            Pose2d vector = new Pose2d(
-//                    new Translation2d(
-//                            this.driveController.calculate(this.getDistanceToFinalWaypoint()),
-//                            this.angleController.calculate(
-//                                    this.robot.getVelocity().getTranslation().getAngle().getDegrees(),
-//                                    this.robot.getPosition().getTranslation().minus(this.getCurrentWaypoint()).getAngle().getDegrees()
-//                            )
-//                    ),
-//                    Rotation2d.fromDegrees(
-//                            this.omegaController.calculate(this.robot.getPosition().getRotation().getDegrees(),
-//                                    this.getCurrentWaypoint().getHeading()))
-//            );
-//
-//            Rotation2d angleAccel = this.robot.getVelocity().getTranslation().getAngle().minus(vector.getTranslation().getAngle());
-//            double velocity = Math.min(vector.getTranslation().getNorm(), this.constants.maxVel) - Math.tan(5 * angleAccel.getRadians());
-//
-//            this.robot.drive(new Pose2d(
-//                    new Translation2d(velocity,
-//                            ))),
-//                    vector.getRotation()
-//            ));
 
             if (this.getCurrentWaypoint().isPassedWaypoint(this.robot)) {
                 this.currentWaypoint++;
@@ -95,6 +85,9 @@ public class PurePursuit {
                     this.isFinished = true;
                 }
             }
+
+            this.lastUpdate = System.nanoTime();
+            this.lastDrivingAngle = this.drivingAngle;
         }
     }
 
@@ -104,6 +97,7 @@ public class PurePursuit {
         this.robot.drive(new Pose2d());
 
         this.drivingAngle = null;
+        this.lastDrivingAngle = null;
 
         this.resetControllers();
         this.isFinished = false;
@@ -183,5 +177,5 @@ public class PurePursuit {
         this.waypoints.set(index, waypoint);
     }
 
-    public record Constants(double maxVel, PIDPreset drivePreset, PIDPreset omegaPreset) {}
+    public record Constants(double maxVel, double maxAccel, double maxDriftAngle, PIDPreset drivePreset, PIDPreset omegaPreset) {}
 }

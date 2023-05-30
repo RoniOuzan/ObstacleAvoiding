@@ -117,6 +117,10 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
         this.update();
     }
 
+    public void drawPolygon(Color color, List<Translation2d> translations) {
+        this.drawPolygon(color, translations.toArray(new Translation2d[0]));
+    }
+
     public void drawPolygon(Color color, Translation2d... translations) {
         int[] x = new int[translations.length];
         int[] y = new int[translations.length];
@@ -149,6 +153,10 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
 
     public void drawConnectedPoints(Color color, List<? extends Translation2d> translations) {
         this.drawConnectedPoints(color, translations.toArray(new Translation2d[0]));
+    }
+
+    public void fillPolygon(Color color, List<Translation2d> translations) {
+        this.fillPolygon(color, translations.toArray(new Translation2d[0]));
     }
 
     public void fillPolygon(Color color, Translation2d... translations) {

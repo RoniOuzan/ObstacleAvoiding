@@ -9,6 +9,7 @@ import obstacleavoiding.math.geometry.Pose2d;
 import obstacleavoiding.math.geometry.Rotation2d;
 import obstacleavoiding.math.geometry.Translation2d;
 import obstacleavoiding.path.pid.PIDPreset;
+import obstacleavoiding.path.util.Obstacle;
 import obstacleavoiding.path.util.Waypoint;
 
 import java.util.List;
@@ -34,10 +35,12 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
     private static final double BUMPER_WIDTH = 0.08;
     private static final double ROBOT_WITH_BUMPER = BUMPER_WIDTH + ROBOT_WIDTH + BUMPER_WIDTH;
 
+    private final ObstacleAvoiding obstacleAvoiding;
     private final PurePursuit purePursuit;
     private final Robot robot;
 
     private final List<Double> velocities = new ArrayList<>();
+    private final List<Double> drivingAngles = new ArrayList<>();
 
     private double maxValue = DEFAULT_MAX_VALUE;
 
@@ -47,20 +50,29 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
         this.robot = new Robot(new Pose2d(new Translation2d(0, 0), Rotation2d.fromDegrees(0)),
                 new Robot.Constants(5, 1 / FPS));
 
+        this.obstacleAvoiding = new ObstacleAvoiding(ROBOT_WITH_BUMPER / 2 + 0.1,
+                new Obstacle(new Translation2d(3.422, -0.053),
+                        new Translation2d(5.354, -0.053),
+                        new Translation2d(5.354, -2.495),
+                        new Translation2d(3.422, -2.495))
+        );
+
         this.purePursuit = new PurePursuit(
                 this.robot,
-                new PurePursuit.Constants(4.5,
+                new PurePursuit.Constants(4.5, 4.5, 15,
                         new PIDPreset(2, 0, 0, 1, 10),
                         new PIDPreset(2, 0, 0, 5, 10)
                 ),
                 new Waypoint(0, 0, (r, w) -> true),
-                new Waypoint(DEFAULT_MAX_VALUE - 2.8, 4.585 - DEFAULT_MAX_Y, (r, w) -> Math.abs(r.getPosition().getX()) + 0.2 > Math.abs(w.getX()) &&
-                        MathUtil.inTolerance(r.getPosition().getY(), w.getY(), 0.5)),
-                new Waypoint(DEFAULT_MAX_VALUE - 1.9 - 0.3, 0.5112 - DEFAULT_MAX_Y, (r, w) -> MathUtil.inTolerance(r.getPosition().getTranslation().getY(), w.getY(), 0.4)),
-                new Waypoint(DEFAULT_MAX_VALUE - 1.9, 0.5112 - DEFAULT_MAX_Y, (r, w) -> r.getPosition().getTranslation().getDistance(w) <= 0.05)
+                    new Waypoint(1, 1, (r, w) -> r.getPosition().getTranslation().getDistance(w) <= 0.05)
+//                new Waypoint(DEFAULT_MAX_VALUE - 2.8, 4.585 - DEFAULT_MAX_Y, (r, w) -> Math.abs(r.getPosition().getX()) + 0.2 > Math.abs(w.getX()) &&
+//                        MathUtil.inTolerance(r.getPosition().getY(), w.getY(), 0.5)),
+//                new Waypoint(DEFAULT_MAX_VALUE - 1.9 - 0.3, 0.5112 - DEFAULT_MAX_Y, (r, w) -> MathUtil.inTolerance(r.getPosition().getTranslation().getY(), w.getY(), 0.4)),
+//                new Waypoint(DEFAULT_MAX_VALUE - 1.9, 0.5112 - DEFAULT_MAX_Y, (r, w) -> r.getPosition().getTranslation().getDistance(w) <= 0.05)
         );
 
         this.addGraph("Velocities", () -> velocities);
+        this.addGraph("Driving Angle", () -> drivingAngles);
 
         this.purePursuit.reset();
         this.start();
@@ -99,6 +111,12 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
                 this.robot.getPosition().getRotation().getDegrees());
     }
 
+    public void displayObstacles() {
+        for (Obstacle obstacle : this.obstacleAvoiding.getObstacles()) {
+            this.fillPolygon(new Color(255, 0, 0, 50), obstacle.getCorners());
+        }
+    }
+
     public void writeValues() {
         String[] texts = {
                 "Pose: (" + MathUtil.limitDot(this.robot.getPosition().getTranslation().getX(), 3) + ", "
@@ -121,6 +139,7 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
     public void updateValues() {
         if (this.purePursuit.isRunning() && !this.purePursuit.isFinished()) {
             this.velocities.add(this.robot.getVelocity().getTranslation().getNorm());
+            this.drivingAngles.add(this.robot.getVelocity().getTranslation().getAngle().getDegrees());
         }
     }
 
@@ -142,14 +161,23 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
         if (e.getKeyChar() == 'r' || e.getKeyChar() == 'R') {
             this.purePursuit.reset();
             this.velocities.clear();
+            this.drivingAngles.clear();
         } else if (e.getKeyChar() == 't' || e.getKeyChar() == 'T') {
             this.purePursuit.setRunning(!this.purePursuit.isRunning());
         }
+
+    }
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+        System.out.println("Clicked (" + convertPixelsToX(e.getX(), DIMENSION) + "," + convertPixelsToY(e.getY(), DIMENSION) + ")");
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        System.out.println(this.purePursuit.getWaypoints());
+        System.out.println("Released (" + convertPixelsToX(e.getX(), DIMENSION) + "," + convertPixelsToY(e.getY(), DIMENSION) + ")");
+
+        System.out.println(this.obstacleAvoiding.isThereAnObstacle(this.purePursuit.getStartWaypoint(), this.purePursuit.getFinalWaypoint()));
     }
 
     @Override
@@ -166,6 +194,7 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
             this.purePursuit.update();
             this.updateValues();
             this.displayRobot();
+            this.displayObstacles();
             this.writeValues();
             this.repaint();
 
