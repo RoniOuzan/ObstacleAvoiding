@@ -39,6 +39,14 @@ public class Waypoint extends Translation2d {
         this(translation2d.getX(), translation2d.getY(), waypoint.heading, waypoint.movementAngle, waypoint.passedWaypoint);
     }
 
+    public Waypoint(Translation2d translation2d) {
+        this(translation2d.getX(), translation2d.getY(), 0, 0, (r, w) -> r.getPosition().getTranslation().getDistance(w) <= 0.15);
+    }
+
+    public Waypoint(Translation2d translation2d, double heading) {
+        this(translation2d.getX(), translation2d.getY(), heading, 0, (r, w) -> r.getPosition().getTranslation().getDistance(w) <= 0.15);
+    }
+
     public boolean isPassedWaypoint(Robot robot) {
         return this.passedWaypoint.apply(robot, this);
     }
@@ -50,6 +58,7 @@ public class Waypoint extends Translation2d {
     public double getMovementAngle() {
         return movementAngle;
     }
+
 
     @Override
     public String toString() {

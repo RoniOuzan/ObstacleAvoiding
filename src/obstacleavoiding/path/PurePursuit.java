@@ -14,7 +14,7 @@ import java.util.List;
 
 public class PurePursuit {
 
-    private final List<Waypoint> waypoints;
+    private List<Waypoint> waypoints;
 
     private final ProfiledPIDController driveController;
     private final PIDController angleController;
@@ -56,18 +56,18 @@ public class PurePursuit {
             double omega = this.omegaController.calculate(this.robot.getPosition().getRotation().getDegrees(), this.getCurrentWaypoint().getHeading());
 
             Rotation2d targetDrivingAngle = this.getCurrentWaypoint().minus(this.robot.getPosition().getTranslation()).getAngle();
-            if (this.drivingAngle == null || Math.abs(velocity) <= 0.4
-                    || Math.abs(targetDrivingAngle.minus(this.drivingAngle).getDegrees()) <= this.constants.maxDriftAngle) {
+//            if (this.drivingAngle == null || Math.abs(velocity) <= 1
+//                    || Math.abs(targetDrivingAngle.minus(this.drivingAngle).getDegrees()) <= this.constants.maxDriftAngle) {
                 this.drivingAngle = targetDrivingAngle;
-            } else {
-                this.drivingAngle = this.drivingAngle.rotateBy(Rotation2d.fromDegrees(
-                        Math.signum(targetDrivingAngle.minus(this.drivingAngle).getDegrees()) * this.constants.maxDriftAngle));
+//            } else {
+////                this.drivingAngle = this.drivingAngle.rotateBy(Rotation2d.fromDegrees(
+////                        Math.signum(targetDrivingAngle.minus(this.drivingAngle).getDegrees()) * this.constants.maxDriftAngle));
 //                this.drivingAngle = this.drivingAngle.rotateBy(Rotation2d.fromDegrees(
 //                        angleController.calculate(this.drivingAngle.getDegrees(), targetDrivingAngle.getDegrees())));
-            }
+//            }
 
             if (this.lastDrivingAngle != null)
-                velocity = Math.min(velocity, this.constants.maxVel - (2 * Math.abs(this.lastDrivingAngle.minus(this.drivingAngle).getDegrees()) / this.constants.maxDriftAngle));
+                velocity = Math.min(velocity, this.constants.maxVel - (3.5 * Math.abs(this.lastDrivingAngle.minus(this.drivingAngle).getDegrees()) / this.constants.maxDriftAngle));
 
             if (Math.abs(this.robot.getVelocity().getTranslation().getNorm() - velocity) / period >= this.constants.maxAccel) {
                 velocity = this.robot.getVelocity().getTranslation().getNorm() +
@@ -175,6 +175,10 @@ public class PurePursuit {
 
     public void setWaypoint(int index, Waypoint waypoint) {
         this.waypoints.set(index, waypoint);
+    }
+
+    public void setWaypoints(List<Waypoint> waypoints) {
+        this.waypoints = waypoints;
     }
 
     public record Constants(double maxVel, double maxAccel, double maxDriftAngle, PIDPreset drivePreset, PIDPreset omegaPreset) {}

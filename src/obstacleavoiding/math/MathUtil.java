@@ -1,6 +1,10 @@
 package obstacleavoiding.math;
 
+import java.util.function.Function;
+
 public final class MathUtil {
+    private static final double DX = 0.0001;
+
     private MathUtil() {
         throw new AssertionError("utility class");
     }
@@ -156,6 +160,18 @@ public final class MathUtil {
 
     public static boolean inTolerance(double value, double target, double tolerance) {
         return Math.abs(target - value) <= tolerance;
+    }
+
+    public static double calculateDerivative(double x, Function<Double, Double> function) {
+        return (function.apply(x + DX) - function.apply(x - DX)) / (2 * DX);
+    }
+
+    public static double calculateIntegral(double a, double b, Function<Double, Double> function) {
+        double sum = 0;
+        for (double t = a; t < b; t += DX) {
+            sum += (function.apply(t - DX) + function.apply(t + DX)) * (DX / 2d);
+        }
+        return sum;
     }
 }
 

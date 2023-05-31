@@ -9,8 +9,8 @@ import java.util.List;
 import java.util.Objects;
 
 public class Translation2d implements Interpolatable<Translation2d> {
-    private final double m_x;
-    private final double m_y;
+    protected final double m_x;
+    protected final double m_y;
 
     /** Constructs a Translation2d with X and Y components equal to zero. */
     public Translation2d() {

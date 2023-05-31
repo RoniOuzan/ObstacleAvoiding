@@ -5,21 +5,26 @@ import obstacleavoiding.math.geometry.Translation2d;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class Obstacle {
-    private final List<Translation2d> corners;
+    private final String name;
+    private List<Translation2d> corners;
 
-    public Obstacle(List<Translation2d> corners) {
+    public Obstacle(String name, List<Translation2d> corners) {
+        this.name = name;
         this.corners = corners;
     }
 
-    public Obstacle(Translation2d... corners) {
-        this(new ArrayList<>(Arrays.asList(corners)));
+    public Obstacle(String name, Translation2d... corners) {
+        this(name, new ArrayList<>(Arrays.asList(corners)));
     }
 
     public List<Translation2d> getCorners() {
         return corners;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public Translation2d getCenter() {
@@ -28,14 +33,32 @@ public class Obstacle {
                 this.corners.stream().mapToDouble(Translation2d::getY).average().orElse(0));
     }
 
-    public void increaseArea(double amount) {
-        Translation2d center = getCenter();
-        for (int i = 0; i < this.corners.size(); i++) {
-            Translation2d corner = this.corners.get(i);
-            double angle = corner.minus(center).getAngle().getDegrees();
-            angle = Math.toRadians(Math.round(angle / 45) * 45d);
+    public double getDirection(int index) {
+        return this.corners.get(index).minus(this.getCenter()).getAngle().getDegrees();
+    }
 
-            this.corners.set(i, corner.plus(new Translation2d(Math.signum(Math.cos(angle)) * amount, Math.signum(Math.sin(angle)) * amount)));
+    public Translation2d alienateCorner(Translation2d corner, double amount) {
+        double angle = corner.minus(this.getCenter()).getAngle().getRadians();
+        return corner.plus(new Translation2d(
+                Math.signum(Math.cos(angle)) * amount, Math.signum(Math.sin(angle)) * amount));
+    }
+
+    public void alienateCorners(double amount) {
+        List<Translation2d> corners = new ArrayList<>();
+        for (Translation2d corner : this.corners) {
+            corners.add(this.alienateCorner(corner, amount));
         }
+        this.corners = corners;
+    }
+
+    public Obstacle getAlienatedObstacle(double amount) {
+        Obstacle obstacle = new Obstacle(this.getName(), new ArrayList<>(this.getCorners()));
+        obstacle.alienateCorners(amount);
+        return obstacle;
+    }
+
+    @Override
+    public String toString() {
+        return this.name;
     }
 }
