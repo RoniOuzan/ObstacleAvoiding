@@ -8,19 +8,25 @@ import java.util.List;
 
 public class Obstacle {
     private final String name;
+    private final Alliance alliance;
     private List<Translation2d> corners;
 
-    public Obstacle(String name, List<Translation2d> corners) {
+    public Obstacle(String name, Alliance alliance, List<Translation2d> corners) {
         this.name = name;
+        this.alliance = alliance;
         this.corners = corners;
     }
 
-    public Obstacle(String name, Translation2d... corners) {
-        this(name, new ArrayList<>(Arrays.asList(corners)));
+    public Obstacle(String name, Alliance alliance, Translation2d... corners) {
+        this(name, alliance, new ArrayList<>(Arrays.asList(corners)));
     }
 
     public List<Translation2d> getCorners() {
         return corners;
+    }
+
+    public Alliance getAlliance() {
+        return alliance;
     }
 
     public String getName() {
@@ -52,7 +58,7 @@ public class Obstacle {
     }
 
     public Obstacle getAlienatedObstacle(double amount) {
-        Obstacle obstacle = new Obstacle(this.getName(), new ArrayList<>(this.getCorners()));
+        Obstacle obstacle = new Obstacle(this.name, this.alliance, new ArrayList<>(this.corners));
         obstacle.alienateCorners(amount);
         return obstacle;
     }

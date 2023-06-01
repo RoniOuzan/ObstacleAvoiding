@@ -22,7 +22,7 @@ public class Follower {
 
     private Path.State state = new Path.State(new Pose2d(), -1);
 
-    private boolean isRunning = true;
+    private boolean isRunning = false;
 
     private long lastUpdate = 0;
 

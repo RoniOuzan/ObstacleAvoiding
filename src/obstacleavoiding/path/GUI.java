@@ -10,6 +10,7 @@ import obstacleavoiding.math.geometry.Rotation2d;
 import obstacleavoiding.math.geometry.Translation2d;
 import obstacleavoiding.path.paths.BezierCurve;
 import obstacleavoiding.path.pid.PIDPreset;
+import obstacleavoiding.path.util.Alliance;
 import obstacleavoiding.path.util.Obstacle;
 import obstacleavoiding.path.util.Waypoint;
 
@@ -57,21 +58,58 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
                 new Robot.Constants(5, 1 / FPS));
 
         this.obstacles = new ArrayList<>(Arrays.asList(
-                new Obstacle("Ramp",
+                new Obstacle("RedRamp", Alliance.RED,
                         new Translation2d(3.422, -0.053),
-                        new Translation2d(5.354, -0.053),
-                        new Translation2d(5.354, -2.495),
+                        new Translation2d(5.384, -0.053),
+                        new Translation2d(5.384, -2.495),
                         new Translation2d(3.422, -2.495)),
-                new Obstacle("Barrier",
+                new Obstacle("RedBarrier", Alliance.RED,
                         new Translation2d(5.016, 1.511),
                         new Translation2d(6.850, 1.511),
                         new Translation2d(6.850, 1.424),
                         new Translation2d(5.016, 1.424)),
-                new Obstacle("Grid",
+                new Obstacle("RedGrid", Alliance.RED,
                         new Translation2d(6.850, 1.511),
                         new Translation2d(8.27, 1.511),
                         new Translation2d(8.27, -DEFAULT_MAX_Y),
-                        new Translation2d(6.850, -DEFAULT_MAX_Y))
+                        new Translation2d(6.850, -DEFAULT_MAX_Y)),
+
+                new Obstacle("BlueRamp", Alliance.BLUE,
+                        new Translation2d(-3.422, -0.053),
+                        new Translation2d(-5.384, -0.053),
+                        new Translation2d(-5.384, -2.495),
+                        new Translation2d(-3.422, -2.495)),
+                new Obstacle("BlueBarrier", Alliance.BLUE ,
+                        new Translation2d(-5.016, 1.511),
+                        new Translation2d(-6.850, 1.511),
+                        new Translation2d(-6.850, 1.424),
+                        new Translation2d(-5.016, 1.424)),
+                new Obstacle("BlueGrid", Alliance.BLUE,
+                        new Translation2d(-6.850, 1.511),
+                        new Translation2d(-8.27, 1.511),
+                        new Translation2d(-8.27, -DEFAULT_MAX_Y),
+                        new Translation2d(-6.850, -DEFAULT_MAX_Y)),
+
+                new Obstacle("RightX", Alliance.NONE,
+                        new Translation2d(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y),
+                        new Translation2d(DEFAULT_MAX_VALUE + 0.1, DEFAULT_MAX_Y),
+                        new Translation2d(DEFAULT_MAX_VALUE + 0.1, -DEFAULT_MAX_Y),
+                        new Translation2d(DEFAULT_MAX_VALUE, -DEFAULT_MAX_Y)),
+                new Obstacle("LeftX", Alliance.NONE,
+                        new Translation2d(-DEFAULT_MAX_VALUE, DEFAULT_MAX_Y),
+                        new Translation2d(-DEFAULT_MAX_VALUE - 0.1, DEFAULT_MAX_Y),
+                        new Translation2d(-DEFAULT_MAX_VALUE - 0.1, -DEFAULT_MAX_Y),
+                        new Translation2d(-DEFAULT_MAX_VALUE, -DEFAULT_MAX_Y)),
+                new Obstacle("UpY", Alliance.NONE,
+                        new Translation2d(-DEFAULT_MAX_VALUE, DEFAULT_MAX_Y + 0.1),
+                        new Translation2d(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y + 0.1),
+                        new Translation2d(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y),
+                        new Translation2d(-DEFAULT_MAX_VALUE, DEFAULT_MAX_Y)),
+                new Obstacle("DownY", Alliance.NONE,
+                        new Translation2d(-DEFAULT_MAX_VALUE, -DEFAULT_MAX_Y - 0.1),
+                        new Translation2d(DEFAULT_MAX_VALUE, -DEFAULT_MAX_Y - 0.1),
+                        new Translation2d(DEFAULT_MAX_VALUE, -DEFAULT_MAX_Y),
+                        new Translation2d(-DEFAULT_MAX_VALUE, -DEFAULT_MAX_Y))
         ));
 
         this.obstacleAvoiding = new ObstacleAvoiding(ROBOT_WITH_BUMPER / 2, this.obstacles);
@@ -138,7 +176,7 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
 
     public void displayObstacles() {
         for (Obstacle obstacle : this.obstacles) {
-            this.fillPolygon(new Color(255, 0, 0, 50), obstacle.getCorners());
+            this.fillPolygon(obstacle.getAlliance().getColor(50), obstacle.getCorners());
         }
 //        for (Obstacle obstacle : this.obstacleAvoiding.getObstacles()) {
 //            this.fillPolygon(new Color(0, 0, 0, 100), obstacle.getCorners());

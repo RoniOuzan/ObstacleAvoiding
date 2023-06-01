@@ -15,9 +15,9 @@ public class ObstacleAvoiding {
     private final List<Obstacle> obstacles;
     private final double distanceThreshold;
 
-    public ObstacleAvoiding(double distanceThreshold, List<Obstacle> obstacles) {
-        this.obstacles = obstacles.stream().map(o -> o.getAlienatedObstacle(distanceThreshold)).collect(Collectors.toList());
+    public ObstacleAvoiding(double distanceThreshold,List<Obstacle> obstacles) {
         this.distanceThreshold = distanceThreshold;
+        this.obstacles = obstacles.stream().map(o -> o.getAlienatedObstacle(distanceThreshold)).collect(Collectors.toList());
     }
 
     public ObstacleAvoiding(double distanceThreshold, Obstacle... obstacles) {
@@ -30,7 +30,7 @@ public class ObstacleAvoiding {
 
     public List<Waypoint> generateWaypointsBinary(Waypoint... waypoints) {
         List<Waypoint> trajectory = new ArrayList<>(Arrays.asList(waypoints));
-        for (int a = 0; a < 20 && getDistributingObstacles(trajectory).size() > 0; a++) {
+        for (int a = 0; a < 15 && getDistributingObstacles(trajectory).size() > 0; a++) {
 //        while (getDistributingObstacles(trajectory).size() > 0) {
             int size = trajectory.size() - 1;
             for (int i = 0; i < size; i++) {
@@ -47,7 +47,7 @@ public class ObstacleAvoiding {
                             double slopeMiddle = waypoint1.minus(waypoint2).getAngle().plus(Rotation2d.fromDegrees(90)).getTan();
                             Translation2d corner1 = obstacle.getCorners().get(j);
                             Translation2d corner2 = obstacle.getCorners().get((j + 1) % obstacle.getCorners().size());
-                            double x, y;
+                            double x;
                             if (corner1.getX() != corner2.getX()) {
                                 // the slope of 2 corners of the polygon
                                 double slopePol = corner1.minus(corner2).getAngle().getTan();
@@ -57,17 +57,26 @@ public class ObstacleAvoiding {
                             } else {
                                 x = corner1.getX();
                             }
-                            y = (slopeMiddle * x) - (slopeMiddle * middle.getX()) + middle.getY();
+                            double y = (slopeMiddle * x) - (slopeMiddle * middle.getX()) + middle.getY();
 
                             Translation2d newMiddle = new Translation2d(x, y);
-                            Rotation2d angleFromMiddle = newMiddle.minus(obstacle.getCenter()).getAngle();
-                            newMiddle = newMiddle.plus(new Translation2d(newMiddle.getDistance(middle) < 0.3 ? 0.5 : 0.2, angleFromMiddle));
+                            Rotation2d angleFromMiddle = newMiddle.minus(middle).plus(newMiddle.minus(obstacle.getCenter())).getAngle();
+                            newMiddle = newMiddle.plus(new Translation2d(0.3, angleFromMiddle));
 
-                            if (this.getObstacle(newMiddle) != null)
+                            int escapeTimes = 0;
+                            while (this.getObstacle(newMiddle) != null) {
+                                newMiddle = newMiddle.plus(new Translation2d(0.1, angleFromMiddle));
+                                escapeTimes++;
+
+                                if (escapeTimes >= 1000)
+                                    break;
+                            }
+                            if (escapeTimes == 1000)
                                 continue;
 
                             middles.add(newMiddle);
                         }
+
                         middle = middles.stream().min(Comparator.comparing(middle::getDistance)).orElse(middle);
                     }
 
