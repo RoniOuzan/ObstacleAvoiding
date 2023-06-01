@@ -287,6 +287,10 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
         this.update();
     }
 
+    public void fillPoint(Translation2d point, double radius, Color color) {
+        this.fillPoint(point.getX(), point.getY(), radius, color);
+    }
+
     public void write(double x, double y, String text, double size, Color color) {
         double X = convertUnits(x);
         double Y = convertUnits(y);

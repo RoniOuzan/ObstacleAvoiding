@@ -15,6 +15,8 @@ public class ObstacleAvoiding {
     private final List<Obstacle> obstacles;
     private final double distanceThreshold;
 
+    private boolean isFiltering = true;
+
     public ObstacleAvoiding(double distanceThreshold,List<Obstacle> obstacles) {
         this.distanceThreshold = distanceThreshold;
         this.obstacles = obstacles.stream().map(o -> o.getAlienatedObstacle(distanceThreshold)).collect(Collectors.toList());
@@ -25,13 +27,8 @@ public class ObstacleAvoiding {
     }
 
     public List<Waypoint> generateWaypointsBinary(List<Waypoint> waypoints) {
-        return generateWaypointsBinary(waypoints.toArray(new Waypoint[0]));
-    }
-
-    public List<Waypoint> generateWaypointsBinary(Waypoint... waypoints) {
-        List<Waypoint> trajectory = new ArrayList<>(Arrays.asList(waypoints));
+        List<Waypoint> trajectory = new ArrayList<>(waypoints);
         for (int a = 0; a < 15 && getDistributingObstacles(trajectory).size() > 0; a++) {
-//        while (getDistributingObstacles(trajectory).size() > 0) {
             int size = trajectory.size() - 1;
             for (int i = 0; i < size; i++) {
                 Waypoint waypoint1 = trajectory.get(i);
@@ -85,19 +82,20 @@ public class ObstacleAvoiding {
             }
         }
 
-        List<Waypoint> waypointList = new ArrayList<>(Arrays.asList(waypoints));
-        for (int i = 0; i < trajectory.size(); i++) {
-            for (int j = trajectory.size() - 1; j > i; j--) {
-                if (this.getDistributingObstacle(trajectory.get(i), trajectory.get(j)).size() == 0) {
-                    List<Integer> remove = new ArrayList<>();
-                    for (int k = i + 1; k < j && !waypointList.contains(trajectory.get(k)); k++) {
-                        remove.add(k);
+        if (this.isFiltering) {
+            for (int i = 0; i < trajectory.size(); i++) {
+                for (int j = trajectory.size() - 1; j > i; j--) {
+                    if (this.getDistributingObstacle(trajectory.get(i), trajectory.get(j)).size() == 0) {
+                        List<Integer> remove = new ArrayList<>();
+                        for (int k = i + 1; k < j && !waypoints.contains(trajectory.get(k)); k++) {
+                            remove.add(k);
+                        }
+                        remove.sort(Comparator.comparingInt(i2 -> i2));
+                        for (int k = remove.size() - 1; k >= 0; k--) {
+                            trajectory.remove((int) remove.get(k));
+                        }
+                        break;
                     }
-                    remove.sort(Comparator.comparingInt(i2 -> i2));
-                    for (int k = remove.size() - 1; k >= 0; k--) {
-                        trajectory.remove((int) remove.get(k));
-                    }
-                    break;
                 }
             }
         }
@@ -195,6 +193,14 @@ public class ObstacleAvoiding {
         }
 
         return isInside;
+    }
+
+    public void setFiltering(boolean filtering) {
+        isFiltering = filtering;
+    }
+
+    public boolean isFiltering() {
+        return isFiltering;
     }
 
     public List<Obstacle> getObstacles() {

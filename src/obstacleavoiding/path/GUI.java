@@ -46,6 +46,8 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
 //    private final PurePursuit purePursuit;
     private final Robot robot;
 
+    private boolean showAlienatedObstacles = false;
+
     private final List<Double> velocities = new ArrayList<>();
     private final List<Double> drivingAngles = new ArrayList<>();
 
@@ -178,9 +180,10 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
         for (Obstacle obstacle : this.obstacles) {
             this.fillPolygon(obstacle.getAlliance().getColor(50), obstacle.getCorners());
         }
-//        for (Obstacle obstacle : this.obstacleAvoiding.getObstacles()) {
-//            this.fillPolygon(new Color(0, 0, 0, 100), obstacle.getCorners());
-//        }
+        if (this.showAlienatedObstacles)
+            for (Obstacle obstacle : this.obstacleAvoiding.getObstacles()) {
+                this.fillPolygon(new Color(0, 0, 0, 30), obstacle.getCorners());
+            }
     }
 
     public void displayPath() {
@@ -245,6 +248,10 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
             this.path.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
         } else if (e.getKeyChar() == 't' || e.getKeyChar() == 'T') {
             this.follower.setRunning(!this.follower.isRunning());
+        } else if (e.getKeyChar() == 'g' || e.getKeyChar() == 'G') {
+            this.showAlienatedObstacles = !this.showAlienatedObstacles;
+        } else if (e.getKeyChar() == 'f' || e.getKeyChar() == 'F') {
+            this.obstacleAvoiding.setFiltering(!this.obstacleAvoiding.isFiltering());
         }
 
     }
@@ -272,7 +279,7 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
             this.drawBackground();
             this.follower.update();
             this.updateValues();
-            this.displayPath();
+//            this.displayPath();
             this.displayRobot();
             this.displayObstacles();
             this.writeValues();
