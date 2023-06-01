@@ -162,6 +162,10 @@ public final class MathUtil {
         return Math.abs(target - value) <= tolerance;
     }
 
+    public static boolean inRage(double value, double max, double min) {
+        return value <= max && value >= min;
+    }
+
     public static double calculateDerivative(double x, Function<Double, Double> function) {
         return (function.apply(x + DX) - function.apply(x - DX)) / (2 * DX);
     }

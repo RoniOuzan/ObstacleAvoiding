@@ -11,6 +11,7 @@ import obstacleavoiding.math.geometry.Translation2d;
 import obstacleavoiding.path.paths.BezierCurve;
 import obstacleavoiding.path.pid.PIDPreset;
 import obstacleavoiding.path.util.Alliance;
+import obstacleavoiding.path.util.Bounds;
 import obstacleavoiding.path.util.Obstacle;
 import obstacleavoiding.path.util.Waypoint;
 
@@ -25,6 +26,8 @@ import java.awt.event.MouseWheelEvent;
 import java.util.ArrayList;
 
 public class GUI extends Frame implements ZeroCenter, DrawCentered {
+    public static List<Waypoint> waypoints = new ArrayList<>();
+
     private static final boolean IS_CHARGED_UP_FIELD = true;
 
     private static final double DEFAULT_MAX_VALUE = 8.27;
@@ -114,14 +117,16 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
                         new Translation2d(-DEFAULT_MAX_VALUE, -DEFAULT_MAX_Y))
         ));
 
-        this.obstacleAvoiding = new ObstacleAvoiding(ROBOT_WITH_BUMPER / 2, this.obstacles);
+        this.obstacleAvoiding = new ObstacleAvoiding(ROBOT_WITH_BUMPER / 2, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), this.obstacles);
 
         this.defaultWaypoints = new ArrayList<>();
         this.defaultWaypoints.add(new Waypoint(0, 0, (r, w) -> true));
         this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE - 1.9 - 0.3, 0.5112 - DEFAULT_MAX_Y, (r, w) -> MathUtil.inTolerance(r.getPosition().getTranslation().getY(), w.getY(), 0.4)));
         this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE - 1.9, 0.5112 - DEFAULT_MAX_Y, (r, w) -> r.getPosition().getTranslation().getDistance(w) <= 0.05));
 
-        this.path = new BezierCurve(new Path.Constants(4.5, 4.5, 0.5), this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
+//        this.path = new BezierCurve(new Path.Constants(4.5, 4.5, 0.5), this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
+        this.path = new BezierCurve(new Path.Constants(4.5, 4.5, 0.5), this.defaultWaypoints);
+        waypoints = this.defaultWaypoints;
 
         this.follower = new Follower(this.path, this.robot, new Follower.Constants(0, 0,
                 new PIDPreset(2, 0, 0, 1, 10), new PIDPreset(2, 0, 0, 5, 10)));
@@ -149,10 +154,10 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
         else
             this.drawGrid();
 
-        for (Translation2d waypoint : this.path.getWaypoints()) {
+        for (Translation2d waypoint : waypoints) {
             this.drawWaypoint(waypoint);
         }
-        this.drawConnectedPoints(Color.BLACK, this.path.getWaypoints());
+        this.drawConnectedPoints(Color.BLACK, waypoints);
     }
 
     public void displayRobot() {
@@ -222,11 +227,13 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
     public void mouseDragged(MouseEvent e) {
         Translation2d mouseLocation = this.getMouseTranslation(e);
 
-        for (int i = this.path.getWaypoints().size() - 1; i >= 0; i--) {
-            if (this.path.getWaypoints().get(i).getDistance(mouseLocation) <= convertPixelsToUnits(20)) {
-                Waypoint lastWaypoint = this.path.getWaypoint(i);
+        for (int i = waypoints.size() - 1; i >= 0; i--) {
+            if (waypoints.get(i).getDistance(mouseLocation) <= convertPixelsToUnits(20)) {
+//                Waypoint lastWaypoint = this.path.getWaypoint(i);
+                Waypoint lastWaypoint = waypoints.get(i);
                 Waypoint waypoint = new Waypoint(mouseLocation, lastWaypoint);
-                this.path.setWaypoint(i, waypoint);
+//                this.path.setWaypoint(i, waypoint);
+                waypoints.set(i, waypoint);
 
                 for (int j = 0; j < this.defaultWaypoints.size(); j++) {
                     if (this.defaultWaypoints.get(j) == lastWaypoint) {
@@ -245,7 +252,8 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
             this.follower.reset();
             this.velocities.clear();
             this.drivingAngles.clear();
-            this.path.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
+            this.obstacleAvoiding.start(this.defaultWaypoints);
+//            this.path.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
         } else if (e.getKeyChar() == 't' || e.getKeyChar() == 'T') {
             this.follower.setRunning(!this.follower.isRunning());
         } else if (e.getKeyChar() == 'g' || e.getKeyChar() == 'G') {

@@ -2,6 +2,7 @@ package obstacleavoiding.path;
 
 import obstacleavoiding.math.geometry.Rotation2d;
 import obstacleavoiding.math.geometry.Translation2d;
+import obstacleavoiding.path.util.Bounds;
 import obstacleavoiding.path.util.Obstacle;
 import obstacleavoiding.path.util.Waypoint;
 
@@ -15,20 +16,31 @@ public class ObstacleAvoiding {
     private final List<Obstacle> obstacles;
     private final double distanceThreshold;
 
+    private final Bounds bounds;
+
     private boolean isFiltering = true;
 
-    public ObstacleAvoiding(double distanceThreshold,List<Obstacle> obstacles) {
+    private Thread thread;
+
+    public ObstacleAvoiding(double distanceThreshold, Bounds bounds, List<Obstacle> obstacles) {
         this.distanceThreshold = distanceThreshold;
+        this.bounds = bounds;
         this.obstacles = obstacles.stream().map(o -> o.getAlienatedObstacle(distanceThreshold)).collect(Collectors.toList());
     }
 
-    public ObstacleAvoiding(double distanceThreshold, Obstacle... obstacles) {
-        this(distanceThreshold, new ArrayList<>(Arrays.asList(obstacles)));
+    public ObstacleAvoiding(double distanceThreshold, Bounds bounds, Obstacle... obstacles) {
+        this(distanceThreshold, bounds, new ArrayList<>(Arrays.asList(obstacles)));
+    }
+    public void start(List<Waypoint> waypoints) {
+        if (this.thread != null)
+            this.thread.interrupt();
+        this.thread = new Thread(() -> this.generateWaypointsBinary(waypoints));
+        this.thread.start();
     }
 
     public List<Waypoint> generateWaypointsBinary(List<Waypoint> waypoints) {
         List<Waypoint> trajectory = new ArrayList<>(waypoints);
-        for (int a = 0; a < 15 && getDistributingObstacles(trajectory).size() > 0; a++) {
+        for (int a = 0; a < 20 && getDistributingObstacles(trajectory).size() > 0; a++) {
             int size = trajectory.size() - 1;
             for (int i = 0; i < size; i++) {
                 Waypoint waypoint1 = trajectory.get(i);
@@ -57,18 +69,23 @@ public class ObstacleAvoiding {
                             double y = (slopeMiddle * x) - (slopeMiddle * middle.getX()) + middle.getY();
 
                             Translation2d newMiddle = new Translation2d(x, y);
+//                            Rotation2d angleFromMiddle = newMiddle.minus(middle).plus(corner2.minus(corner1)).getAngle();
                             Rotation2d angleFromMiddle = newMiddle.minus(middle).plus(newMiddle.minus(obstacle.getCenter())).getAngle();
-                            newMiddle = newMiddle.plus(new Translation2d(0.3, angleFromMiddle));
+//                            Rotation2d angleFromMiddle = corner2.minus(corner1).getAngle().plus(Rotation2d.fromDegrees(90));
+                            newMiddle = newMiddle.plus(new Translation2d(isCloseToCorner(newMiddle, obstacle, 0.3) ? 0.6 : 0.3, angleFromMiddle));
 
                             int escapeTimes = 0;
                             while (this.getObstacle(newMiddle) != null) {
                                 newMiddle = newMiddle.plus(new Translation2d(0.1, angleFromMiddle));
                                 escapeTimes++;
 
-                                if (escapeTimes >= 1000)
+                                if (escapeTimes >= 150)
                                     break;
                             }
-                            if (escapeTimes == 1000)
+                            if (escapeTimes == 150)
+                                continue;
+
+                            if (!this.bounds.isInOfBounds(newMiddle))
                                 continue;
 
                             middles.add(newMiddle);
@@ -78,9 +95,16 @@ public class ObstacleAvoiding {
                     }
 
                     trajectory.add(i + 1, new Waypoint(middle, 90));
+                    GUI.waypoints = trajectory;
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }
+        System.out.println(getDistributingObstacles(trajectory));
 
         if (this.isFiltering) {
             for (int i = 0; i < trajectory.size(); i++) {
@@ -99,8 +123,18 @@ public class ObstacleAvoiding {
                 }
             }
         }
+        GUI.waypoints = trajectory;
 
         return trajectory;
+    }
+
+    private boolean isCloseToCorner(Translation2d translation2d, Obstacle obstacle, double threshold) {
+        for (Translation2d corner : obstacle.getCorners()) {
+            if (translation2d.getDistance(corner) <= threshold) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public List<Obstacle> getDistributingObstacles(List<Waypoint> waypoints) {
