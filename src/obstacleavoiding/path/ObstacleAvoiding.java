@@ -198,7 +198,6 @@ public class ObstacleAvoiding {
         int numPoints = obstacle.getCorners().size();
         int i, j;
         boolean isInside = false;
-
         for (i = 0, j = numPoints - 1; i < numPoints; j = i++) {
             Translation2d cornerI = obstacle.getCorners().get(i);
             Translation2d cornerJ = obstacle.getCorners().get(j);

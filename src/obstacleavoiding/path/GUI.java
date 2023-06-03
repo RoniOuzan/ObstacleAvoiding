@@ -2,7 +2,6 @@ package obstacleavoiding.path;
 
 import obstacleavoiding.gui.Frame;
 import obstacleavoiding.gui.types.draw.DrawCentered;
-import obstacleavoiding.gui.types.field.ZeroCenter;
 import obstacleavoiding.gui.types.field.ZeroLeftBottom;
 import obstacleavoiding.math.MathUtil;
 import obstacleavoiding.math.geometry.Dimension2d;
@@ -46,6 +45,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private final PurePursuit purePursuit;
     private final Robot robot;
 
+    private final Image fieldImage = new ImageIcon("src/obstacleavoiding/path/util/Field.png").getImage();
     private final Image robotImage = new ImageIcon("src/obstacleavoiding/path/util/Robot.png").getImage();
     private final Image invisibleRobotImage = new ImageIcon("src/obstacleavoiding/path/util/InvisibleRobot.png").getImage();
 
@@ -82,7 +82,12 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
                         new Translation2d(1.381, 5.500),
                         new Translation2d(1.381, 0),
                         new Translation2d(0, 0)));
-        List<Obstacle> redObstacles = blueObstacles.stream().map(o -> new Obstacle(o.getName(), Alliance.RED, o.getCorners().stream().map(c -> new Translation2d(DEFAULT_MAX_VALUE - c.getX(), c.getY())).toList())).toList();
+        List<Obstacle> redObstacles = blueObstacles.stream().map(o ->
+                        new Obstacle(
+                                o.getName(),
+                                Alliance.RED,
+                                o.getCorners().stream().map(c -> new Translation2d(DEFAULT_MAX_VALUE - c.getX(), c.getY())).toList()))
+                .toList();
 
         this.obstacles = new ArrayList<>(Arrays.asList(
                 new Obstacle("RightX", Alliance.NONE,
@@ -109,7 +114,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.obstacles.addAll(blueObstacles);
         this.obstacles.addAll(redObstacles);
 
-        this.obstacleAvoiding = new ObstacleAvoiding(ROBOT_WITH_BUMPER / 2 + 0.05, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), this.obstacles);
+        this.obstacleAvoiding = new ObstacleAvoiding(HALF_ROBOT + 0.05, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), this.obstacles);
 
         this.defaultWaypoints = new ArrayList<>();
         this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2, Waypoint.RobotReference.CENTER));
@@ -124,10 +129,10 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
                 this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints)
         );
 
-        this.addGraph("Drive Velocity", () -> driveVelocities);
-        this.addGraph("Last Drift", () -> driftPercentageVelocities);
-//        this.addGraph("Angle Velocity", () -> omegaVelocities, 360, -360);
-//        this.addGraph("Driving Angle", () -> drivingAngles);
+        this.addGraph("Drive Velocity", () -> driveVelocities, 0, this.purePursuit.getConstants().maxVel());
+        this.addGraph("Last Drift", () -> driftPercentageVelocities, 0, 1);
+//        this.addGraph("Angle Velocity", () -> omegaVelocities, -360, 360);
+        this.addGraph("Driving Angle", () -> drivingAngles, -180, 180);
 
         this.purePursuit.reset();
         this.start();
@@ -135,7 +140,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     public void drawBackground() {
         if (IS_CHARGED_UP_FIELD)
-            this.drawImage(new ImageIcon("src/obstacleavoiding/path/util/Field.png").getImage(), 0, 0, DIMENSION.getX(), DIMENSION.getY());
+            this.drawImage(fieldImage, convertX(0, DIMENSION), (int) (convertY(0, DIMENSION) - convertUnits(DEFAULT_MAX_Y)),
+                    (int) convertUnits(DEFAULT_MAX_VALUE), (int) convertUnits(DEFAULT_MAX_Y));
         else
             this.drawGrid();
 
@@ -154,7 +160,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         for (Pose2d position : this.positions) {
             this.drawImage(invisibleRobotImage,
                     position.getTranslation(),
-                    MINI_ROBOT_WIDTH, MINI_ROBOT_WIDTH,
+                    ROBOT_WITH_BUMPER, ROBOT_WITH_BUMPER,
                     -position.getRotation().getDegrees());
         }
     }
@@ -207,7 +213,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         double size = convertPixelsToUnits(20);
         double space = convertPixelsToUnits(10);
         for (int i = 0; i < texts.length; i++) {
-            this.write(-this.maxValue + convertPixelsToUnits(5), (this.maxValue * ((double) DIMENSION.getY() / DIMENSION.getX()) - ((size + space) * (i + 1))), texts[i], size, Color.BLACK);
+            this.write(convertPixelsToUnits(5), DEFAULT_MAX_Y - ((size + space) * (i + 1)), texts[i], size, Color.BLACK);
         }
     }
 

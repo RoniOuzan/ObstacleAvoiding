@@ -21,10 +21,10 @@ public class Graph extends JPanel {
     private final double max;
     private final double min;
 
-    public Graph(Supplier<List<Double>> scores, double max, double min) {
+    public Graph(Supplier<List<Double>> scores, double min, double max) {
         this.scores = scores;
-        this.max = max;
         this.min = min;
+        this.max = max;
 
         this.setPreferredSize(new Dimension(800, 800));
         this.setLocation(0, 0);
@@ -149,8 +149,8 @@ public class Graph extends JPanel {
         return scores.get();
     }
 
-    public static JFrame createAndShowGui(String title, Supplier<List<Double>> scores, double max, double min) {
-        Graph mainPanel = new Graph(scores, max, min);
+    public static JFrame createAndShowGui(String title, Supplier<List<Double>> scores, double min, double max) {
+        Graph mainPanel = new Graph(scores, min, max);
         mainPanel.setPreferredSize(new Dimension(800, 600));
         mainPanel.setLocation(0, 0);
         JFrame frame = new JFrame(title);

@@ -82,8 +82,8 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
         return convertY(convertYWithSize(y, size), dimension);
     }
 
-    public void addGraph(String title, Supplier<List<Double>> values, double max, double min) {
-        JFrame graph = Graph.createAndShowGui(title, values, max, min);
+    public void addGraph(String title, Supplier<List<Double>> values, double min, double max) {
+        JFrame graph = Graph.createAndShowGui(title, values, min, max);
         graph.addKeyListener(new KeyHandler());
         graph.addMouseListener(new MouseHandler());
         graphs.add(graph);
