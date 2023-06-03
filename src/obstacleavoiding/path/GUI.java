@@ -160,7 +160,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         for (Pose2d position : this.positions) {
             this.drawImage(invisibleRobotImage,
                     position.getTranslation(),
-                    ROBOT_WITH_BUMPER, ROBOT_WITH_BUMPER,
+                    MINI_ROBOT_WIDTH, MINI_ROBOT_WIDTH,
                     -position.getRotation().getDegrees());
         }
     }
