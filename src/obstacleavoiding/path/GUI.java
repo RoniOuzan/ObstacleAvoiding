@@ -24,10 +24,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class GUI extends Frame implements ZeroCenter, DrawCentered {
+public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private static final boolean IS_CHARGED_UP_FIELD = true;
 
-    private static final double DEFAULT_MAX_VALUE = 8.27; // 8.27
+    private static final double DEFAULT_MAX_VALUE = 16.54; // 8.27
     private static final Dimension2d DIMENSION = new Dimension2d(1713, 837);
     private static final double DEFAULT_MAX_Y = DEFAULT_MAX_VALUE * ((double) DIMENSION.getY() / DIMENSION.getX());
     private static final double PIXELS_IN_ONE_UNIT = convertMaxValueToPixels(DEFAULT_MAX_VALUE);
@@ -35,7 +35,8 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
     private static final double FPS = 20;
     private static final double ROBOT_WIDTH = 0.75;
     private static final double BUMPER_WIDTH = 0.08;
-    private static final double ROBOT_WITH_BUMPER = BUMPER_WIDTH + ROBOT_WIDTH + BUMPER_WIDTH;
+    public static final double ROBOT_WITH_BUMPER = BUMPER_WIDTH + ROBOT_WIDTH + BUMPER_WIDTH;
+    public static final double HALF_ROBOT = ROBOT_WITH_BUMPER / 2;
 
     private static final double MINI_ROBOT_WIDTH = ROBOT_WITH_BUMPER;
 
@@ -65,67 +66,54 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
         this.robot = new Robot(new Pose2d(new Translation2d(0, 0), Rotation2d.fromDegrees(0)),
                 new Robot.Constants(5, 1 / FPS));
 
-        this.obstacles = new ArrayList<>(Arrays.asList(
-                new Obstacle("RedRamp", Alliance.RED,
-                        new Translation2d(3.422, -0.053),
-                        new Translation2d(5.384, -0.053),
-                        new Translation2d(5.384, -2.495),
-                        new Translation2d(3.422, -2.495)),
-                new Obstacle("RedBarrier", Alliance.RED,
-                        new Translation2d(5.016, 1.511),
-                        new Translation2d(6.850, 1.511),
-                        new Translation2d(6.850, 1.424),
-                        new Translation2d(5.016, 1.424)),
-                new Obstacle("RedGrid", Alliance.RED,
-                        new Translation2d(6.850, 1.511),
-                        new Translation2d(DEFAULT_MAX_VALUE, 1.511),
-                        new Translation2d(DEFAULT_MAX_VALUE, -DEFAULT_MAX_Y),
-                        new Translation2d(6.850, -DEFAULT_MAX_Y)),
-
+        List<Obstacle> blueObstacles = Arrays.asList(
                 new Obstacle("BlueRamp", Alliance.BLUE,
-                        new Translation2d(-3.422, -0.053),
-                        new Translation2d(-5.384, -0.053),
-                        new Translation2d(-5.384, -2.495),
-                        new Translation2d(-3.422, -2.495)),
+                        new Translation2d(2.951, 3.985),
+                        new Translation2d(4.828, 3.985),
+                        new Translation2d(4.828, 1.509),
+                        new Translation2d(2.951, 1.509)),
                 new Obstacle("BlueBarrier", Alliance.BLUE ,
-                        new Translation2d(-5.016, 1.511),
-                        new Translation2d(-6.850, 1.511),
-                        new Translation2d(-6.850, 1.424),
-                        new Translation2d(-5.016, 1.424)),
+                        new Translation2d(1.458, 5.506),
+                        new Translation2d(3.363, 5.506),
+                        new Translation2d(3.363, 5.474),
+                        new Translation2d(1.458, 5.474)),
                 new Obstacle("BlueGrid", Alliance.BLUE,
-                        new Translation2d(-6.850, 1.511),
-                        new Translation2d(-DEFAULT_MAX_VALUE, 1.511),
-                        new Translation2d(-DEFAULT_MAX_VALUE, -DEFAULT_MAX_Y),
-                        new Translation2d(-6.850, -DEFAULT_MAX_Y)),
+                        new Translation2d(0, 5.500),
+                        new Translation2d(1.381, 5.500),
+                        new Translation2d(1.381, 0),
+                        new Translation2d(0, 0)));
+        List<Obstacle> redObstacles = blueObstacles.stream().map(o -> new Obstacle(o.getName(), Alliance.RED, o.getCorners().stream().map(c -> new Translation2d(DEFAULT_MAX_VALUE - c.getX(), c.getY())).toList())).toList();
 
+        this.obstacles = new ArrayList<>(Arrays.asList(
                 new Obstacle("RightX", Alliance.NONE,
                         new Translation2d(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y),
                         new Translation2d(DEFAULT_MAX_VALUE + 0.1, DEFAULT_MAX_Y),
-                        new Translation2d(DEFAULT_MAX_VALUE + 0.1, -DEFAULT_MAX_Y),
-                        new Translation2d(DEFAULT_MAX_VALUE, -DEFAULT_MAX_Y)),
+                        new Translation2d(DEFAULT_MAX_VALUE + 0.1, 0),
+                        new Translation2d(DEFAULT_MAX_VALUE, 0)),
                 new Obstacle("LeftX", Alliance.NONE,
-                        new Translation2d(-DEFAULT_MAX_VALUE, DEFAULT_MAX_Y),
-                        new Translation2d(-DEFAULT_MAX_VALUE - 0.1, DEFAULT_MAX_Y),
-                        new Translation2d(-DEFAULT_MAX_VALUE - 0.1, -DEFAULT_MAX_Y),
-                        new Translation2d(-DEFAULT_MAX_VALUE, -DEFAULT_MAX_Y)),
+                        new Translation2d(0, DEFAULT_MAX_Y),
+                        new Translation2d(-0.1, DEFAULT_MAX_Y),
+                        new Translation2d(-0.1, -DEFAULT_MAX_Y),
+                        new Translation2d(0, -DEFAULT_MAX_Y)),
                 new Obstacle("UpY", Alliance.NONE,
-                        new Translation2d(-DEFAULT_MAX_VALUE, DEFAULT_MAX_Y + 0.1),
+                        new Translation2d(0, DEFAULT_MAX_Y + 0.1),
                         new Translation2d(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y + 0.1),
                         new Translation2d(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y),
-                        new Translation2d(-DEFAULT_MAX_VALUE, DEFAULT_MAX_Y)),
+                        new Translation2d(0, DEFAULT_MAX_Y)),
                 new Obstacle("DownY", Alliance.NONE,
-                        new Translation2d(-DEFAULT_MAX_VALUE, -DEFAULT_MAX_Y - 0.1),
-                        new Translation2d(DEFAULT_MAX_VALUE, -DEFAULT_MAX_Y - 0.1),
-                        new Translation2d(DEFAULT_MAX_VALUE, -DEFAULT_MAX_Y),
-                        new Translation2d(-DEFAULT_MAX_VALUE, -DEFAULT_MAX_Y))
+                        new Translation2d(0, -0.1),
+                        new Translation2d(DEFAULT_MAX_VALUE, -0.1),
+                        new Translation2d(DEFAULT_MAX_VALUE, 0),
+                        new Translation2d(0, 0))
         ));
+        this.obstacles.addAll(blueObstacles);
+        this.obstacles.addAll(redObstacles);
 
         this.obstacleAvoiding = new ObstacleAvoiding(ROBOT_WITH_BUMPER / 2 + 0.05, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), this.obstacles);
 
         this.defaultWaypoints = new ArrayList<>();
-        this.defaultWaypoints.add(new Waypoint(0, 0));
-//        this.defaultWaypoints.add(new Waypoint(-DEFAULT_MAX_VALUE + 1.9 + 0.3, 0.5112 - DEFAULT_MAX_Y));
-        this.defaultWaypoints.add(new Waypoint(-DEFAULT_MAX_VALUE + 1.9, 0.5112 - DEFAULT_MAX_Y));
+        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2, Waypoint.RobotReference.CENTER));
+        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 0.5, DEFAULT_MAX_Y / 2 + 0.5, Waypoint.RobotReference.BACK_CENTER));
 
         this.purePursuit = new PurePursuit(
                 this.robot,
@@ -241,7 +229,7 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
         for (int i = this.purePursuit.getWaypoints().size() - 1; i >= 0; i--) {
             if (this.purePursuit.getWaypoints().get(i).getDistance(mouseLocation) <= convertPixelsToUnits(20)) {
                 Waypoint lastWaypoint = this.purePursuit.getWaypoints().get(i);
-                Waypoint waypoint = new Waypoint(mouseLocation, lastWaypoint);
+                Waypoint waypoint = new Waypoint(mouseLocation.minus(lastWaypoint.getRobotReferenceTranslation()), lastWaypoint);
                 this.purePursuit.getWaypoints().set(i, waypoint);
 
                 for (int j = 0; j < this.defaultWaypoints.size(); j++) {
@@ -350,6 +338,6 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
     }
 
     private static double convertMaxValueToPixels(double maxValue) {
-        return (DIMENSION.getX() / maxValue) / 2;
+        return (DIMENSION.getX() / maxValue);
     }
 }

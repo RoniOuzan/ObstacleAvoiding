@@ -84,7 +84,7 @@ public class ObstacleAvoiding {
                         middle = middles.stream().min(Comparator.comparing(middle::getDistance)).orElse(middle);
                     }
 
-                    trajectory.add(i + 1, new Waypoint(middle, 90));
+                    trajectory.add(i + 1, new Waypoint(middle, 90, Waypoint.RobotReference.CENTER));
                 }
             }
         }
