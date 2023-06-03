@@ -63,6 +63,25 @@ public class Obstacle {
         return obstacle;
     }
 
+    public Obstacle getExtendedObstacle(double amount) {
+        amount = Math.hypot(amount, amount);
+        List<Translation2d> corners = new ArrayList<>(this.corners);
+        for (int i = 0; i < corners.size(); i++) {
+            Translation2d previousCorner = this.corners.get((i + corners.size() - 1) % corners.size());
+            Translation2d corner = this.corners.get(i);
+            Translation2d nextCorner = this.corners.get((i + 1) % corners.size());
+
+            Translation2d previousVector = corner.minus(previousCorner);
+            previousVector = previousVector.div(previousVector.getNorm());
+
+            Translation2d nextVector = corner.minus(nextCorner);
+            nextVector = nextVector.div(nextVector.getNorm());
+
+            corners.set(i, corner.plus(new Translation2d(amount, previousVector.plus(nextVector).getAngle())));
+        }
+        return new Obstacle(this.name, this.alliance, corners);
+    }
+
     @Override
     public String toString() {
         return this.name;

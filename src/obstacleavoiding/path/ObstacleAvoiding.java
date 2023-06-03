@@ -25,7 +25,7 @@ public class ObstacleAvoiding {
     public ObstacleAvoiding(double distanceThreshold, Bounds bounds, List<Obstacle> obstacles) {
         this.distanceThreshold = distanceThreshold;
         this.bounds = bounds;
-        this.obstacles = obstacles.stream().map(o -> o.getAlienatedObstacle(distanceThreshold)).collect(Collectors.toList());
+        this.obstacles = obstacles.stream().map(o -> o.getExtendedObstacle(distanceThreshold)).collect(Collectors.toList());
     }
 
     public ObstacleAvoiding(double distanceThreshold, Bounds bounds, Obstacle... obstacles) {

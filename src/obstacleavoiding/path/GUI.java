@@ -185,10 +185,11 @@ public class GUI extends Frame implements ZeroCenter, DrawCentered {
         for (Obstacle obstacle : this.obstacles) {
             this.fillPolygon(obstacle.getAlliance().getColor(50), obstacle.getCorners());
         }
-        if (this.showAlienatedObstacles)
+        if (this.showAlienatedObstacles) {
             for (Obstacle obstacle : this.obstacleAvoiding.getObstacles()) {
                 this.fillPolygon(new Color(0, 0, 0, 30), obstacle.getCorners());
             }
+        }
     }
 
     public void displayPath() {
