@@ -20,8 +20,6 @@ public class ObstacleAvoiding {
 
     private boolean isFiltering = true;
 
-    private Thread thread;
-
     public ObstacleAvoiding(double distanceThreshold, Bounds bounds, List<Obstacle> obstacles) {
         this.distanceThreshold = distanceThreshold;
         this.bounds = bounds;
@@ -31,16 +29,10 @@ public class ObstacleAvoiding {
     public ObstacleAvoiding(double distanceThreshold, Bounds bounds, Obstacle... obstacles) {
         this(distanceThreshold, bounds, new ArrayList<>(Arrays.asList(obstacles)));
     }
-    public void start(List<Waypoint> waypoints) {
-        if (this.thread != null)
-            this.thread.interrupt();
-        this.thread = new Thread(() -> this.generateWaypointsBinary(waypoints));
-        this.thread.start();
-    }
 
     public List<Waypoint> generateWaypointsBinary(List<Waypoint> waypoints) {
         List<Waypoint> trajectory = new ArrayList<>(waypoints);
-        for (int a = 0; a < 20 && getDistributingObstacles(trajectory).size() > 0; a++) {
+        for (int a = 0; a < 25 && getDistributingObstacles(trajectory).size() > 0; a++) {
             int size = trajectory.size() - 1;
             for (int i = 0; i < size; i++) {
                 Waypoint waypoint1 = trajectory.get(i);

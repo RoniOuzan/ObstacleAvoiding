@@ -7,16 +7,12 @@ import obstacleavoiding.math.MathUtil;
  * call reset() when they first start running the controller to avoid unwanted behavior.
  */
 public class ProfiledPIDController {
-    private static int instances;
-
     private PIDController m_controller;
     private double m_minimumInput;
     private double m_maximumInput;
     private TrapezoidProfile.State m_goal = new TrapezoidProfile.State();
     private TrapezoidProfile.State m_setpoint = new TrapezoidProfile.State();
     private TrapezoidProfile.Constraints m_constraints;
-
-    private long initTime;
 
     /**
      * Allocates a ProfiledPIDController with the given constants for Kp, Ki, and Kd.
@@ -31,9 +27,12 @@ public class ProfiledPIDController {
         this(Kp, Ki, Kd, constraints, 0.02);
     }
 
+    /**
+     * Allocates a ProfiledPIDController with the given constants for Kp, Ki, and Kd.
+     */
     public ProfiledPIDController(PIDPreset preset) {
         this(preset.getkP(), preset.getkI(), preset.getkD(),
-                new TrapezoidProfile.Constraints(preset.getMaxAccel(), preset.getMaxAccel()));
+                new TrapezoidProfile.Constraints(preset.getMaxVel(), preset.getMaxAccel()), 0.02);
     }
 
     /**
@@ -49,7 +48,6 @@ public class ProfiledPIDController {
             double Kp, double Ki, double Kd, TrapezoidProfile.Constraints constraints, double period) {
         m_controller = new PIDController(Kp, Ki, Kd, period);
         m_constraints = constraints;
-        instances++;
     }
 
     /**
@@ -306,17 +304,9 @@ public class ProfiledPIDController {
             m_setpoint.position = setpointMinDistance + measurement;
         }
 
-        if (initTime == 0) {
-            initTime = System.currentTimeMillis();
-        }
-
         var profile = new TrapezoidProfile(m_constraints, m_goal, m_setpoint);
-        m_setpoint = profile.calculate(getTime());
+        m_setpoint = profile.calculate(getPeriod());
         return m_controller.calculate(measurement, m_setpoint.position);
-    }
-
-    public double getTime() {
-        return (System.currentTimeMillis() - this.initTime) / 1000d;
     }
 
     /**
@@ -365,8 +355,6 @@ public class ProfiledPIDController {
     public void reset(TrapezoidProfile.State measurement) {
         m_controller.reset();
         m_setpoint = measurement;
-
-        this.initTime = 0;
     }
 
     /**

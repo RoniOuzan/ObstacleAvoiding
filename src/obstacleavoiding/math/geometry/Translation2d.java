@@ -88,6 +88,10 @@ public class Translation2d implements Interpolatable<Translation2d> {
         return new Rotation2d(m_x, m_y);
     }
 
+    public Translation2d normalized() {
+        return this.div(this.getNorm());
+    }
+
     /**
      * Applies a rotation to the translation in 2D space.
      *

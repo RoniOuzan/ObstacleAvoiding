@@ -18,12 +18,21 @@ public class Graph extends JPanel {
     private static final int numberYDivisions = 10;
     private final Supplier<List<Double>> scores;
 
-    public Graph(Supplier<List<Double>> scores) {
+    private final double max;
+    private final double min;
+
+    public Graph(Supplier<List<Double>> scores, double max, double min) {
         this.scores = scores;
+        this.max = max;
+        this.min = min;
 
         this.setPreferredSize(new Dimension(800, 800));
         this.setLocation(0, 0);
         this.setVisible(true);
+    }
+
+    public Graph(Supplier<List<Double>> scores) {
+        this(scores, 0, 0);
     }
 
     @Override
@@ -32,7 +41,13 @@ public class Graph extends JPanel {
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        List<Double> scores = this.scores.get();
+        List<Double> scores = this.scores.get().stream().map(s -> {
+            if (this.isAutoLimit())
+                return s;
+            if (s >= this.min)
+                return s <= this.max ? s : this.max;
+            return this.min;
+        }).toList();
 
         double xScale = ((double) getWidth() - (2 * padding) - labelPadding) / (scores.size() - 1);
         double yScale = ((double) getHeight() - 2 * padding - labelPadding) / (getMaxScore() - getMinScore());
@@ -109,24 +124,33 @@ public class Graph extends JPanel {
         }
     }
 
+    public boolean isAutoLimit() {
+        return (this.min == 0 && this.max == 0) || (this.min >= this.max);
+    }
+
     private double getMinScore() {
-        return scores.get().stream().mapToDouble(s -> s).min().orElse(0);
+        if (this.isAutoLimit())
+            return scores.get().stream().mapToDouble(s -> s).min().orElse(0);
+        return this.min;
     }
 
     private double getMaxScore() {
-        double maxScore = Double.MIN_VALUE;
-        for (Double score : scores.get()) {
-            maxScore = Math.max(maxScore, score);
+        if (this.isAutoLimit()) {
+            double maxScore = Double.MIN_VALUE;
+            for (Double score : scores.get()) {
+                maxScore = Math.max(maxScore, score);
+            }
+            return maxScore;
         }
-        return maxScore;
+        return this.max;
     }
 
     public List<Double> getScores() {
         return scores.get();
     }
 
-    public static JFrame createAndShowGui(String title, Supplier<List<Double>> scores) {
-        Graph mainPanel = new Graph(scores);
+    public static JFrame createAndShowGui(String title, Supplier<List<Double>> scores, double max, double min) {
+        Graph mainPanel = new Graph(scores, max, min);
         mainPanel.setPreferredSize(new Dimension(800, 600));
         mainPanel.setLocation(0, 0);
         JFrame frame = new JFrame(title);
@@ -137,5 +161,9 @@ public class Graph extends JPanel {
         frame.setVisible(true);
 
         return frame;
+    }
+
+    public static JFrame createAndShowGui(String title, Supplier<List<Double>> scores) {
+        return createAndShowGui(title, scores, 0, 0);
     }
 }

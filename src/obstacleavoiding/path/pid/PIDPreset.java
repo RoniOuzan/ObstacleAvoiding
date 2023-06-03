@@ -15,6 +15,10 @@ public class PIDPreset {
         this.maxAccel = maxAccel;
     }
 
+    public PIDPreset(double kP, double kI, double kD) {
+        this(kP, kI, kD, 0, 0);
+    }
+
 
     public double getkP() {
         return kP;

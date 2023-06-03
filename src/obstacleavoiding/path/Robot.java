@@ -57,5 +57,9 @@ public class Robot {
         return velocity;
     }
 
+    public Pose2d getRobotRelativeVelocity() {
+        return new Pose2d(this.velocity.getTranslation().rotateBy(this.position.getRotation()), this.velocity.getRotation());
+    }
+
     public record Constants(double maxVel, double period) {}
 }

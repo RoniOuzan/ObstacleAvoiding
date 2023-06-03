@@ -11,44 +11,36 @@ public class Waypoint extends Translation2d {
     private final double heading;
     private final double movementAngle;
 
-    private final BiFunction<Robot, Waypoint, Boolean> passedWaypoint;
-
-    public Waypoint(double x, double y, double heading, double movementAngle, BiFunction<Robot, Waypoint, Boolean> passedWaypoint) {
+    public Waypoint(double x, double y, double heading, double movementAngle) {
         super(x, y);
         this.heading = heading;
         this.movementAngle = movementAngle;
-        this.passedWaypoint = passedWaypoint;
     }
 
-    public Waypoint(double x, double y, BiFunction<Robot, Waypoint, Boolean> passedWaypoint) {
-        this(x, y, 0, 0, passedWaypoint);
+    public Waypoint(double x, double y) {
+        this(x, y, 0, 0);
     }
 
-    public Waypoint(double distance, Rotation2d angle, double heading, double movementAngle, BiFunction<Robot, Waypoint, Boolean> passedWaypoint) {
+    public Waypoint(double distance, Rotation2d angle, double heading, double movementAngle) {
         super(distance, angle);
         this.heading = heading;
         this.movementAngle = movementAngle;
-        this.passedWaypoint = passedWaypoint;
     }
 
-    public Waypoint(Translation2d translation2d, double heading, double movementAngle, BiFunction<Robot, Waypoint, Boolean> passedWaypoint) {
-        this(translation2d.getX(), translation2d.getY(), heading, movementAngle, passedWaypoint);
+    public Waypoint(Translation2d translation2d, double heading, double movementAngle) {
+        this(translation2d.getX(), translation2d.getY(), heading, movementAngle);
     }
 
     public Waypoint(Translation2d translation2d, Waypoint waypoint) {
-        this(translation2d.getX(), translation2d.getY(), waypoint.heading, waypoint.movementAngle, waypoint.passedWaypoint);
-    }
-
-    public Waypoint(Translation2d translation2d) {
-        this(translation2d.getX(), translation2d.getY(), 0, 0, (r, w) -> r.getPosition().getTranslation().getDistance(w) <= 0.15);
+        this(translation2d.getX(), translation2d.getY(), waypoint.heading, waypoint.movementAngle);
     }
 
     public Waypoint(Translation2d translation2d, double heading) {
-        this(translation2d.getX(), translation2d.getY(), heading, 0, (r, w) -> r.getPosition().getTranslation().getDistance(w) <= 0.15);
+        this(translation2d.getX(), translation2d.getY(), heading, 0);
     }
 
-    public boolean isPassedWaypoint(Robot robot) {
-        return this.passedWaypoint.apply(robot, this);
+    public Waypoint(Translation2d translation2d) {
+        this(translation2d.getX(), translation2d.getY(), 0, 0);
     }
 
     public double getHeading() {
