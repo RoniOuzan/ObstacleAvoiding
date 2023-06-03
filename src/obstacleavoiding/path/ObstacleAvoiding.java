@@ -69,9 +69,7 @@ public class ObstacleAvoiding {
                             double y = (slopeMiddle * x) - (slopeMiddle * middle.getX()) + middle.getY();
 
                             Translation2d newMiddle = new Translation2d(x, y);
-//                            Rotation2d angleFromMiddle = newMiddle.minus(middle).plus(corner2.minus(corner1)).getAngle();
                             Rotation2d angleFromMiddle = newMiddle.minus(middle).plus(newMiddle.minus(obstacle.getCenter())).getAngle();
-//                            Rotation2d angleFromMiddle = corner2.minus(corner1).getAngle().plus(Rotation2d.fromDegrees(90));
                             newMiddle = newMiddle.plus(new Translation2d(isCloseToCorner(newMiddle, obstacle, 0.3) ? 0.6 : 0.3, angleFromMiddle));
 
                             int escapeTimes = 0;
@@ -95,16 +93,9 @@ public class ObstacleAvoiding {
                     }
 
                     trajectory.add(i + 1, new Waypoint(middle, 90));
-                    GUI.waypoints = trajectory;
-                    try {
-                        Thread.sleep(500);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
                 }
             }
         }
-        System.out.println(getDistributingObstacles(trajectory));
 
         if (this.isFiltering) {
             for (int i = 0; i < trajectory.size(); i++) {
@@ -123,7 +114,6 @@ public class ObstacleAvoiding {
                 }
             }
         }
-        GUI.waypoints = trajectory;
 
         return trajectory;
     }

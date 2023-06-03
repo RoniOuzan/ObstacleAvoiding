@@ -309,6 +309,10 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
         this.update();
     }
 
+    public void drawImage(Image image, Translation2d pose, double width, double height, double angle) {
+        this.drawImage(image, pose.getX(), pose.getY(), width, height, angle);
+    }
+
     public void drawImage(Image image, double x, double y, double width, double height, double angle) {
         this.panel.graphics.add(g -> {
                 ((Graphics2D) g).rotate(Math.toRadians(angle), convertX(convertUnits(x), dimension), convertY(convertUnits(y), dimension));
