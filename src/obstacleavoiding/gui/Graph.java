@@ -3,25 +3,26 @@ package obstacleavoiding.gui;
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 public class Graph extends JPanel {
 
     private static final int padding = 25;
     private static final int labelPadding = 25;
-    private static final Color lineColor = new Color(44, 102, 230, 180);
     private static final Color pointColor = new Color(100, 100, 100, 180);
     private static final Color gridColor = new Color(200, 200, 200, 200);
     private static final Stroke GRAPH_STROKE = new BasicStroke(2f);
     private static final int pointWidth = 4;
     private static final int numberYDivisions = 10;
-    private final Supplier<List<Double>> scores;
+    private final Map<Supplier<List<Double>>, Color> scores;
 
     private final double max;
     private final double min;
 
-    public Graph(Supplier<List<Double>> scores, double min, double max) {
+    public Graph(Map<Supplier<List<Double>>, Color> scores, double min, double max) {
         this.scores = scores;
         this.min = min;
         this.max = max;
@@ -31,7 +32,7 @@ public class Graph extends JPanel {
         this.setVisible(true);
     }
 
-    public Graph(Supplier<List<Double>> scores) {
+    public Graph(Map<Supplier<List<Double>>, Color> scores) {
         this(scores, 0, 0);
     }
 
@@ -40,24 +41,6 @@ public class Graph extends JPanel {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        List<Double> scores = this.scores.get().stream().map(s -> {
-            if (this.isAutoLimit())
-                return s;
-            if (s >= this.min)
-                return s <= this.max ? s : this.max;
-            return this.min;
-        }).toList();
-
-        double xScale = ((double) getWidth() - (2 * padding) - labelPadding) / (scores.size() - 1);
-        double yScale = ((double) getHeight() - 2 * padding - labelPadding) / (getMaxScore() - getMinScore());
-
-        List<Point> graphPoints = new ArrayList<>();
-        for (int i = 0; i < scores.size(); i++) {
-            int x1 = (int) (i * xScale + padding + labelPadding);
-            int y1 = (int) ((getMaxScore() - scores.get(i)) * yScale + padding);
-            graphPoints.add(new Point(x1, y1));
-        }
 
         // draw white background
         g2.setColor(Color.WHITE);
@@ -104,23 +87,44 @@ public class Graph extends JPanel {
         g2.drawLine(padding + labelPadding, getHeight() - padding - labelPadding, padding + labelPadding, padding);
         g2.drawLine(padding + labelPadding, getHeight() - padding - labelPadding, getWidth() - padding, getHeight() - padding - labelPadding);
 
-        Stroke oldStroke = g2.getStroke();
-        g2.setColor(lineColor);
-        g2.setStroke(GRAPH_STROKE);
-        for (int i = 0; i < graphPoints.size() - 1; i++) {
-            int x1 = graphPoints.get(i).x;
-            int y1 = graphPoints.get(i).y;
-            int x2 = graphPoints.get(i + 1).x;
-            int y2 = graphPoints.get(i + 1).y;
-            g2.drawLine(x1, y1, x2, y2);
-        }
 
-        g2.setStroke(oldStroke);
-        g2.setColor(pointColor);
-        for (Point graphPoint : graphPoints) {
-            int x = graphPoint.x - pointWidth / 2;
-            int y = graphPoint.y - pointWidth / 2;
-            g2.fillOval(x, y, pointWidth, pointWidth);
+        for (Map.Entry<Supplier<List<Double>>, Color> entry : this.scores.entrySet()) {
+            List<Double> scores = entry.getKey().get().stream().map(s -> {
+                if (this.isAutoLimit())
+                    return s;
+                if (s >= this.min)
+                    return s <= this.max ? s : this.max;
+                return this.min;
+            }).toList();
+
+            double xScale = ((double) getWidth() - (2 * padding) - labelPadding) / (scores.size() - 1);
+            double yScale = ((double) getHeight() - 2 * padding - labelPadding) / (getMaxScore() - getMinScore());
+
+            List<Point> graphPoints = new ArrayList<>();
+            for (int i = 0; i < scores.size(); i++) {
+                int x1 = (int) (i * xScale + padding + labelPadding);
+                int y1 = (int) ((getMaxScore() - scores.get(i)) * yScale + padding);
+                graphPoints.add(new Point(x1, y1));
+            }
+
+            Stroke oldStroke = g2.getStroke();
+            g2.setColor(entry.getValue());
+            g2.setStroke(GRAPH_STROKE);
+            for (int i = 0; i < graphPoints.size() - 1; i++) {
+                int x1 = graphPoints.get(i).x;
+                int y1 = graphPoints.get(i).y;
+                int x2 = graphPoints.get(i + 1).x;
+                int y2 = graphPoints.get(i + 1).y;
+                g2.drawLine(x1, y1, x2, y2);
+            }
+
+            g2.setStroke(oldStroke);
+            g2.setColor(pointColor);
+            for (Point graphPoint : graphPoints) {
+                int x = graphPoint.x - pointWidth / 2;
+                int y = graphPoint.y - pointWidth / 2;
+                g2.fillOval(x, y, pointWidth, pointWidth);
+            }
         }
     }
 
@@ -130,26 +134,22 @@ public class Graph extends JPanel {
 
     private double getMinScore() {
         if (this.isAutoLimit())
-            return scores.get().stream().mapToDouble(s -> s).min().orElse(0);
+            return scores.keySet().stream().mapToDouble(color -> color.get().stream().mapToDouble(s2 -> s2).min().orElse(0)).min().orElse(0);
         return this.min;
     }
 
     private double getMaxScore() {
         if (this.isAutoLimit()) {
-            double maxScore = Double.MIN_VALUE;
-            for (Double score : scores.get()) {
-                maxScore = Math.max(maxScore, score);
-            }
-            return maxScore;
+            return scores.keySet().stream().mapToDouble(color -> color.get().stream().mapToDouble(s2 -> s2).max().orElse(0)).max().orElse(0);
         }
         return this.max;
     }
 
-    public List<Double> getScores() {
-        return scores.get();
+    public Map<Supplier<List<Double>>, Color> getScores() {
+        return scores;
     }
 
-    public static JFrame createAndShowGui(String title, Supplier<List<Double>> scores, double min, double max) {
+    public static JFrame createAndShowGui(String title, Map<Supplier<List<Double>>, Color> scores, double min, double max) {
         Graph mainPanel = new Graph(scores, min, max);
         mainPanel.setPreferredSize(new Dimension(800, 600));
         mainPanel.setLocation(0, 0);
@@ -163,7 +163,19 @@ public class Graph extends JPanel {
         return frame;
     }
 
-    public static JFrame createAndShowGui(String title, Supplier<List<Double>> scores) {
+    public static JFrame createAndShowGui(String title, Map<Supplier<List<Double>>, Color> scores) {
         return createAndShowGui(title, scores, 0, 0);
+    }
+
+    public static JFrame createAndShowGui(String title, Supplier<List<Double>> scores, double min, double max) {
+        Map<Supplier<List<Double>>, Color> map = new HashMap<>();
+        map.put(scores, new Color(44, 102, 230, 180));
+        return createAndShowGui(title, map, min, max);
+    }
+
+    public static JFrame createAndShowGui(String title, Supplier<List<Double>> scores) {
+        Map<Supplier<List<Double>>, Color> map = new HashMap<>();
+        map.put(scores, new Color(44, 102, 230, 180));
+        return createAndShowGui(title, map);
     }
 }

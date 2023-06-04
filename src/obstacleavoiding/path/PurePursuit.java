@@ -3,7 +3,6 @@ package obstacleavoiding.path;
 import obstacleavoiding.math.MathUtil;
 import obstacleavoiding.math.geometry.Pose2d;
 import obstacleavoiding.math.geometry.Rotation2d;
-import obstacleavoiding.math.geometry.Transform2d;
 import obstacleavoiding.math.geometry.Translation2d;
 import obstacleavoiding.path.pid.PIDController;
 import obstacleavoiding.path.pid.PIDPreset;
@@ -13,7 +12,6 @@ import obstacleavoiding.path.util.Waypoint;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 public class PurePursuit {
     private List<Waypoint> waypoints;
@@ -27,6 +25,7 @@ public class PurePursuit {
 
     private double velocity;
 
+    private double lastNormalDriftPercentage;
     private double lastDriftPercentage;
 
     private int currentWaypoint = 1;
@@ -77,19 +76,27 @@ public class PurePursuit {
             double slowPercentage = 1 - (MathUtil.clamp(this.getDistanceToCurrentWaypoint(), 0, this.constants.maxSlowDistance) / this.constants.maxSlowDistance);
 
             driftPercentage = Math.pow(driftPercentage, 1.5);
+            slowPercentage = Math.pow(slowPercentage, 3);
+            double normalDriftPercentage = driftPercentage;
 
-            double targetVelocity = this.getDistanceToFinalWaypoint() < 1.2 ? 0 : this.constants.maxVel - (slowPercentage * 2);
+            Rotation2d driftAngle;
+            if (this.currentWaypoint < this.waypoints.size() - 1)
+                driftAngle = this.getNextWaypoint().minus(this.getCurrentWaypoint()).getAngle().minus(this.getCurrentWaypoint().minus(this.getPreviousWaypoint()).getAngle());
+            else
+                driftAngle = Rotation2d.fromDegrees(0);
+
+            double maxVelocity = this.constants.maxVel - (slowPercentage * Math.abs(driftAngle.getDegrees()) / 30);
+            double targetVelocity = this.getDistanceToFinalWaypoint() < 1.2 ? 0 : maxVelocity;
             velocity += MathUtil.clamp(this.driveController.calculate(this.velocity, targetVelocity), -this.constants.maxAccel * period, this.constants.maxAccel * period);
-
-            velocity = MathUtil.clamp(velocity, 0, this.constants.maxVel - (slowPercentage * 2));
+            velocity = MathUtil.clamp(velocity, 0, maxVelocity);
 
             if (this.currentWaypoint < this.waypoints.size() - 1) {
-                Translation2d angleFromNext = this.getWaypoint(this.currentWaypoint + 1).minus(this.robot.getPosition().getTranslation()).normalized();
+                Translation2d angleFromNext = this.getNextWaypoint().minus(this.robot.getPosition().getTranslation()).normalized();
 
-//                if (this.lastDriftPercentage > driftPercentage) {
-//                    driftPercentage = this.lastDriftPercentage + Math.abs(this.lastDriftPercentage - driftPercentage);
-//                    driftPercentage = Math.min(1, driftPercentage);
-//                }
+                if (driftPercentage > 0 && this.lastDriftPercentage > driftPercentage) {
+                    driftPercentage = this.lastDriftPercentage + Math.abs(this.lastNormalDriftPercentage - driftPercentage);
+                    driftPercentage = Math.min(1, driftPercentage);
+                }
                 angle = angle.times(1 - driftPercentage).plus(angleFromNext.times(driftPercentage));
             }
 
@@ -97,17 +104,24 @@ public class PurePursuit {
                     new Translation2d(velocity, angle.getAngle()),
                     Rotation2d.fromDegrees(0)));
 
-//            if (driftPercentage >= 0.9) {
-            if (driftPercentage > 0.3 && this.lastDriftPercentage > driftPercentage) {
+            if (driftPercentage >= 0.9) {
                 if (this.currentWaypoint < this.waypoints.size() - 1) {
                     this.currentWaypoint++;
-                } else if (this.getDistanceToCurrentWaypoint() <= 0.03 && Math.abs(this.robot.getPosition().getRotation().getDegrees() - this.getFinalWaypoint().getHeading()) <= 1) {
-                    this.isFinished = true;
+
+                    this.lastUpdate = System.nanoTime();
+                    this.lastDriftPercentage = 0;
+                    this.lastNormalDriftPercentage = 0;
+                    return;
                 }
+            }
+
+            if (this.velocity <= 0.01 || this.getDistanceToFinalWaypoint() <= 0.03 && Math.abs(this.robot.getPosition().getRotation().getDegrees() - this.getFinalWaypoint().getHeading()) <= 1) {
+                this.isFinished = true;
             }
 
             this.lastUpdate = System.nanoTime();
             this.lastDriftPercentage = driftPercentage;
+            this.lastNormalDriftPercentage = normalDriftPercentage;
         }
     }
 
@@ -166,8 +180,16 @@ public class PurePursuit {
         return this.getWaypoint(this.currentWaypoint);
     }
 
+    public int getCurrentWaypointIndex() {
+        return this.currentWaypoint;
+    }
+
     public Waypoint getPreviousWaypoint() {
         return this.getWaypoint(this.currentWaypoint - 1);
+    }
+
+    public Waypoint getNextWaypoint() {
+        return this.getWaypoint(this.currentWaypoint + 1);
     }
 
     public Waypoint getWaypoint(int index) {

@@ -19,9 +19,10 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
 import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private static final boolean IS_CHARGED_UP_FIELD = true;
@@ -51,8 +52,9 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     private boolean showAlienatedObstacles = false;
 
-    private final List<Pose2d> positions = new ArrayList<>();
+    private final Map<Pose2d, Integer> positions = new HashMap<>();
 
+    private final List<Double> currentWaypoint = new ArrayList<>();
     private final List<Double> driveVelocities = new ArrayList<>();
     private final List<Double> driftPercentageVelocities = new ArrayList<>();
     private final List<Double> omegaVelocities = new ArrayList<>();
@@ -122,17 +124,21 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
         this.purePursuit = new PurePursuit(
                 this.robot,
-                new PurePursuit.Constants(4.5, 4.5, 2, 3,
+                new PurePursuit.Constants(4.5, 4.5, 1.5, 4,
                         new PIDPreset(2, 0, 0, 80, 60),
                         new PIDPreset(4.69, 0, 0, 1080, 1440)
                 ),
                 this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints)
         );
 
-        this.addGraph("Drive Velocity", () -> driveVelocities, 0, this.purePursuit.getConstants().maxVel());
-        this.addGraph("Last Drift", () -> driftPercentageVelocities, 0, 1);
-//        this.addGraph("Angle Velocity", () -> omegaVelocities, -360, 360);
-        this.addGraph("Driving Angle", () -> drivingAngles, -180, 180);
+        Map<Supplier<List<Double>>, Color> graphValues = new HashMap<>();
+        graphValues.put(() -> driftPercentageVelocities, Color.BLUE);
+        graphValues.put(() -> currentWaypoint, Color.GREEN);
+        graphValues.put(() -> driveVelocities.stream().map(s -> s / this.purePursuit.getConstants().maxVel()).toList(), Color.RED);
+
+//        this.addGraph("Drive Velocity", () -> driveVelocities, 0, this.purePursuit.getConstants().maxVel());
+        this.addGraph("Drift & Waypoint", graphValues, 0, 1);
+//        this.addGraph("Driving Angle", () -> drivingAngles, -180, 180);
 
         this.purePursuit.reset();
         this.start();
@@ -157,11 +163,11 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     }
 
     public void displayPath() {
-        for (Pose2d position : this.positions) {
+        for (Map.Entry<Pose2d, Integer> entry : this.positions.entrySet()) {
             this.drawImage(invisibleRobotImage,
-                    position.getTranslation(),
+                    entry.getKey().getTranslation(),
                     MINI_ROBOT_WIDTH, MINI_ROBOT_WIDTH,
-                    -position.getRotation().getDegrees());
+                    -entry.getKey().getRotation().getDegrees());
         }
     }
 
@@ -219,8 +225,9 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     public void updateValues() {
         if (this.purePursuit.isRunning() && !this.purePursuit.isFinished()) {
-            this.positions.add(this.robot.getPosition());
+            this.positions.put(this.robot.getPosition(), this.purePursuit.getCurrentWaypointIndex());
 
+            this.currentWaypoint.add(this.purePursuit.getCurrentWaypointIndex() * 1d / this.purePursuit.getWaypoints().size());
             this.driveVelocities.add(this.robot.getVelocity().getTranslation().getNorm());
             this.driftPercentageVelocities.add(this.purePursuit.getDriftPercentage());
             this.omegaVelocities.add(this.robot.getVelocity().getRotation().getDegrees());
@@ -254,6 +261,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         if (e.getKeyChar() == 'r' || e.getKeyChar() == 'R' || e.getKeyChar() == 'ר') {
             this.purePursuit.reset();
             this.positions.clear();
+            this.currentWaypoint.clear();
             this.driveVelocities.clear();
             this.driftPercentageVelocities.clear();
             this.omegaVelocities.clear();

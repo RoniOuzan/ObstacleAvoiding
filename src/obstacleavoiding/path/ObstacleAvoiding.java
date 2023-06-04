@@ -32,7 +32,7 @@ public class ObstacleAvoiding {
 
     public List<Waypoint> generateWaypointsBinary(List<Waypoint> waypoints) {
         List<Waypoint> trajectory = new ArrayList<>(waypoints);
-        for (int a = 0; a < 25 && getDistributingObstacles(trajectory).size() > 0; a++) {
+        for (int a = 0; a < 20 && getDistributingObstacles(trajectory).size() > 0; a++) {
             int size = trajectory.size() - 1;
             for (int i = 0; i < size; i++) {
                 Waypoint waypoint1 = trajectory.get(i);

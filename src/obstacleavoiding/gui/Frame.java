@@ -9,6 +9,7 @@ import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -80,6 +81,17 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
 
     protected int convertYWithSize(double y, double size, Dimension2d dimension) {
         return convertY(convertYWithSize(y, size), dimension);
+    }
+
+    public void addGraph(String title, Map<Supplier<List<Double>>, Color> values, double min, double max) {
+        JFrame graph = Graph.createAndShowGui(title, values, min, max);
+        graph.addKeyListener(new KeyHandler());
+        graph.addMouseListener(new MouseHandler());
+        graphs.add(graph);
+    }
+
+    public void addGraph(String title, Map<Supplier<List<Double>>, Color> values) {
+        this.addGraph(title, values, 0, 0);
     }
 
     public void addGraph(String title, Supplier<List<Double>> values, double min, double max) {
@@ -178,14 +190,21 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
         this.update();
     }
 
-    public void drawRect(double x, double y, int width, int height, Color color) {
+    public void drawRect(double x, double y, double width, double height, Color color) {
         double X = convertUnits(x);
         double Y = convertUnits(y);
+        double newWidth = convertUnits(width);
+        double newHeight = convertUnits(height);
 
         this.panel.graphics.add(g -> {
             g.setColor(color);
-            g.drawRect(convertXWithSize(X, width, dimension), convertYWithSize(Y, height, dimension), convertWidth(width), convertHeight(height));
+            g.drawRect(convertXWithSize(X, newWidth, dimension), convertYWithSize(Y, newHeight, dimension), convertWidth(newWidth), convertHeight(newHeight));
         });
+        this.update();
+    }
+
+    public void drawRect(Translation2d translation2d, double width, double height, Color color) {
+        this.drawRect(translation2d.getX(), translation2d.getY(), width, height, color);
     }
 
     public void drawRect(Translation2d translation1, Translation2d translation2, Color color) {
@@ -211,6 +230,10 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
             g.fillRect(convertXWithSize(X, newWidth, dimension), convertYWithSize(Y, newHeight, dimension), convertWidth(newWidth), convertHeight(newHeight));
         });
         this.update();
+    }
+
+    public void fillRect(Translation2d translation2d, double width, double height, Color color) {
+        this.fillRect(translation2d.getX(), translation2d.getY(), width, height, color);
     }
 
     public void fillRect(Translation2d translation1, Translation2d translation2, Color color) {
