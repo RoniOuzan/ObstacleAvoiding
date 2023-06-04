@@ -15,7 +15,7 @@ public class DraggableObstacle extends Obstacle {
     }
 
     public DraggableObstacle(Translation2d center, Obstacle obstacle) {
-        super(obstacle.getName(), obstacle.getAlliance(), getCornersOfObstacle(center, obstacle));
+        super(obstacle.getUuid(), obstacle.getName(), obstacle.getAlliance(), getCornersOfObstacle(center, obstacle));
     }
 
     private static List<Translation2d> getCornersOfObstacle(Translation2d center, Obstacle obstacle) {

@@ -8,18 +8,21 @@ import java.util.List;
 import java.util.UUID;
 
 public class Obstacle {
+    private final UUID uuid;
+
     private final String name;
     private final Alliance alliance;
     private List<Translation2d> corners;
 
-    private final UUID uuid;
-
-    public Obstacle(String name, Alliance alliance, List<Translation2d> corners) {
+    protected Obstacle(UUID uuid, String name, Alliance alliance, List<Translation2d> corners) {
+        this.uuid = uuid;
         this.name = name;
         this.alliance = alliance;
         this.corners = corners;
+    }
 
-        this.uuid = UUID.randomUUID();
+    public Obstacle(String name, Alliance alliance, List<Translation2d> corners) {
+        this(UUID.randomUUID(), name, alliance, corners);
     }
 
     public Obstacle(String name, Alliance alliance, Translation2d... corners) {

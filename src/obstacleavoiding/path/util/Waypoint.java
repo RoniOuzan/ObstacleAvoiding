@@ -8,22 +8,25 @@ import obstacleavoiding.path.GUI;
 import java.util.UUID;
 
 public class Waypoint extends Translation2d {
+    private final UUID uuid;
+
     private final double heading;
     private final double movementAngle;
 
     private final RobotReference robotReference;
 
-    private final UUID uuid;
-
-    public Waypoint(double x, double y, double heading, double movementAngle, RobotReference robotReference) {
+    public Waypoint(UUID uuid, double x, double y, double heading, double movementAngle, RobotReference robotReference) {
         Translation2d translation2d = new Translation2d(x, y).minus(robotReference.getReference(Rotation2d.fromDegrees(heading)));
+        this.uuid = uuid;
         this.m_x = translation2d.getX();
         this.m_y = translation2d.getY();
         this.heading = heading;
         this.movementAngle = movementAngle;
         this.robotReference = robotReference;
+    }
 
-        this.uuid = UUID.randomUUID();
+    public Waypoint(double x, double y, double heading, double movementAngle, RobotReference robotReference) {
+        this(UUID.randomUUID(), x, y, heading, movementAngle, robotReference);
     }
 
     public Waypoint(double x, double y, RobotReference robotReference) {
@@ -39,7 +42,7 @@ public class Waypoint extends Translation2d {
     }
 
     public Waypoint(Translation2d translation2d, Waypoint waypoint) {
-        this(translation2d.getX(), translation2d.getY(), waypoint.heading, waypoint.movementAngle, waypoint.robotReference);
+        this(waypoint.getUuid(), translation2d.getX(), translation2d.getY(), waypoint.heading, waypoint.movementAngle, waypoint.robotReference);
     }
 
     public Waypoint(Translation2d translation2d, double heading, RobotReference robotReference) {

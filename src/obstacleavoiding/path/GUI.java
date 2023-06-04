@@ -47,6 +47,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private final Image invisibleRobotImage = new ImageIcon("src/obstacleavoiding/path/util/InvisibleRobot.png").getImage();
 
     private boolean showAlienatedObstacles = false;
+    private boolean autoGeneratePath = true;
 
     private final Map<Pose2d, Integer> positions = new HashMap<>();
 
@@ -121,7 +122,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.obstacles.addAll(blueObstacles);
         this.obstacles.addAll(redObstacles);
 
-        this.obstacleAvoiding = new ObstacleAvoiding(HALF_ROBOT + 0.05, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), this.obstacles);
+        this.obstacleAvoiding = new ObstacleAvoiding(HALF_ROBOT, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), this.obstacles);
 
         this.defaultWaypoints = new ArrayList<>();
         this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 1, DEFAULT_MAX_Y / 2 + 1, Waypoint.RobotReference.CENTER));
@@ -249,29 +250,32 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
         boolean drag = false;
         for (int i = this.purePursuit.getWaypoints().size() - 1; i >= 0 && !drag; i--) {
-            if (this.purePursuit.getWaypoints().get(i).getOriginalPosition().getDistance(mouseLocation) <= convertPixelsToUnits(20)) {
-                Waypoint lastWaypoint = this.purePursuit.getWaypoints().get(i);
-                Waypoint waypoint = new Waypoint(mouseLocation, lastWaypoint);
-                this.purePursuit.getWaypoints().set(i, waypoint);
+            Waypoint waypoint = this.purePursuit.getWaypoints().get(i);
+            if (waypoint.getUuid().equals(this.draggedWaypoint)) {
+                Waypoint newWaypoint = new Waypoint(mouseLocation, waypoint);
+                this.purePursuit.getWaypoints().set(i, newWaypoint);
 
                 for (int j = 0; j < this.defaultWaypoints.size(); j++) {
-                    if (this.defaultWaypoints.get(j) == lastWaypoint) {
-                        this.defaultWaypoints.set(j, waypoint);
+                    if (this.defaultWaypoints.get(j) == waypoint) {
+                        this.defaultWaypoints.set(j, newWaypoint);
                     }
                 }
 
-                this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
+                if (this.autoGeneratePath)
+                    this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
                 drag = true;
             }
         }
 
         for (int i = this.obstacles.size() - 1; i >= 0 && !drag; i--) {
             Obstacle obstacle = this.obstacles.get(i);
-            if (obstacle.getCenter().getDistance(mouseLocation) <= convertPixelsToUnits(20)) {
+            if (obstacle.getUuid().equals(this.draggedObstacle)) {
                 DraggableObstacle newObstacle = new DraggableObstacle(mouseLocation, obstacle);
                 this.obstacles.set(i, newObstacle);
                 this.obstacleAvoiding.setObstacles(this.obstacles);
-                this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
+
+                if (this.autoGeneratePath)
+                    this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
 
                 drag = true;
             }
@@ -280,7 +284,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     @Override
     public void keyPressed(KeyEvent e) {
-        if (e.getKeyChar() == 'r' || e.getKeyChar() == 'R' || e.getKeyChar() == 'ר') {
+        if (e.getKeyCode() == KeyEvent.VK_R) {
             this.purePursuit.reset();
             this.positions.clear();
             this.currentWaypoint.clear();
@@ -289,11 +293,13 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.omegaVelocities.clear();
             this.drivingAngles.clear();
             this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
-        } else if (e.getKeyChar() == 't' || e.getKeyChar() == 'T' || e.getKeyChar() == 'א') {
+        } else if (e.getKeyCode() == KeyEvent.VK_T) {
             this.purePursuit.setRunning(!this.purePursuit.isRunning());
-        } else if (e.getKeyChar() == 'g' || e.getKeyChar() == 'G' || e.getKeyChar() == 'ע') {
+        } else if (e.getKeyCode() == KeyEvent.VK_G) {
             this.showAlienatedObstacles = !this.showAlienatedObstacles;
-        } else if (e.getKeyChar() == 'f' || e.getKeyChar() == 'F' || e.getKeyChar() == 'כ') {
+        } else if (e.getKeyCode() == KeyEvent.VK_A) {
+            this.autoGeneratePath = !this.autoGeneratePath;
+        } else if (e.getKeyCode() == KeyEvent.VK_F) {
             this.obstacleAvoiding.setFiltering(!this.obstacleAvoiding.isFiltering());
         }
     }
