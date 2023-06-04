@@ -67,6 +67,16 @@ public class Waypoint extends Translation2d {
     }
 
     @Override
+    public void setX(double x) {
+        super.setX(x - robotReference.getReference(Rotation2d.fromDegrees(heading)).getX());
+    }
+
+    @Override
+    public void setY(double y) {
+        super.setY(y - robotReference.getReference(Rotation2d.fromDegrees(heading)).getY());
+    }
+
+    @Override
     public String toString() {
         return "(" + this.getX() + "," + this.getY() + "," + this.getHeading() + "," + this.getMovementAngle() + ")";
     }

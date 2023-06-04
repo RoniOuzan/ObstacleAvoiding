@@ -82,7 +82,7 @@ public class ObstacleAvoiding {
                             }
 
                             middles = middles.stream().sorted(Comparator.comparing(middle::getDistance)).toList();
-                            if (!split && a < 3) {
+                            if (!split && a < 5) {
                                 if (b < middles.size())
                                     middle = middles.get(b);
                                 split = true;
@@ -126,6 +126,12 @@ public class ObstacleAvoiding {
                 return true;
             }
         }
+
+        for (int i = 0; i < 360; i += 90) {
+            if (this.getObstacle(translation2d.plus(new Translation2d(0.3, Rotation2d.fromDegrees(i)))) != null)
+                return true;
+        }
+
         return false;
     }
 

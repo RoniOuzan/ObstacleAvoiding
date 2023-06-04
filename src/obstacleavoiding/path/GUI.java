@@ -233,7 +233,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     }
 
     public void updateValues() {
-        if (this.purePursuit.isRunning() && !this.purePursuit.isFinished()) {
+        if (this.purePursuit.isRunning()) {
             this.positions.put(this.robot.getPosition(), this.purePursuit.getCurrentWaypointIndex());
 
             this.currentWaypoint.add(this.purePursuit.getCurrentWaypointIndex() * 1d / this.purePursuit.getWaypoints().size());
@@ -254,8 +254,10 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             if (waypoint == this.draggedWaypoint) {
                 waypoint.set(mouseLocation);
 
-                if (this.autoGeneratePath)
+                if (this.autoGeneratePath) {
                     this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
+                }
+
                 drag = true;
             }
         }
@@ -266,8 +268,9 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
                 obstacle.setCorners(DraggableObstacle.getCornersOfObstacle(mouseLocation, obstacle));
                 this.obstacleAvoiding.setObstacles(this.obstacles);
 
-                if (this.autoGeneratePath)
+                if (this.autoGeneratePath) {
                     this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
+                }
 
                 drag = true;
             }

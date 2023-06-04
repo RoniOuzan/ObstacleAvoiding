@@ -12,7 +12,6 @@ import obstacleavoiding.path.util.Waypoint;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
 public class PurePursuit {
     private List<Waypoint> waypoints;
@@ -138,14 +137,6 @@ public class PurePursuit {
         return distance;
     }
 
-    public double getAbsoluteDistance() {
-        double distance = 0;
-        for (int i = 0; i < this.waypoints.size() - 1; i++) {
-            distance += this.waypoints.get(i).getDistance(this.waypoints.get(i + 1));
-        }
-        return distance;
-    }
-
     public double getDriftPercentage() {
         return lastDriftPercentage;
     }
@@ -166,7 +157,7 @@ public class PurePursuit {
     }
 
     public boolean isRunning() {
-        return isRunning;
+        return isRunning && !this.isFinished;
     }
 
     public boolean isFinished() {
@@ -208,10 +199,6 @@ public class PurePursuit {
 
     public Waypoint getFinalWaypoint() {
         return this.getWaypoint(this.waypoints.size() - 1);
-    }
-
-    public void setWaypoint(int index, Waypoint waypoint) {
-        this.waypoints.set(index, waypoint);
     }
 
     public void setWaypoints(List<Waypoint> waypoints) {
