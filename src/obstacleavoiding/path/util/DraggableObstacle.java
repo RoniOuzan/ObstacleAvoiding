@@ -14,11 +14,7 @@ public class DraggableObstacle extends Obstacle {
         super(name, alliance, corners);
     }
 
-    public DraggableObstacle(Translation2d center, Obstacle obstacle) {
-        super(obstacle.getUuid(), obstacle.getName(), obstacle.getAlliance(), getCornersOfObstacle(center, obstacle));
-    }
-
-    private static List<Translation2d> getCornersOfObstacle(Translation2d center, Obstacle obstacle) {
+    public static List<Translation2d> getCornersOfObstacle(Translation2d center, Obstacle obstacle) {
         Translation2d oldCenter = obstacle.getCenter();
         Translation2d d = oldCenter.minus(center);
         return obstacle.getCorners().stream().map(c -> c.minus(d)).collect(Collectors.toList());

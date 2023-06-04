@@ -70,6 +70,24 @@ public class Translation2d implements Interpolatable<Translation2d> {
         return m_y;
     }
 
+    public void setX(double x) {
+        this.m_x = x;
+    }
+
+    public void setY(double y) {
+        this.m_y = y;
+    }
+
+    public void set(double x, double y) {
+        this.setX(x);
+        this.setY(y);
+    }
+
+    public void set(Translation2d translation2d) {
+        this.setX(translation2d.getX());
+        this.setY(translation2d.getY());
+    }
+
     /**
      * Returns the norm, or distance from the origin to the translation.
      *

@@ -12,6 +12,7 @@ import obstacleavoiding.path.util.Waypoint;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 public class PurePursuit {
     private List<Waypoint> waypoints;
@@ -28,7 +29,7 @@ public class PurePursuit {
     private double lastNormalDriftPercentage;
     private double lastDriftPercentage;
 
-    private int currentWaypoint = 1;
+    private Waypoint currentWaypoint;
     private boolean isFinished = false;
     private boolean isRunning = true;
 
@@ -51,7 +52,7 @@ public class PurePursuit {
     }
 
     public void reset() {
-        this.currentWaypoint = 1;
+        this.currentWaypoint = this.waypoints.get(1);
         this.robot.setPosition(new Pose2d(this.getStartWaypoint(), Rotation2d.fromDegrees(this.getStartWaypoint().getHeading())));
         this.robot.drive(new Pose2d());
         this.velocity = 0;
@@ -80,7 +81,7 @@ public class PurePursuit {
             double normalDriftPercentage = driftPercentage;
 
             Rotation2d driftAngle;
-            if (this.currentWaypoint < this.waypoints.size() - 1)
+            if (this.getCurrentWaypointIndex() < this.waypoints.size() - 1)
                 driftAngle = this.getNextWaypoint().minus(this.getCurrentWaypoint()).getAngle().minus(this.getCurrentWaypoint().minus(this.getPreviousWaypoint()).getAngle());
             else
                 driftAngle = Rotation2d.fromDegrees(0);
@@ -90,7 +91,7 @@ public class PurePursuit {
             velocity += MathUtil.clamp(this.driveController.calculate(this.velocity, targetVelocity), -this.constants.maxAccel * period, this.constants.maxAccel * period);
             velocity = MathUtil.clamp(velocity, 0, maxVelocity);
 
-            if (this.currentWaypoint < this.waypoints.size() - 1) {
+            if (this.getCurrentWaypointIndex() < this.waypoints.size() - 1) {
                 Translation2d angleFromNext = this.getNextWaypoint().minus(this.robot.getPosition().getTranslation()).normalized();
 
                 if (driftPercentage > 0 && this.lastDriftPercentage > driftPercentage) {
@@ -105,8 +106,8 @@ public class PurePursuit {
                     Rotation2d.fromDegrees(0)));
 
             if (driftPercentage >= 0.9) {
-                if (this.currentWaypoint < this.waypoints.size() - 1) {
-                    this.currentWaypoint++;
+                if (this.getCurrentWaypointIndex() < this.waypoints.size() - 1) {
+                    this.currentWaypoint = this.getNextWaypoint();
 
                     this.lastUpdate = System.nanoTime();
                     this.lastDriftPercentage = 0;
@@ -131,7 +132,7 @@ public class PurePursuit {
 
     public double getDistanceToFinalWaypoint() {
         double distance = this.getDistanceToCurrentWaypoint();
-        for (int i = this.currentWaypoint; i < this.waypoints.size() - 1; i++) {
+        for (int i = this.getCurrentWaypointIndex(); i < this.waypoints.size() - 1; i++) {
             distance += this.waypoints.get(i).getDistance(this.waypoints.get(i + 1));
         }
         return distance;
@@ -177,19 +178,24 @@ public class PurePursuit {
     }
 
     public Waypoint getCurrentWaypoint() {
-        return this.getWaypoint(this.currentWaypoint);
-    }
-
-    public int getCurrentWaypointIndex() {
         return this.currentWaypoint;
     }
 
+    public int getCurrentWaypointIndex() {
+        for (int i = 0; i < this.waypoints.size(); i++) {
+            if (this.waypoints.get(i).equals(this.currentWaypoint))
+                return i;
+        }
+        this.currentWaypoint = this.getWaypoint(1);
+        return 1;
+    }
+
     public Waypoint getPreviousWaypoint() {
-        return this.getWaypoint(this.currentWaypoint - 1);
+        return this.getWaypoint(this.getCurrentWaypointIndex() - 1);
     }
 
     public Waypoint getNextWaypoint() {
-        return this.getWaypoint(this.currentWaypoint + 1);
+        return this.getWaypoint(this.getCurrentWaypointIndex() + 1);
     }
 
     public Waypoint getWaypoint(int index) {

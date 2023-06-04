@@ -59,8 +59,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     private double maxValue = DEFAULT_MAX_VALUE;
 
-    private UUID draggedWaypoint = null;
-    private UUID draggedObstacle = null;
+    private Waypoint draggedWaypoint = null;
+    private Obstacle draggedObstacle = null;
 
     public GUI() {
         super("Path Follower", DIMENSION, PIXELS_IN_ONE_UNIT);
@@ -251,15 +251,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         boolean drag = false;
         for (int i = this.purePursuit.getWaypoints().size() - 1; i >= 0 && !drag; i--) {
             Waypoint waypoint = this.purePursuit.getWaypoints().get(i);
-            if (waypoint.getUuid().equals(this.draggedWaypoint)) {
-                Waypoint newWaypoint = new Waypoint(mouseLocation, waypoint);
-                this.purePursuit.getWaypoints().set(i, newWaypoint);
-
-                for (int j = 0; j < this.defaultWaypoints.size(); j++) {
-                    if (this.defaultWaypoints.get(j) == waypoint) {
-                        this.defaultWaypoints.set(j, newWaypoint);
-                    }
-                }
+            if (waypoint == this.draggedWaypoint) {
+                waypoint.set(mouseLocation);
 
                 if (this.autoGeneratePath)
                     this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
@@ -269,9 +262,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
         for (int i = this.obstacles.size() - 1; i >= 0 && !drag; i--) {
             Obstacle obstacle = this.obstacles.get(i);
-            if (obstacle.getUuid().equals(this.draggedObstacle)) {
-                DraggableObstacle newObstacle = new DraggableObstacle(mouseLocation, obstacle);
-                this.obstacles.set(i, newObstacle);
+            if (obstacle == this.draggedObstacle) {
+                obstacle.setCorners(DraggableObstacle.getCornersOfObstacle(mouseLocation, obstacle));
                 this.obstacleAvoiding.setObstacles(this.obstacles);
 
                 if (this.autoGeneratePath)
@@ -313,7 +305,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         for (int i = this.purePursuit.getWaypoints().size() - 1; i >= 0 && !drag; i--) {
             Waypoint waypoint = this.purePursuit.getWaypoint(i);
             if (this.purePursuit.getWaypoints().get(i).getOriginalPosition().getDistance(mouseLocation) <= convertPixelsToUnits(20)) {
-                this.draggedWaypoint = waypoint.getUuid();
+                this.draggedWaypoint = waypoint;
                 this.draggedObstacle = null;
                 drag = true;
             }
@@ -324,7 +316,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             if (obstacle instanceof DraggableObstacle) {
                 if (obstacle.getCenter().getDistance(mouseLocation) <= convertPixelsToUnits(20)) {
                     this.draggedWaypoint = null;
-                    this.draggedObstacle = obstacle.getUuid();
+                    this.draggedObstacle = obstacle;
                     drag = true;
                 }
             }

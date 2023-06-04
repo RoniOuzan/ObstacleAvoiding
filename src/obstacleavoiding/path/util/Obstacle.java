@@ -8,21 +8,14 @@ import java.util.List;
 import java.util.UUID;
 
 public class Obstacle {
-    private final UUID uuid;
-
     private final String name;
     private final Alliance alliance;
     private List<Translation2d> corners;
 
-    protected Obstacle(UUID uuid, String name, Alliance alliance, List<Translation2d> corners) {
-        this.uuid = uuid;
+    public Obstacle(String name, Alliance alliance, List<Translation2d> corners) {
         this.name = name;
         this.alliance = alliance;
         this.corners = corners;
-    }
-
-    public Obstacle(String name, Alliance alliance, List<Translation2d> corners) {
-        this(UUID.randomUUID(), name, alliance, corners);
     }
 
     public Obstacle(String name, Alliance alliance, Translation2d... corners) {
@@ -33,16 +26,16 @@ public class Obstacle {
         return corners;
     }
 
+    public void setCorners(List<Translation2d> corners) {
+        this.corners = corners;
+    }
+
     public Alliance getAlliance() {
         return alliance;
     }
 
     public String getName() {
         return name;
-    }
-
-    public UUID getUuid() {
-        return uuid;
     }
 
     public Translation2d getCenter() {
@@ -53,26 +46,6 @@ public class Obstacle {
 
     public double getDirection(int index) {
         return this.corners.get(index).minus(this.getCenter()).getAngle().getDegrees();
-    }
-
-    public Translation2d alienateCorner(Translation2d corner, double amount) {
-        double angle = corner.minus(this.getCenter()).getAngle().getRadians();
-        return corner.plus(new Translation2d(
-                Math.signum(Math.cos(angle)) * amount, Math.signum(Math.sin(angle)) * amount));
-    }
-
-    public void alienateCorners(double amount) {
-        List<Translation2d> corners = new ArrayList<>();
-        for (Translation2d corner : this.corners) {
-            corners.add(this.alienateCorner(corner, amount));
-        }
-        this.corners = corners;
-    }
-
-    public Obstacle getAlienatedObstacle(double amount) {
-        Obstacle obstacle = new Obstacle(this.name, this.alliance, new ArrayList<>(this.corners));
-        obstacle.alienateCorners(amount);
-        return obstacle;
     }
 
     public Obstacle getExtendedObstacle(double amount) {
