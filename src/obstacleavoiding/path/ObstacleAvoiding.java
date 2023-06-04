@@ -6,14 +6,11 @@ import obstacleavoiding.path.util.Bounds;
 import obstacleavoiding.path.util.Obstacle;
 import obstacleavoiding.path.util.Waypoint;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ObstacleAvoiding {
-    private final List<Obstacle> obstacles;
+    private List<Obstacle> obstacles;
     private final double distanceThreshold;
 
     private final Bounds bounds;
@@ -222,7 +219,19 @@ public class ObstacleAvoiding {
         return obstacles;
     }
 
+    public void setObstacles(List<Obstacle> obstacles) {
+        this.obstacles = obstacles.stream().map(o -> o.getExtendedObstacle(distanceThreshold)).collect(Collectors.toList());
+    }
+
     public double getDistanceThreshold() {
         return distanceThreshold;
+    }
+
+    private static double getPathDistance(List<Waypoint> waypoints) {
+        double distance = 0;
+        for (int i = 0; i < waypoints.size() - 1; i++) {
+            distance += waypoints.get(i).getDistance(waypoints.get(i + 1));
+        }
+        return distance;
     }
 }

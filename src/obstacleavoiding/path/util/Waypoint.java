@@ -5,19 +5,25 @@ import obstacleavoiding.math.geometry.Rotation2d;
 import obstacleavoiding.math.geometry.Translation2d;
 import obstacleavoiding.path.GUI;
 
+import java.util.UUID;
+
 public class Waypoint extends Translation2d {
     private final double heading;
     private final double movementAngle;
 
     private final RobotReference robotReference;
 
+    private final UUID uuid;
+
     public Waypoint(double x, double y, double heading, double movementAngle, RobotReference robotReference) {
-        Translation2d translation2d = new Translation2d(x, y).plus(robotReference.getReference(Rotation2d.fromDegrees(heading)));
+        Translation2d translation2d = new Translation2d(x, y).minus(robotReference.getReference(Rotation2d.fromDegrees(heading)));
         this.m_x = translation2d.getX();
         this.m_y = translation2d.getY();
         this.heading = heading;
         this.movementAngle = movementAngle;
         this.robotReference = robotReference;
+
+        this.uuid = UUID.randomUUID();
     }
 
     public Waypoint(double x, double y, RobotReference robotReference) {
@@ -52,6 +58,10 @@ public class Waypoint extends Translation2d {
         return movementAngle;
     }
 
+    public Translation2d getOriginalPosition() {
+        return this.plus(this.getRobotReferenceTranslation());
+    }
+
     public RobotReference getRobotReference() {
         return robotReference;
     }
@@ -64,6 +74,9 @@ public class Waypoint extends Translation2d {
         return this.minus(this.robotReference.getReference(angle));
     }
 
+    public UUID getUuid() {
+        return uuid;
+    }
 
     @Override
     public String toString() {
@@ -71,12 +84,12 @@ public class Waypoint extends Translation2d {
     }
 
     public enum RobotReference {
-        FRONT_LEFT(GUI.ROBOT_WITH_BUMPER, GUI.HALF_ROBOT),
-        FRONT_CENTER(GUI.ROBOT_WITH_BUMPER, 0),
-        FRONT_RIGHT(GUI.ROBOT_WITH_BUMPER, -GUI.HALF_ROBOT),
-        BACK_LEFT(-GUI.ROBOT_WITH_BUMPER, GUI.HALF_ROBOT),
-        BACK_CENTER(-GUI.ROBOT_WITH_BUMPER, 0),
-        BACK_RIGHT(-GUI.ROBOT_WITH_BUMPER, -GUI.HALF_ROBOT),
+        FRONT_LEFT(GUI.HALF_ROBOT, GUI.HALF_ROBOT),
+        FRONT_CENTER(GUI.HALF_ROBOT, 0),
+        FRONT_RIGHT(GUI.HALF_ROBOT, -GUI.HALF_ROBOT),
+        BACK_LEFT(-GUI.HALF_ROBOT, GUI.HALF_ROBOT),
+        BACK_CENTER(-GUI.HALF_ROBOT, 0),
+        BACK_RIGHT(-GUI.HALF_ROBOT, -GUI.HALF_ROBOT),
         CENTER(0, 0)
         ;
 

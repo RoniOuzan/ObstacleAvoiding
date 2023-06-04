@@ -210,6 +210,7 @@ public class PurePursuit {
 
     public void setWaypoints(List<Waypoint> waypoints) {
         this.waypoints = waypoints;
+
     }
 
     public Constants getConstants() {

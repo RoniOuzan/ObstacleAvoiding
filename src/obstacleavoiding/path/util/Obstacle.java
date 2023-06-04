@@ -5,16 +5,21 @@ import obstacleavoiding.math.geometry.Translation2d;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 public class Obstacle {
     private final String name;
     private final Alliance alliance;
     private List<Translation2d> corners;
 
+    private final UUID uuid;
+
     public Obstacle(String name, Alliance alliance, List<Translation2d> corners) {
         this.name = name;
         this.alliance = alliance;
         this.corners = corners;
+
+        this.uuid = UUID.randomUUID();
     }
 
     public Obstacle(String name, Alliance alliance, Translation2d... corners) {
@@ -31,6 +36,10 @@ public class Obstacle {
 
     public String getName() {
         return name;
+    }
+
+    public UUID getUuid() {
+        return uuid;
     }
 
     public Translation2d getCenter() {
