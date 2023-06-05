@@ -1,5 +1,6 @@
 package obstacleavoiding.path;
 
+import obstacleavoiding.math.MathUtil;
 import obstacleavoiding.math.geometry.*;
 
 public class Robot {
@@ -10,7 +11,7 @@ public class Robot {
 
     private final Constants constants;
 
-    private double difference = 0;
+    private double period = 0;
     private long lastUpdate = 0;
 
     public Robot(Pose2d position, Constants constants) {
@@ -21,17 +22,16 @@ public class Robot {
 
     public void drive(Pose2d velocity) {
         this.lastVelocity = this.velocity;
-        this.difference = (System.currentTimeMillis() - this.lastUpdate) / 1000d;
+        this.period = (System.currentTimeMillis() - this.lastUpdate) / 1000d;
 
-        if (velocity.getTranslation().getNorm() > constants.maxVel) {
-            velocity = new Pose2d(
-                    new Translation2d(constants.maxVel, velocity.getTranslation().getAngle()),
-                    velocity.getRotation());
-        }
+        double calculatedVelocity = Math.min(velocity.getTranslation().getNorm(), constants.maxVel - (MathUtil.inputModulus(velocity.getRotation().getRadians(), 0, 2 * Math.PI) / 4));
+        velocity = new Pose2d(
+                new Translation2d(calculatedVelocity, velocity.getTranslation().getAngle()),
+                velocity.getRotation());
 
         this.position = new Pose2d(
                         this.position.getTranslation().plus(velocity.getTranslation().times(constants.period)),
-                this.position.getRotation().rotateBy(Rotation2d.fromDegrees(velocity.getRotation().getDegrees() * constants.period)));
+                this.position.getRotation().rotateBy(Rotation2d.fromRadians(velocity.getRotation().getRadians() * constants.period)));
         this.velocity = velocity;
 
         this.lastUpdate = System.currentTimeMillis();
@@ -42,7 +42,7 @@ public class Robot {
     }
 
     public double getAcceleration() {
-        return (this.velocity.getTranslation().getNorm() - this.lastVelocity.getTranslation().getNorm()) / this.difference;
+        return (this.velocity.getTranslation().getNorm() - this.lastVelocity.getTranslation().getNorm()) / this.period;
     }
 
     public Pose2d getPosition() {

@@ -8,7 +8,7 @@ import obstacleavoiding.path.GUI;
 import java.util.UUID;
 
 public class Waypoint extends Translation2d {
-    private final double heading;
+    private double heading;
     private final double movementAngle;
 
     private final RobotReference robotReference;
@@ -44,6 +44,10 @@ public class Waypoint extends Translation2d {
 
     public double getHeading() {
         return heading;
+    }
+
+    public void setHeading(double heading) {
+        this.heading = heading;
     }
 
     public double getMovementAngle() {

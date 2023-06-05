@@ -17,13 +17,15 @@ public class PurePursuit {
     private List<Waypoint> waypoints;
 
     private final PIDController driveController;
-    private final ProfiledPIDController omegaController;
+    private final PIDController omegaController;
 
     private final Constants constants;
 
     private final Robot robot;
 
-    private double velocity;
+    private double targetDriveVelocity;
+    private double driveVelocity;
+    private double omegaVelocity;
 
     private double lastNormalDriftPercentage;
     private double lastDriftPercentage;
@@ -34,15 +36,13 @@ public class PurePursuit {
 
     private long lastUpdate;
 
-    private final List<Integer> drifted = new ArrayList<>();
-
     public PurePursuit(Robot robot, Constants constants, List<Waypoint> waypoints) {
         this.robot = robot;
         this.constants = constants;
         this.waypoints = waypoints;
 
         this.driveController = new PIDController(0.3, 0, 0);
-        this.omegaController = new ProfiledPIDController(constants.omegaPreset);
+        this.omegaController = new PIDController(3, 0, 0);
         this.omegaController.enableContinuousInput(-180, 180);
     }
 
@@ -54,22 +54,18 @@ public class PurePursuit {
         this.currentWaypoint = this.waypoints.get(1);
         this.robot.setPosition(new Pose2d(this.getStartWaypoint(), Rotation2d.fromDegrees(this.getStartWaypoint().getHeading())));
         this.robot.drive(new Pose2d());
-        this.velocity = 0;
+        this.driveVelocity = 0;
+        this.omegaVelocity = 0;
         this.lastUpdate = System.nanoTime();
-        this.drifted.clear();
         this.lastDriftPercentage = 0;
 
-        this.resetControllers();
         this.isFinished = false;
-    }
-
-    private void resetControllers() {
-        this.omegaController.reset(this.robot.getPosition().getRotation().getDegrees());
     }
 
     public void update() {
         if (this.isRunning && !this.isFinished) {
             double period = (System.nanoTime() - this.lastUpdate) / 1_000_000_000d;
+            boolean isNotLastWaypoint = this.getCurrentWaypointIndex() < this.waypoints.size() - 1;
 
             Translation2d angle = this.getCurrentWaypoint().minus(this.robot.getPosition().getTranslation()).normalized();
             double driftPercentage = 1 - (MathUtil.clamp(this.getDistanceToCurrentWaypoint(), 0, this.constants.maxDriftDistance) / this.constants.maxDriftDistance);
@@ -85,12 +81,13 @@ public class PurePursuit {
             else
                 driftAngle = Rotation2d.fromDegrees(0);
 
-            double maxVelocity = this.constants.maxVel - (slowPercentage * Math.abs(driftAngle.getDegrees()) / 30);
-            double targetVelocity = this.getDistanceToFinalWaypoint() < 1.2 ? 0 : maxVelocity;
-            velocity += MathUtil.clamp(this.driveController.calculate(this.velocity, targetVelocity), -this.constants.maxAccel * period, this.constants.maxAccel * period);
-            velocity = MathUtil.clamp(velocity, 0, maxVelocity);
+            double closeSlower = (1 - MathUtil.deadband(this.getDistanceToFinalWaypoint(), 0, this.constants.finalSlowDistance)) * this.constants.maxVel;
+            double maxVelocity = this.constants.maxVel - (slowPercentage * Math.abs(driftAngle.getDegrees()) / 30) - closeSlower;
+            targetDriveVelocity = maxVelocity;
+            driveVelocity += MathUtil.clamp(this.driveController.calculate(this.driveVelocity, this.targetDriveVelocity), -this.constants.maxAccel * period, this.constants.maxAccel * period);
+            driveVelocity = MathUtil.clamp(driveVelocity, 0, maxVelocity);
 
-            if (this.getCurrentWaypointIndex() < this.waypoints.size() - 1) {
+            if (isNotLastWaypoint) {
                 Translation2d angleFromNext = this.getNextWaypoint().minus(this.robot.getPosition().getTranslation()).normalized();
 
                 if (driftPercentage > 0 && this.lastDriftPercentage > driftPercentage) {
@@ -100,9 +97,14 @@ public class PurePursuit {
                 angle = angle.times(1 - driftPercentage).plus(angleFromNext.times(driftPercentage));
             }
 
+            double targetOmegaVelocity = this.omegaController.calculate(this.robot.getPosition().getRotation().getDegrees(), this.currentWaypoint.getHeading());
+            omegaVelocity += MathUtil.clamp(targetOmegaVelocity - omegaVelocity, -this.constants.maxOmegaAccel * period, this.constants.maxOmegaAccel * period);
+            omegaVelocity = MathUtil.clamp(omegaVelocity, -this.constants.maxOmegaVel, this.constants.maxOmegaVel);
+
+            Rotation2d omega = Rotation2d.fromDegrees(omegaVelocity);
             this.robot.drive(new Pose2d(
-                    new Translation2d(velocity, angle.getAngle()),
-                    Rotation2d.fromDegrees(0)));
+                    new Translation2d(driveVelocity, angle.getAngle()),
+                    omega));
 
             if (driftPercentage >= 0.9) {
                 if (this.getCurrentWaypointIndex() < this.waypoints.size() - 1) {
@@ -115,7 +117,7 @@ public class PurePursuit {
                 }
             }
 
-            if (this.velocity <= 0.01 || this.getDistanceToFinalWaypoint() <= 0.03 && Math.abs(this.robot.getPosition().getRotation().getDegrees() - this.getFinalWaypoint().getHeading()) <= 1) {
+            if (this.driveVelocity <= 0.01 && this.getDistanceToFinalWaypoint() <= 0.03 && Math.abs(this.robot.getPosition().getRotation().getDegrees() - this.getFinalWaypoint().getHeading()) <= 1) {
                 this.isFinished = true;
             }
 
@@ -137,16 +139,12 @@ public class PurePursuit {
         return distance;
     }
 
+    public double getRawDistanceToFinalWaypoint() {
+        return this.robot.getPosition().getTranslation().getDistance(this.getFinalWaypoint());
+    }
+
     public double getDriftPercentage() {
         return lastDriftPercentage;
-    }
-
-    public ProfiledPIDController getDriveController() {
-        return new ProfiledPIDController(new PIDPreset(0, 0, 0, 0, 0));
-    }
-
-    public ProfiledPIDController getOmegaController() {
-        return omegaController;
     }
 
     public void setRunning(boolean running) {
@@ -162,6 +160,10 @@ public class PurePursuit {
 
     public boolean isFinished() {
         return isFinished;
+    }
+
+    public double getTargetDriveVelocity() {
+        return targetDriveVelocity;
     }
 
     public List<Waypoint> getWaypoints() {
@@ -210,5 +212,5 @@ public class PurePursuit {
         return constants;
     }
 
-    public record Constants(double maxVel, double maxAccel, double maxDriftDistance, double maxSlowDistance, PIDPreset drivePreset, PIDPreset omegaPreset) {}
+    public record Constants(double maxVel, double maxAccel, double maxOmegaVel, double maxOmegaAccel, double maxDriftDistance, double maxSlowDistance, double finalSlowDistance) {}
 }

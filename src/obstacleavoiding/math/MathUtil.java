@@ -102,6 +102,16 @@ public final class MathUtil {
         return applyDeadband(value, deadband, 1);
     }
 
+    public static double deadband(double axisValue, double deadband, double maxMagnitude) {
+        if (Math.abs(axisValue) < deadband)
+            return 0;
+        if (axisValue > 1) {
+            return 1;
+        } else {
+            return (maxMagnitude / (maxMagnitude - deadband)) * (Math.abs(axisValue) - deadband) * Math.signum(axisValue);
+        }
+    }
+
     /**
      * Returns modulus of input.
      *

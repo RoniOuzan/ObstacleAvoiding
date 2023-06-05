@@ -1,5 +1,6 @@
 package obstacleavoiding.path;
 
+import obstacleavoiding.math.MathUtil;
 import obstacleavoiding.math.geometry.Rotation2d;
 import obstacleavoiding.math.geometry.Translation2d;
 import obstacleavoiding.path.util.Bounds;
@@ -39,11 +40,11 @@ public class ObstacleAvoiding {
                     Waypoint waypoint2 = trajectory.get(i + 1);
                     List<Obstacle> obstacles = this.getDistributingObstacle(waypoint1, waypoint2);
                     if (obstacles.size() > 0) {
-                        Translation2d middle = waypoint1.interpolate(waypoint2, 0.5);
+                        Waypoint middle = new Waypoint(waypoint1.interpolate(waypoint2, 0.5), 0, Waypoint.RobotReference.CENTER);
 
                         Obstacle obstacle = this.getObstacle(middle);
                         if (obstacle != null) {
-                            List<Translation2d> middles = new ArrayList<>();
+                            List<Waypoint> middles = new ArrayList<>();
                             for (int j = 0; j < obstacle.getCorners().size(); j++) {
                                 double slopeMiddle = waypoint1.minus(waypoint2).getAngle().plus(Rotation2d.fromDegrees(90)).getTan();
                                 Translation2d corner1 = obstacle.getCorners().get(j);
@@ -78,7 +79,7 @@ public class ObstacleAvoiding {
                                 if (!this.bounds.isInOfBounds(newMiddle))
                                     continue;
 
-                                middles.add(newMiddle);
+                                middles.add(new Waypoint(newMiddle, 0, Waypoint.RobotReference.CENTER));
                             }
 
                             middles = middles.stream().sorted(Comparator.comparing(middle::getDistance)).toList();
@@ -91,7 +92,7 @@ public class ObstacleAvoiding {
                             }
                         }
 
-                        trajectory.add(i + 1, new Waypoint(middle, 90, Waypoint.RobotReference.CENTER));
+                        trajectory.add(i + 1, middle);
                     }
                 }
             }

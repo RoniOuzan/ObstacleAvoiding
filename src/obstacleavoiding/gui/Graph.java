@@ -119,7 +119,7 @@ public class Graph extends JPanel {
             }
 
             g2.setStroke(oldStroke);
-            g2.setColor(pointColor);
+            g2.setColor(entry.getValue().darker());
             for (Point graphPoint : graphPoints) {
                 int x = graphPoint.x - pointWidth / 2;
                 int y = graphPoint.y - pointWidth / 2;

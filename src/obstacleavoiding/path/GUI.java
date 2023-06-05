@@ -54,9 +54,11 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     private final List<Double> currentWaypoint = new ArrayList<>();
     private final List<Double> driveVelocities = new ArrayList<>();
+    private final List<Double> targetDriveVelocities = new ArrayList<>();
     private final List<Double> driftPercentageVelocities = new ArrayList<>();
     private final List<Double> omegaVelocities = new ArrayList<>();
     private final List<Double> drivingAngles = new ArrayList<>();
+    private final List<Double> middleLineGraph = new ArrayList<>();
 
     private double maxValue = DEFAULT_MAX_VALUE;
 
@@ -131,21 +133,20 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
         this.purePursuit = new PurePursuit(
                 this.robot,
-                new PurePursuit.Constants(4.5, 4.5, 1.5, 4,
-                        new PIDPreset(2, 0, 0, 80, 60),
-                        new PIDPreset(4.69, 0, 0, 1080, 1440)
-                ),
+                new PurePursuit.Constants(4.5, 3, 360, 360, 1, 4, 1.5),
                 this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints)
         );
 
         Map<Supplier<List<Double>>, Color> graphValues = new HashMap<>();
-        graphValues.put(() -> driftPercentageVelocities, Color.BLUE);
-        graphValues.put(() -> currentWaypoint, Color.GREEN);
-        graphValues.put(() -> driveVelocities.stream().map(s -> s / this.purePursuit.getConstants().maxVel()).toList(), Color.RED);
+        graphValues.put(() -> driftPercentageVelocities, new Color(0, 0, 255));
+        graphValues.put(() -> currentWaypoint, new Color(0, 255, 0));
+        graphValues.put(() -> driveVelocities.stream().map(s -> s / this.purePursuit.getConstants().maxVel()).toList(), new Color(255, 0, 0));
+        graphValues.put(() -> targetDriveVelocities.stream().map(s -> s / this.purePursuit.getConstants().maxVel()).toList(), new Color(100, 0, 0));
+        graphValues.put(() -> omegaVelocities.stream().map(s -> (s + 180) / this.purePursuit.getConstants().maxOmegaVel()).toList(), new Color(255, 255, 0));
+        graphValues.put(() -> drivingAngles.stream().map(s -> (s + 180) / 360).toList(), new Color(0, 255, 255));
+        graphValues.put(() -> middleLineGraph, new Color(100, 100, 100, 100));
 
-//        this.addGraph("Drive Velocity", () -> driveVelocities, 0, this.purePursuit.getConstants().maxVel());
-        this.addGraph("Drift & Waypoint", graphValues, 0, 1);
-//        this.addGraph("Driving Angle", () -> drivingAngles, -180, 180);
+        this.addGraph("Values", graphValues, 0, 1);
 
         this.purePursuit.reset();
         this.start();
@@ -164,7 +165,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.drawImage(invisibleRobotImage,
                     waypoint,
                     ROBOT_WITH_BUMPER, ROBOT_WITH_BUMPER,
-                    waypoint.getHeading());
+                    -waypoint.getHeading());
         }
         this.drawConnectedPoints(Color.BLACK, this.purePursuit.getWaypoints());
     }
@@ -179,19 +180,6 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     }
 
     public void displayRobot() {
-        if (this.purePursuit.isRunning()) {
-            Translation2d driveSetpoint = this.robot.getPosition().getTranslation()
-                    .plus(new Translation2d(
-                            this.purePursuit.getDriveController().getSetpoint().position,
-                            this.robot.getVelocity().getTranslation().getAngle()));
-            this.fillPoint(driveSetpoint.getX(), driveSetpoint.getY(), convertPixelsToUnits(5), Color.GREEN);
-        }
-
-        Translation2d omegaSetpoint = this.robot.getPosition().getTranslation()
-                .plus(new Translation2d(2 * ROBOT_WITH_BUMPER,
-                        Rotation2d.fromDegrees(this.purePursuit.getOmegaController().getSetpoint().position)));
-        this.fillPoint(omegaSetpoint, convertPixelsToUnits(5), Color.GREEN);
-
         this.drawImage(robotImage,
                 this.robot.getPosition().getTranslation(),
                 ROBOT_WITH_BUMPER, ROBOT_WITH_BUMPER,
@@ -239,9 +227,11 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
             this.currentWaypoint.add(this.purePursuit.getCurrentWaypointIndex() * 1d / this.purePursuit.getWaypoints().size());
             this.driveVelocities.add(this.robot.getVelocity().getTranslation().getNorm());
+            this.targetDriveVelocities.add(this.purePursuit.getTargetDriveVelocity());
             this.driftPercentageVelocities.add(this.purePursuit.getDriftPercentage());
             this.omegaVelocities.add(this.robot.getVelocity().getRotation().getDegrees());
             this.drivingAngles.add(this.robot.getVelocity().getTranslation().getAngle().getDegrees());
+            this.middleLineGraph.add(0.5);
         }
     }
 
@@ -285,9 +275,12 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.positions.clear();
             this.currentWaypoint.clear();
             this.driveVelocities.clear();
+            this.targetDriveVelocities.clear();
             this.driftPercentageVelocities.clear();
             this.omegaVelocities.clear();
             this.drivingAngles.clear();
+            this.middleLineGraph.clear();
+
             this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
         } else if (e.getKeyCode() == KeyEvent.VK_T) {
             this.purePursuit.setRunning(!this.purePursuit.isRunning());
@@ -341,9 +334,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     public void start() {
         long lastUpdate = System.currentTimeMillis();
-        long initialize = lastUpdate;
 
-        int times = 0;
         while (true) {
             this.setPixelsInOneUnit(convertMaxValueToPixels(this.maxValue));
 
@@ -356,7 +347,6 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.displayObstacles();
             this.writeValues();
             this.repaint();
-            times++;
 
             try {
                 long period = System.currentTimeMillis() - lastUpdate;
