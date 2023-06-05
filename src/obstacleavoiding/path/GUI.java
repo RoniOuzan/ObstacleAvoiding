@@ -19,6 +19,7 @@ import java.awt.event.MouseWheelEvent;
 import java.util.List;
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.stream.StreamSupport;
 
 public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private static final boolean IS_CHARGED_UP_FIELD = true;
@@ -28,7 +29,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private static final double DEFAULT_MAX_Y = DEFAULT_MAX_VALUE * ((double) DIMENSION.getY() / DIMENSION.getX());
     private static final double PIXELS_IN_ONE_UNIT = convertMaxValueToPixels(DEFAULT_MAX_VALUE);
 
-    private static final double FPS = 20;
+    private static final double FPS = 50;
     private static final double ROBOT_WIDTH = 0.75;
     private static final double BUMPER_WIDTH = 0.08;
     public static final double ROBOT_WITH_BUMPER = BUMPER_WIDTH + ROBOT_WIDTH + BUMPER_WIDTH;
@@ -339,6 +340,10 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     }
 
     public void start() {
+        long lastUpdate = System.currentTimeMillis();
+        long initialize = lastUpdate;
+
+        int times = 0;
         while (true) {
             this.setPixelsInOneUnit(convertMaxValueToPixels(this.maxValue));
 
@@ -351,9 +356,12 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.displayObstacles();
             this.writeValues();
             this.repaint();
+            times++;
 
             try {
-                Thread.sleep((long) (1000 / FPS));
+                long period = System.currentTimeMillis() - lastUpdate;
+                lastUpdate = System.currentTimeMillis();
+                Thread.sleep((long) Math.max(((1000 - period) / FPS), 0));
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
