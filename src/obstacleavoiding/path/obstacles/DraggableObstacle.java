@@ -1,6 +1,7 @@
-package obstacleavoiding.path.util;
+package obstacleavoiding.path.obstacles;
 
 import obstacleavoiding.math.geometry.Translation2d;
+import obstacleavoiding.path.util.Alliance;
 
 import java.util.List;
 import java.util.stream.Collectors;

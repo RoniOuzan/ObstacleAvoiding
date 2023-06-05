@@ -1,33 +1,63 @@
 package obstacleavoiding.path;
 
-import obstacleavoiding.math.MathUtil;
 import obstacleavoiding.math.geometry.Rotation2d;
 import obstacleavoiding.math.geometry.Translation2d;
+import obstacleavoiding.path.obstacles.Obstacle;
 import obstacleavoiding.path.util.Bounds;
-import obstacleavoiding.path.util.Obstacle;
 import obstacleavoiding.path.util.Waypoint;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 
+/**
+ * This class creates a path that not crashing given obstacles with a given distance from the obstacles
+ * It creates the path by every two points that crashes an obstacle creating a point between them and
+ * moves it outside the obstacle and keeps like that until we have a some path and then chooses the
+ * shortest out of them.
+ */
 public class ObstacleAvoiding {
-    private List<Obstacle> obstacles;
+    private final List<Obstacle> obstacles;
     private final double distanceThreshold;
 
     private final Bounds bounds;
 
     private boolean isFiltering = true;
 
+    /**
+     * Constructs a ObstacleAvoiding with the provided values.
+     *
+     * @param distanceThreshold the minimum distance from the center of the robot to the obstacle
+     * @param bounds the field bounds to not drive to outside the field
+     * @param obstacles the obstacles of the field that it will avoid
+     */
     public ObstacleAvoiding(double distanceThreshold, Bounds bounds, List<Obstacle> obstacles) {
         this.distanceThreshold = distanceThreshold;
         this.bounds = bounds;
-        this.obstacles = obstacles.stream().map(o -> o.getExtendedObstacle(distanceThreshold)).collect(Collectors.toList());
+        this.obstacles = obstacles;
     }
 
+    /**
+     * Constructs a ObstacleAvoiding with the provided values.
+     *
+     * @param distanceThreshold the minimum distance from the center of the robot to the obstacle
+     * @param bounds the field bounds to not drive to outside the field
+     * @param obstacles the obstacles of the field that it will avoid
+     */
     public ObstacleAvoiding(double distanceThreshold, Bounds bounds, Obstacle... obstacles) {
         this(distanceThreshold, bounds, new ArrayList<>(Arrays.asList(obstacles)));
     }
 
+    /**
+     * Generates a list of waypoints that represents the points that we need to drive
+     * in order to avoid the given obstacles.
+     * The path will save the heading and the RobotReference.
+     *
+     * @param waypoints the waypoints that represents the path that we need to change in order
+     *                  drive for not crashing the obstacles.
+     * @return the list of waypoints that represents the path that avoided the obstacles.
+     */
     public List<Waypoint> generateWaypointsBinary(List<Waypoint> waypoints) {
         List<List<Waypoint>> trajectories = new ArrayList<>();
         for (int b = 0; b < 4; b++) {
@@ -38,6 +68,7 @@ public class ObstacleAvoiding {
                 for (int i = 0; i < size; i++) {
                     Waypoint waypoint1 = trajectory.get(i);
                     Waypoint waypoint2 = trajectory.get(i + 1);
+
                     List<Obstacle> obstacles = this.getDistributingObstacle(waypoint1, waypoint2);
                     if (obstacles.size() > 0) {
                         Waypoint middle = new Waypoint(waypoint1.interpolate(waypoint2, 0.5), 0, Waypoint.RobotReference.CENTER);
@@ -45,17 +76,17 @@ public class ObstacleAvoiding {
                         Obstacle obstacle = this.getObstacle(middle);
                         if (obstacle != null) {
                             List<Waypoint> middles = new ArrayList<>();
+
                             for (int j = 0; j < obstacle.getCorners().size(); j++) {
                                 double slopeMiddle = waypoint1.minus(waypoint2).getAngle().plus(Rotation2d.fromDegrees(90)).getTan();
+
                                 Translation2d corner1 = obstacle.getCorners().get(j);
                                 Translation2d corner2 = obstacle.getCorners().get((j + 1) % obstacle.getCorners().size());
+
                                 double x;
                                 if (corner1.getX() != corner2.getX()) {
-                                    // the slope of 2 corners of the polygon
-                                    double slopePol = corner1.minus(corner2).getAngle().getTan();
-
-                                    // an equation that finds the x of the 2 functions intersection
-                                    x = ((slopeMiddle * middle.getX()) - middle.getY() - (slopePol * corner1.getX()) + corner1.getY()) / (slopeMiddle - slopePol);
+                                    double slopePol = corner1.minus(corner2).getAngle().getTan(); // the slope of 2 corners of the polygon
+                                    x = ((slopeMiddle * middle.getX()) - middle.getY() - (slopePol * corner1.getX()) + corner1.getY()) / (slopeMiddle - slopePol); // an equation that finds the x of the 2 functions intersection
                                 } else {
                                     x = corner1.getX();
                                 }
@@ -70,11 +101,9 @@ public class ObstacleAvoiding {
                                     newMiddle = newMiddle.plus(new Translation2d(0.1, angleFromMiddle));
                                     escapeTimes++;
 
-                                    if (escapeTimes >= 150)
-                                        break;
+                                    if (escapeTimes >= 150) break;
                                 }
-                                if (escapeTimes == 150)
-                                    continue;
+                                if (escapeTimes == 150) continue;
 
                                 if (!this.bounds.isInOfBounds(newMiddle))
                                     continue;
@@ -86,6 +115,7 @@ public class ObstacleAvoiding {
                             if (!split && a < 5) {
                                 if (b < middles.size())
                                     middle = middles.get(b);
+
                                 split = true;
                             } else if (middles.size() > 0) {
                                 middle = middles.get(0);
@@ -136,6 +166,13 @@ public class ObstacleAvoiding {
         return false;
     }
 
+    /**
+     * Finds the distributing obstacles of a path.
+     *
+     * @param waypoints the waypoints that represents the path
+     * @return the list of obstacles that distributing the path.
+     *         if none found it will return an empty path.
+     */
     public List<Obstacle> getDistributingObstacles(List<Waypoint> waypoints) {
         List<Obstacle> obstacles = new ArrayList<>();
         for (int i = 0; i < waypoints.size() - 1; i++) {
@@ -144,105 +181,62 @@ public class ObstacleAvoiding {
         return obstacles;
     }
 
+    /**
+     * Returns the distributing obstacles between 2 points.
+     *
+     * @param initialPose the first point
+     * @param finalPose the second point
+     * @return the list of obstacles that distributing the path.
+     *         if none found it will return an empty path.
+     */
     public List<Obstacle> getDistributingObstacle(Translation2d initialPose, Translation2d finalPose) {
-        List<Obstacle> obstacles = new ArrayList<>();
-        for (Obstacle obstacle : this.obstacles) {
-            if (this.isLineInsidePolygon(initialPose, finalPose, obstacle))
-                obstacles.add(obstacle);
-        }
-        return obstacles;
+        return this.obstacles.parallelStream().map(o -> o.getExtendedObstacle(this.distanceThreshold)).filter(o -> o.isLineInside(initialPose, finalPose)).toList();
     }
 
-    private boolean isLineInsidePolygon(Translation2d pose1, Translation2d pose2, Obstacle obstacle) {
-        int intersections = 0;
-
-        for (int i = 0; i < obstacle.getCorners().size(); i++) {
-            Translation2d p1 = obstacle.getCorners().get(i);
-            Translation2d p2 = obstacle.getCorners().get((i + 1) % obstacle.getCorners().size());
-
-            if (doSegmentsIntersect(pose1, pose2, p1, p2)) {
-                intersections++;
-            }
-        }
-
-        return intersections > 0;
-    }
-
-    private boolean doSegmentsIntersect(Translation2d p1, Translation2d p2, Translation2d q1, Translation2d q2) {
-        int o1 = orientation(p1, p2, q1);
-        int o2 = orientation(p1, p2, q2);
-        int o3 = orientation(q1, q2, p1);
-        int o4 = orientation(q1, q2, p2);
-
-        if (o1 != o2 && o3 != o4) {
-            return true;
-        }
-
-        if (o1 == 0 && isPointOnSegment(p1, p2, q1))
-            return true;
-        if (o2 == 0 && isPointOnSegment(p1, p2, q2))
-            return true;
-        if (o3 == 0 && isPointOnSegment(q1, q2, p1))
-            return true;
-        return o4 == 0 && isPointOnSegment(q1, q2, p2);
-    }
-
-    private int orientation(Translation2d p, Translation2d q, Translation2d r) {
-        double val = (q.getY() - p.getY()) * (r.getX() - q.getX()) - (q.getX() - p.getX()) * (r.getY() - q.getY());
-        if (Math.abs(val) < 1e-9) {
-            return 0; // Collinear
-        } else if (val > 0) {
-            return 1; // Clockwise orientation
-        } else {
-            return 2; // Counterclockwise orientation
-        }
-    }
-
-    private boolean isPointOnSegment(Translation2d p, Translation2d q, Translation2d r) {
-        return q.getX() <= Math.max(p.getX(), r.getX()) && q.getX() >= Math.min(p.getX(), r.getX()) &&
-                q.getY() <= Math.max(p.getY(), r.getY()) && q.getY() >= Math.min(p.getY(), r.getY());
-    }
-
+    /**
+     * Find an obstacle at the given point
+     *
+     * @param translation2d the point to find the obstacle
+     * @return the obstacle in the given point.
+     *         if none found, it will return null.
+     */
     public Obstacle getObstacle(Translation2d translation2d) {
-        for (Obstacle obstacle : this.obstacles) {
-            if (isPointAtObstacle(translation2d, obstacle))
-                return obstacle;
-        }
-        return null;
+        return this.obstacles.parallelStream().map(o -> o.getExtendedObstacle(this.distanceThreshold)).filter(o -> o.isPointAt(translation2d)).findFirst().orElse(null);
     }
 
-    public boolean isPointAtObstacle(Translation2d translation2d, Obstacle obstacle) {
-        int numPoints = obstacle.getCorners().size();
-        int i, j;
-        boolean isInside = false;
-        for (i = 0, j = numPoints - 1; i < numPoints; j = i++) {
-            Translation2d cornerI = obstacle.getCorners().get(i);
-            Translation2d cornerJ = obstacle.getCorners().get(j);
-            if ((cornerI.getY() > translation2d.getY()) != (cornerJ.getY() > translation2d.getY()) &&
-                    (translation2d.getX() < (cornerJ.getX() - cornerI.getX()) * (translation2d.getY() - cornerI.getY()) / (cornerJ.getY() - cornerI.getY()) + cornerI.getX())) {
-                isInside = !isInside;
-            }
-        }
-
-        return isInside;
-    }
-
-    public void setFiltering(boolean filtering) {
-        isFiltering = filtering;
-    }
-
+    /**
+     * Filtering means it will remove any useless point the path created what makes it more efficient and shorter.
+     * If filtering is on false, it means the path will have a lot more points and most of the time
+     * not be efficient as it could be.
+     *
+     * @return the current state of the filter
+     */
     public boolean isFiltering() {
         return isFiltering;
     }
 
+    /**
+     * Changes the state of the filter.
+     * Filtering means it will remove any useless point the path created what makes it more efficient and shorter.
+     * If filtering is on false, it means the path will have a lot more points and most of the time
+     * not be efficient as it could be.
+     *
+     * @param filtering the state of the filter
+     */
+    public void setFiltering(boolean filtering) {
+        isFiltering = filtering;
+    }
+
+    /**
+     * @return the obstacles that was given to this instance
+     */
     public List<Obstacle> getObstacles() {
         return obstacles;
     }
 
-    public void setObstacles(List<Obstacle> obstacles) {
-        this.obstacles = obstacles.stream().map(o -> o.getExtendedObstacle(distanceThreshold)).collect(Collectors.toList());
-    }
-
+    /**
+     * @return the distance from the center of the robot to the obstacle that it keeps every path
+     */
     public double getDistanceThreshold() {
         return distanceThreshold;
     }

@@ -4,11 +4,9 @@ import obstacleavoiding.gui.Frame;
 import obstacleavoiding.gui.types.draw.DrawCentered;
 import obstacleavoiding.gui.types.field.ZeroLeftBottom;
 import obstacleavoiding.math.MathUtil;
-import obstacleavoiding.math.geometry.Dimension2d;
-import obstacleavoiding.math.geometry.Pose2d;
-import obstacleavoiding.math.geometry.Rotation2d;
-import obstacleavoiding.math.geometry.Translation2d;
-import obstacleavoiding.path.pid.PIDPreset;
+import obstacleavoiding.math.geometry.*;
+import obstacleavoiding.path.obstacles.DraggableObstacle;
+import obstacleavoiding.path.obstacles.Obstacle;
 import obstacleavoiding.path.util.*;
 
 import javax.swing.*;
@@ -19,7 +17,6 @@ import java.awt.event.MouseWheelEvent;
 import java.util.List;
 import java.util.*;
 import java.util.function.Supplier;
-import java.util.stream.StreamSupport;
 
 public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private static final boolean IS_CHARGED_UP_FIELD = true;
@@ -29,7 +26,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private static final double DEFAULT_MAX_Y = DEFAULT_MAX_VALUE * ((double) DIMENSION.getY() / DIMENSION.getX());
     private static final double PIXELS_IN_ONE_UNIT = convertMaxValueToPixels(DEFAULT_MAX_VALUE);
 
-    private static final double FPS = 50;
+    private static final double FPS = 20;
     private static final double ROBOT_WIDTH = 0.75;
     private static final double BUMPER_WIDTH = 0.08;
     public static final double ROBOT_WITH_BUMPER = BUMPER_WIDTH + ROBOT_WIDTH + BUMPER_WIDTH;
@@ -43,9 +40,9 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private final PurePursuit purePursuit;
     private final Robot robot;
 
-    private final Image fieldImage = new ImageIcon("src/obstacleavoiding/path/util/Field.png").getImage();
-    private final Image robotImage = new ImageIcon("src/obstacleavoiding/path/util/Robot.png").getImage();
-    private final Image invisibleRobotImage = new ImageIcon("src/obstacleavoiding/path/util/InvisibleRobot.png").getImage();
+    private final Image fieldImage = new ImageIcon("src/obstacleavoiding/path/images/Field.png").getImage();
+    private final Image robotImage = new ImageIcon("src/obstacleavoiding/path/images/Robot.png").getImage();
+    private final Image invisibleRobotImage = new ImageIcon("src/obstacleavoiding/path/images/InvisibleRobot.png").getImage();
 
     private boolean showAlienatedObstacles = false;
     private boolean autoGeneratePath = true;
@@ -58,7 +55,9 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private final List<Double> driftPercentageVelocities = new ArrayList<>();
     private final List<Double> omegaVelocities = new ArrayList<>();
     private final List<Double> drivingAngles = new ArrayList<>();
-    private final List<Double> middleLineGraph = new ArrayList<>();
+    private final List<Double> distance = new ArrayList<>();
+
+//    private Pose2d manualVelocity = new Pose2d();
 
     private double maxValue = DEFAULT_MAX_VALUE;
 
@@ -128,8 +127,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.obstacleAvoiding = new ObstacleAvoiding(HALF_ROBOT, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), this.obstacles);
 
         this.defaultWaypoints = new ArrayList<>();
-        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 1, DEFAULT_MAX_Y / 2 + 1, Waypoint.RobotReference.CENTER));
-        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 0.5, DEFAULT_MAX_Y / 2 + 0.5, Waypoint.RobotReference.BACK_CENTER));
+        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 1, DEFAULT_MAX_Y / 2 + 1, 90, Waypoint.RobotReference.CENTER));
+        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 0.5, DEFAULT_MAX_Y / 2 + 0.5, 0, Waypoint.RobotReference.BACK_CENTER));
 
         this.purePursuit = new PurePursuit(
                 this.robot,
@@ -144,7 +143,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         graphValues.put(() -> targetDriveVelocities.stream().map(s -> s / this.purePursuit.getConstants().maxVel()).toList(), new Color(100, 0, 0));
         graphValues.put(() -> omegaVelocities.stream().map(s -> (s + 180) / this.purePursuit.getConstants().maxOmegaVel()).toList(), new Color(255, 255, 0));
         graphValues.put(() -> drivingAngles.stream().map(s -> (s + 180) / 360).toList(), new Color(0, 255, 255));
-        graphValues.put(() -> middleLineGraph, new Color(100, 100, 100, 100));
+        graphValues.put(() -> distance.stream().map(d -> d / this.purePursuit.getPathDistance()).toList(), new Color(244, 123, 156));
 
         this.addGraph("Values", graphValues, 0, 1);
 
@@ -194,9 +193,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             }
         }
         if (this.showAlienatedObstacles) {
-            for (Obstacle obstacle : this.obstacleAvoiding.getObstacles()) {
-                this.fillPolygon(new Color(0, 0, 0, 30), obstacle.getCorners());
-            }
+            this.obstacles.stream().map(o -> o.getExtendedObstacle(this.obstacleAvoiding.getDistanceThreshold()))
+                    .forEach(o -> this.fillPolygon(new Color(0, 0, 0, 30), o.getCorners()));
         }
     }
 
@@ -231,7 +229,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.driftPercentageVelocities.add(this.purePursuit.getDriftPercentage());
             this.omegaVelocities.add(this.robot.getVelocity().getRotation().getDegrees());
             this.drivingAngles.add(this.robot.getVelocity().getTranslation().getAngle().getDegrees());
-            this.middleLineGraph.add(0.5);
+            this.distance.add(this.purePursuit.getPathDistance() - this.purePursuit.getDistanceToFinalWaypoint());
         }
     }
 
@@ -257,7 +255,6 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             Obstacle obstacle = this.obstacles.get(i);
             if (obstacle == this.draggedObstacle) {
                 obstacle.setCorners(DraggableObstacle.getCornersOfObstacle(mouseLocation, obstacle));
-                this.obstacleAvoiding.setObstacles(this.obstacles);
 
                 if (this.autoGeneratePath) {
                     this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
@@ -279,7 +276,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.driftPercentageVelocities.clear();
             this.omegaVelocities.clear();
             this.drivingAngles.clear();
-            this.middleLineGraph.clear();
+            this.distance.clear();
 
             this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
         } else if (e.getKeyCode() == KeyEvent.VK_T) {
@@ -291,6 +288,25 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         } else if (e.getKeyCode() == KeyEvent.VK_F) {
             this.obstacleAvoiding.setFiltering(!this.obstacleAvoiding.isFiltering());
         }
+
+//        double velocity = this.purePursuit.getConstants().maxVel();
+//        double omega = this.purePursuit.getConstants().maxOmegaVel();
+//        if (e.getKeyCode() == KeyEvent.VK_W)
+//            manualVelocity = manualVelocity.plus(new Transform2d(new Translation2d(0, velocity), new Rotation2d()));
+//        if (e.getKeyCode() == KeyEvent.VK_S)
+//            manualVelocity = manualVelocity.plus(new Transform2d(new Translation2d(0, -velocity), new Rotation2d()));
+//        if (e.getKeyCode() == KeyEvent.VK_A)
+//            manualVelocity = manualVelocity.plus(new Transform2d(new Translation2d(-velocity, 0), new Rotation2d()));
+//        if (e.getKeyCode() == KeyEvent.VK_D)
+//            manualVelocity = manualVelocity.plus(new Transform2d(new Translation2d(velocity, 0), new Rotation2d()));
+//        if (e.getKeyCode() == KeyEvent.VK_E)
+//            manualVelocity = manualVelocity.plus(new Transform2d(new Translation2d(), Rotation2d.fromDegrees(omega)));
+//        if (e.getKeyCode() == KeyEvent.VK_Q)
+//            manualVelocity = manualVelocity.plus(new Transform2d(new Translation2d(), Rotation2d.fromDegrees(omega)));
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
     }
 
     @Override
@@ -346,6 +362,11 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.displayRobot();
             this.displayObstacles();
             this.writeValues();
+
+//            if (!this.purePursuit.isRunning()) {
+//                this.robot.drive(this.manualVelocity);
+//            }
+
             this.repaint();
 
             try {

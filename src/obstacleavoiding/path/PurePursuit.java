@@ -5,14 +5,18 @@ import obstacleavoiding.math.geometry.Pose2d;
 import obstacleavoiding.math.geometry.Rotation2d;
 import obstacleavoiding.math.geometry.Translation2d;
 import obstacleavoiding.path.pid.PIDController;
-import obstacleavoiding.path.pid.PIDPreset;
-import obstacleavoiding.path.pid.ProfiledPIDController;
 import obstacleavoiding.path.util.Waypoint;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Class the controls the movement of the robot in a path of obstacles.
+ * It follows a path that was created with some points.
+ * He follows it with PID for a certain velocity that calculated by the distance
+ * from the final waypoint, the curvature of the path
+ */
 public class PurePursuit {
     private List<Waypoint> waypoints;
 
@@ -97,7 +101,9 @@ public class PurePursuit {
                 angle = angle.times(1 - driftPercentage).plus(angleFromNext.times(driftPercentage));
             }
 
-            double targetOmegaVelocity = this.omegaController.calculate(this.robot.getPosition().getRotation().getDegrees(), this.currentWaypoint.getHeading());
+            double targetOmegaVelocity = this.omegaController.calculate(
+                    this.robot.getPosition().getRotation().getDegrees(),
+                    (this.getFinalWaypoint().getHeading() - this.getStartWaypoint().getHeading()) * ((this.getPathDistance() - this.getDistanceToFinalWaypoint()) / this.getPathDistance()) + this.getStartWaypoint().getHeading());
             omegaVelocity += MathUtil.clamp(targetOmegaVelocity - omegaVelocity, -this.constants.maxOmegaAccel * period, this.constants.maxOmegaAccel * period);
             omegaVelocity = MathUtil.clamp(omegaVelocity, -this.constants.maxOmegaVel, this.constants.maxOmegaVel);
 
@@ -134,6 +140,14 @@ public class PurePursuit {
     public double getDistanceToFinalWaypoint() {
         double distance = this.getDistanceToCurrentWaypoint();
         for (int i = this.getCurrentWaypointIndex(); i < this.waypoints.size() - 1; i++) {
+            distance += this.waypoints.get(i).getDistance(this.waypoints.get(i + 1));
+        }
+        return distance;
+    }
+
+    public double getPathDistance() {
+        double distance = 0;
+        for (int i = 0; i < this.waypoints.size() - 1; i++) {
             distance += this.waypoints.get(i).getDistance(this.waypoints.get(i + 1));
         }
         return distance;

@@ -9,37 +9,31 @@ import java.util.UUID;
 
 public class Waypoint extends Translation2d {
     private double heading;
-    private final double movementAngle;
 
     private final RobotReference robotReference;
 
-    public Waypoint(double x, double y, double heading, double movementAngle, RobotReference robotReference) {
+    public Waypoint(double x, double y, double heading, RobotReference robotReference) {
         Translation2d translation2d = new Translation2d(x, y).minus(robotReference.getReference(Rotation2d.fromDegrees(heading)));
         this.m_x = translation2d.getX();
         this.m_y = translation2d.getY();
         this.heading = heading;
-        this.movementAngle = movementAngle;
         this.robotReference = robotReference;
     }
 
     public Waypoint(double x, double y, RobotReference robotReference) {
-        this(x, y, 0, 0, robotReference);
+        this(x, y, 0, robotReference);
     }
 
-    public Waypoint(double distance, Rotation2d angle, double heading, double movementAngle, RobotReference robotReference) {
-        this(new Translation2d(distance, angle), heading, movementAngle, robotReference);
-    }
-
-    public Waypoint(Translation2d translation2d, double heading, double movementAngle, RobotReference robotReference) {
-        this(translation2d.getX(), translation2d.getY(), heading, movementAngle, robotReference);
+    public Waypoint(double distance, Rotation2d angle, double heading, RobotReference robotReference) {
+        this(new Translation2d(distance, angle), heading, robotReference);
     }
 
     public Waypoint(Translation2d translation2d, double heading, RobotReference robotReference) {
-        this(translation2d.getX(), translation2d.getY(), heading, 0, robotReference);
+        this(translation2d.getX(), translation2d.getY(), heading, robotReference);
     }
 
     public Waypoint(Translation2d translation2d, RobotReference robotReference) {
-        this(translation2d.getX(), translation2d.getY(), 0, 0, robotReference);
+        this(translation2d.getX(), translation2d.getY(), 0, robotReference);
     }
 
     public double getHeading() {
@@ -48,10 +42,6 @@ public class Waypoint extends Translation2d {
 
     public void setHeading(double heading) {
         this.heading = heading;
-    }
-
-    public double getMovementAngle() {
-        return movementAngle;
     }
 
     public Translation2d getOriginalPosition() {
@@ -82,7 +72,7 @@ public class Waypoint extends Translation2d {
 
     @Override
     public String toString() {
-        return "(" + this.getX() + "," + this.getY() + "," + this.getHeading() + "," + this.getMovementAngle() + ")";
+        return "(" + this.getX() + "," + this.getY() + "," + this.getHeading() + ")";
     }
 
     public enum RobotReference {
