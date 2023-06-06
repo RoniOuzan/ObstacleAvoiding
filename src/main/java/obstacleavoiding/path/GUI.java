@@ -1,5 +1,7 @@
 package obstacleavoiding.path;
 
+import com.github.strikerx3.jxinput.XInputComponents;
+import com.github.strikerx3.jxinput.XInputDevice;
 import obstacleavoiding.gui.Frame;
 import obstacleavoiding.gui.types.draw.DrawCentered;
 import obstacleavoiding.gui.types.field.ZeroLeftBottom;
@@ -19,7 +21,6 @@ import java.awt.event.MouseWheelEvent;
 import java.util.List;
 import java.util.*;
 import java.util.function.Supplier;
-import java.util.zip.InflaterInputStream;
 
 public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private static final boolean IS_CHARGED_UP_FIELD = true;
@@ -48,7 +49,9 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private final Image invisibleRobotImage = new ImageIcon("src/main/java/obstacleavoiding/path/images/InvisibleRobot.png").getImage();
 
     private boolean showAlienatedObstacles = false;
-    private boolean autoGeneratePath = true;
+    private boolean autoGeneratePath = false;
+
+    private boolean isControllerDrive = true;
 
     private final Map<Pose2d, Integer> positions = new HashMap<>();
 
@@ -61,7 +64,6 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private final List<Double> robotAngle = new ArrayList<>();
     private final List<Double> distance = new ArrayList<>();
 
-
     private double maxValue = DEFAULT_MAX_VALUE;
 
     private Waypoint draggedWaypoint = null;
@@ -69,9 +71,10 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     public GUI() {
         super("Path Follower", DIMENSION, PIXELS_IN_ONE_UNIT, FPS);
+        this.addDevice(0);
 
         this.robot = new Robot(new Pose2d(new Translation2d(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2), Rotation2d.fromDegrees(0)),
-                new Robot.Constants(4.5, 360, 1 / FPS));
+                new Robot.Constants(4.5, 9, 360, 720, 1 / FPS));
 
         List<Obstacle> blueObstacles = Arrays.asList(
                 new Obstacle("BlueRamp", Alliance.BLUE,
@@ -255,6 +258,33 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     }
 
     @Override
+    public void deviceListen(XInputDevice device, XInputComponents components) {
+        if (this.purePursuit.isRunning())
+            return;
+
+        this.isControllerDrive = true;
+
+        Translation2d leftAxis = new Translation2d(
+                MathUtil.limitDot(components.getAxes().lx, 3)
+                , MathUtil.limitDot(components.getAxes().ly, 3)
+        );
+        double rightAxis = -Math.pow(MathUtil.limitDot(components.getAxes().rx, 3), 1) * this.robot.getConstants().maxOmegaVel();
+
+        Rotation2d angle = leftAxis.getNorm() < 0.01 ? this.robot.getVelocity().getTranslation().getAngle() : leftAxis.getAngle();
+        double magnitude = Math.pow(leftAxis.getNorm(), 2) * this.robot.getConstants().maxVel();
+
+        Translation2d accel = new Translation2d(magnitude, angle).minus(this.robot.getVelocity().getTranslation());
+        accel = new Translation2d(Math.min(accel.getNorm(), this.robot.getConstants().maxAccel() * this.robot.getPeriod()), accel.getAngle());
+
+        double omegaAccel = MathUtil.clamp(rightAxis - this.robot.getVelocity().getRotation().getDegrees(),
+                -this.robot.getConstants().maxOmegaAccel() * this.robot.getPeriod(), this.robot.getConstants().maxOmegaAccel() * this.robot.getPeriod());
+
+        this.robot.drive(new Pose2d(
+                this.robot.getVelocity().getTranslation().plus(accel),
+                 Rotation2d.fromDegrees(this.robot.getVelocity().getRotation().getDegrees() + omegaAccel)));
+    }
+
+    @Override
     public void mouseDragged(MouseEvent e) {
         Translation2d mouseLocation = this.getMouseTranslation(e);
 
@@ -288,8 +318,10 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     @Override
     public void keyListen(Set<Integer> keys) {
-        if (this.purePursuit.isRunning())
+        if (this.purePursuit.isRunning() || !this.isControllerDrive || keys.size() == 0)
             return;
+
+        this.isControllerDrive = false;
 
         double omega = this.robot.getConstants().maxOmegaVel();
         Pose2d velocity = new Pose2d();
@@ -339,13 +371,6 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         } else if (e.getKeyCode() == KeyEvent.VK_F) {
             this.obstacleAvoiding.setFiltering(!this.obstacleAvoiding.isFiltering());
         }
-
-        System.out.println("added " + e.getKeyChar());
-    }
-
-    @Override
-    public void keyReleased(KeyEvent e) {
-        System.out.println("removed " + e.getKeyChar());
     }
 
     @Override
@@ -372,6 +397,10 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
                     drag = true;
                 }
             }
+        }
+
+        if (!drag) {
+            this.defaultWaypoints.get(this.defaultWaypoints.size() - 1).set(mouseLocation);
         }
     }
 

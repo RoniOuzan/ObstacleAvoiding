@@ -39,6 +39,10 @@ public class Robot {
         this.lastUpdate = System.currentTimeMillis();
     }
 
+    public double getPeriod() {
+        return period;
+    }
+
     public void setAngle(double degrees) {
         this.position = new Pose2d(this.position.getTranslation(), Rotation2d.fromDegrees(degrees));
     }
@@ -67,5 +71,5 @@ public class Robot {
         return this.constants;
     }
 
-    public record Constants(double maxVel, double maxOmegaVel, double period) {}
+    public record Constants(double maxVel, double maxAccel, double maxOmegaVel, double maxOmegaAccel, double period) {}
 }
