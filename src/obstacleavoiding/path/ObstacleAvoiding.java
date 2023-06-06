@@ -59,6 +59,9 @@ public class ObstacleAvoiding {
      * @return the list of waypoints that represents the path that avoided the obstacles.
      */
     public List<Waypoint> generateWaypointsBinary(List<Waypoint> waypoints) {
+        if (waypoints.stream().anyMatch(w -> this.getObstacle(w) != null))
+            return new ArrayList<>(waypoints);
+
         List<List<Waypoint>> trajectories = new ArrayList<>();
         for (int b = 0; b < 4; b++) {
             List<Waypoint> trajectory = new ArrayList<>(waypoints);

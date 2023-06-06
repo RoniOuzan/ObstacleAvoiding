@@ -24,7 +24,7 @@ public class Robot {
         this.lastVelocity = this.velocity;
         this.period = (System.currentTimeMillis() - this.lastUpdate) / 1000d;
 
-        double calculatedVelocity = Math.min(velocity.getTranslation().getNorm(), constants.maxVel - (MathUtil.inputModulus(velocity.getRotation().getRadians(), 0, 2 * Math.PI) / 4));
+        double calculatedVelocity = Math.min(velocity.getTranslation().getNorm(), constants.maxVel);
         velocity = new Pose2d(
                 new Translation2d(calculatedVelocity, velocity.getTranslation().getAngle()),
                 velocity.getRotation());
@@ -61,5 +61,9 @@ public class Robot {
         return new Pose2d(this.velocity.getTranslation().rotateBy(this.position.getRotation()), this.velocity.getRotation());
     }
 
-    public record Constants(double maxVel, double period) {}
+    public Constants getConstants() {
+        return this.constants;
+    }
+
+    public record Constants(double maxVel, double maxOmegaVel, double period) {}
 }

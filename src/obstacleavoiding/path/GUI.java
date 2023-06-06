@@ -55,6 +55,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private final List<Double> driftPercentageVelocities = new ArrayList<>();
     private final List<Double> omegaVelocities = new ArrayList<>();
     private final List<Double> drivingAngles = new ArrayList<>();
+    private final List<Double> robotAngle = new ArrayList<>();
     private final List<Double> distance = new ArrayList<>();
 
 //    private Pose2d manualVelocity = new Pose2d();
@@ -68,7 +69,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         super("Path Follower", DIMENSION, PIXELS_IN_ONE_UNIT);
 
         this.robot = new Robot(new Pose2d(new Translation2d(0, 0), Rotation2d.fromDegrees(0)),
-                new Robot.Constants(5, 1 / FPS));
+                new Robot.Constants(4.5, 360, 1 / FPS));
 
         List<Obstacle> blueObstacles = Arrays.asList(
                 new Obstacle("BlueRamp", Alliance.BLUE,
@@ -127,22 +128,23 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.obstacleAvoiding = new ObstacleAvoiding(HALF_ROBOT, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), this.obstacles);
 
         this.defaultWaypoints = new ArrayList<>();
-        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 1, DEFAULT_MAX_Y / 2 + 1, 90, Waypoint.RobotReference.CENTER));
-        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 0.5, DEFAULT_MAX_Y / 2 + 0.5, 0, Waypoint.RobotReference.BACK_CENTER));
+        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 2, DEFAULT_MAX_Y / 2 + 2, 90, Waypoint.RobotReference.CENTER));
+        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 - 2, DEFAULT_MAX_Y / 2 - 2, 0, Waypoint.RobotReference.BACK_CENTER));
 
         this.purePursuit = new PurePursuit(
                 this.robot,
-                new PurePursuit.Constants(4.5, 3, 360, 360, 1, 4, 1.5),
+                new PurePursuit.Constants(1, 4, 1.5),
                 this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints)
         );
 
         Map<Supplier<List<Double>>, Color> graphValues = new HashMap<>();
         graphValues.put(() -> driftPercentageVelocities, new Color(0, 0, 255));
         graphValues.put(() -> currentWaypoint, new Color(0, 255, 0));
-        graphValues.put(() -> driveVelocities.stream().map(s -> s / this.purePursuit.getConstants().maxVel()).toList(), new Color(255, 0, 0));
-        graphValues.put(() -> targetDriveVelocities.stream().map(s -> s / this.purePursuit.getConstants().maxVel()).toList(), new Color(100, 0, 0));
-        graphValues.put(() -> omegaVelocities.stream().map(s -> (s + 180) / this.purePursuit.getConstants().maxOmegaVel()).toList(), new Color(255, 255, 0));
-        graphValues.put(() -> drivingAngles.stream().map(s -> (s + 180) / 360).toList(), new Color(0, 255, 255));
+        graphValues.put(() -> driveVelocities.stream().map(s -> s / this.robot.getConstants().maxVel()).toList(), new Color(255, 0, 0));
+        graphValues.put(() -> targetDriveVelocities.stream().map(s -> s / this.robot.getConstants().maxVel()).toList(), new Color(100, 0, 0));
+        graphValues.put(() -> omegaVelocities.stream().map(s -> (s + 180) / this.robot.getConstants().maxOmegaVel()).toList(), new Color(255, 255, 0));
+        graphValues.put(() -> drivingAngles.stream().map(s -> MathUtil.inputModulus(s / 360 + 0.5, 0, 1)).toList(), new Color(0, 255, 255));
+        graphValues.put(() -> robotAngle.stream().map(s -> MathUtil.inputModulus(s / 360 + 0.5, 0, 1)).toList(), new Color(135, 206, 235));
         graphValues.put(() -> distance.stream().map(d -> d / this.purePursuit.getPathDistance()).toList(), new Color(244, 123, 156));
 
         this.addGraph("Values", graphValues, 0, 1);
@@ -229,6 +231,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.driftPercentageVelocities.add(this.purePursuit.getDriftPercentage());
             this.omegaVelocities.add(this.robot.getVelocity().getRotation().getDegrees());
             this.drivingAngles.add(this.robot.getVelocity().getTranslation().getAngle().getDegrees());
+            this.robotAngle.add(this.robot.getPosition().getRotation().bound(0, 360).getDegrees());
             this.distance.add(this.purePursuit.getPathDistance() - this.purePursuit.getDistanceToFinalWaypoint());
         }
     }
@@ -276,6 +279,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.driftPercentageVelocities.clear();
             this.omegaVelocities.clear();
             this.drivingAngles.clear();
+            this.robotAngle.clear();
             this.distance.clear();
 
             this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
@@ -356,7 +360,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
             this.clearFrame();
             this.drawBackground();
-            this.purePursuit.update();
+            this.purePursuit.update(4.5, 3, 360, 360);
             this.updateValues();
             this.displayPath();
             this.displayRobot();

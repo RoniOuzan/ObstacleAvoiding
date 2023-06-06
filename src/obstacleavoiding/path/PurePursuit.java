@@ -66,7 +66,7 @@ public class PurePursuit {
         this.isFinished = false;
     }
 
-    public void update() {
+    public void update(double maxVel, double maxAccel, double maxOmegaVel, double maxOmegaAccel) {
         if (this.isRunning && !this.isFinished) {
             double period = (System.nanoTime() - this.lastUpdate) / 1_000_000_000d;
             boolean isNotLastWaypoint = this.getCurrentWaypointIndex() < this.waypoints.size() - 1;
@@ -76,7 +76,7 @@ public class PurePursuit {
             double slowPercentage = 1 - (MathUtil.clamp(this.getDistanceToCurrentWaypoint(), 0, this.constants.maxSlowDistance) / this.constants.maxSlowDistance);
 
             driftPercentage = Math.pow(driftPercentage, 1.5);
-            slowPercentage = Math.pow(slowPercentage, 3);
+            slowPercentage = Math.pow(slowPercentage, 2);
             double normalDriftPercentage = driftPercentage;
 
             Rotation2d driftAngle;
@@ -85,10 +85,10 @@ public class PurePursuit {
             else
                 driftAngle = Rotation2d.fromDegrees(0);
 
-            double closeSlower = (1 - MathUtil.deadband(this.getDistanceToFinalWaypoint(), 0, this.constants.finalSlowDistance)) * this.constants.maxVel;
-            double maxVelocity = this.constants.maxVel - (slowPercentage * Math.abs(driftAngle.getDegrees()) / 30) - closeSlower;
-            targetDriveVelocity = maxVelocity;
-            driveVelocity += MathUtil.clamp(this.driveController.calculate(this.driveVelocity, this.targetDriveVelocity), -this.constants.maxAccel * period, this.constants.maxAccel * period);
+            double stopVelocity = MathUtil.deadband(this.getDistanceToFinalWaypoint(), 0, this.constants.finalSlowDistance) * this.robot.getConstants().maxVel();
+            double maxVelocity = Math.min(this.robot.getConstants().maxVel() - (slowPercentage * (Math.abs(driftAngle.getDegrees()) / 25)), stopVelocity);
+            targetDriveVelocity = Math.min(maxVelocity, maxVel);
+            driveVelocity += MathUtil.clamp(this.driveController.calculate(this.driveVelocity, this.targetDriveVelocity), -maxAccel * period, maxAccel * period);
             driveVelocity = MathUtil.clamp(driveVelocity, 0, maxVelocity);
 
             if (isNotLastWaypoint) {
@@ -103,9 +103,9 @@ public class PurePursuit {
 
             double targetOmegaVelocity = this.omegaController.calculate(
                     this.robot.getPosition().getRotation().getDegrees(),
-                    (this.getFinalWaypoint().getHeading() - this.getStartWaypoint().getHeading()) * ((this.getPathDistance() - this.getDistanceToFinalWaypoint()) / this.getPathDistance()) + this.getStartWaypoint().getHeading());
-            omegaVelocity += MathUtil.clamp(targetOmegaVelocity - omegaVelocity, -this.constants.maxOmegaAccel * period, this.constants.maxOmegaAccel * period);
-            omegaVelocity = MathUtil.clamp(omegaVelocity, -this.constants.maxOmegaVel, this.constants.maxOmegaVel);
+                    (this.getFinalWaypoint().getHeading() - this.getStartWaypoint().getHeading()) * Math.pow((this.getPathDistance() - this.getDistanceToFinalWaypoint()) / this.getPathDistance(), 0.5) + this.getStartWaypoint().getHeading());
+            omegaVelocity += MathUtil.clamp(targetOmegaVelocity - omegaVelocity, -maxOmegaAccel * period, maxOmegaAccel * period);
+            omegaVelocity = MathUtil.clamp(omegaVelocity, -maxOmegaVel, maxOmegaVel);
 
             Rotation2d omega = Rotation2d.fromDegrees(omegaVelocity);
             this.robot.drive(new Pose2d(
@@ -138,8 +138,10 @@ public class PurePursuit {
     }
 
     public double getDistanceToFinalWaypoint() {
-        double distance = this.getDistanceToCurrentWaypoint();
-        for (int i = this.getCurrentWaypointIndex(); i < this.waypoints.size() - 1; i++) {
+        int currentWaypoint = this.getCurrentWaypointIndex() + (this.lastDriftPercentage > 0.1 ? 1 : 0);
+
+        double distance = this.robot.getPosition().getTranslation().getDistance(this.getWaypoint(Math.min(currentWaypoint, this.waypoints.size() - 1)));
+        for (int i = currentWaypoint; i < this.waypoints.size() - 1; i++) {
             distance += this.waypoints.get(i).getDistance(this.waypoints.get(i + 1));
         }
         return distance;
@@ -151,10 +153,6 @@ public class PurePursuit {
             distance += this.waypoints.get(i).getDistance(this.waypoints.get(i + 1));
         }
         return distance;
-    }
-
-    public double getRawDistanceToFinalWaypoint() {
-        return this.robot.getPosition().getTranslation().getDistance(this.getFinalWaypoint());
     }
 
     public double getDriftPercentage() {
@@ -226,5 +224,5 @@ public class PurePursuit {
         return constants;
     }
 
-    public record Constants(double maxVel, double maxAccel, double maxOmegaVel, double maxOmegaAccel, double maxDriftDistance, double maxSlowDistance, double finalSlowDistance) {}
+    public record Constants(double maxDriftDistance, double maxSlowDistance, double finalSlowDistance) {}
 }

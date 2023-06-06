@@ -77,6 +77,10 @@ public class Rotation2d implements Interpolatable<Rotation2d> {
         return new Rotation2d(Units.rotationsToRadians(rotations));
     }
 
+    public Rotation2d bound(double minimum, double maximum) {
+        return Rotation2d.fromDegrees(MathUtil.inputModulus(Math.toDegrees(this.m_value), minimum, maximum));
+    }
+
     /**
      * Adds two rotations together, with the result being bounded between -pi and pi.
      *
