@@ -58,7 +58,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private final List<Double> robotAngle = new ArrayList<>();
     private final List<Double> distance = new ArrayList<>();
 
-//    private Pose2d manualVelocity = new Pose2d();
+    private final Set<Integer> pressedKeys = new HashSet<>();
 
     private double maxValue = DEFAULT_MAX_VALUE;
 
@@ -236,6 +236,57 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         }
     }
 
+    private void manualDrive() {
+        if (this.purePursuit.isRunning())
+            return;
+
+        double velocity = this.robot.getConstants().maxVel();
+        double omega = this.robot.getConstants().maxOmegaVel();
+        Pose2d vector = new Pose2d();
+        if (this.pressedKeys.contains(KeyEvent.VK_W))
+            vector = vector.plus(new Transform2d(new Translation2d(0, velocity), new Rotation2d()));
+        if (this.pressedKeys.contains(KeyEvent.VK_S))
+            vector = vector.plus(new Transform2d(new Translation2d(0, -velocity), new Rotation2d()));
+        if (this.pressedKeys.contains(KeyEvent.VK_A))
+            vector = vector.plus(new Transform2d(new Translation2d(-velocity, 0), new Rotation2d()));
+        if (this.pressedKeys.contains(KeyEvent.VK_D))
+            vector = vector.plus(new Transform2d(new Translation2d(velocity, 0), new Rotation2d()));
+        if (this.pressedKeys.contains(KeyEvent.VK_E))
+            vector = new Pose2d(vector.getTranslation(), vector.getRotation().rotateBy(Rotation2d.fromRadians(-omega)));
+        if (this.pressedKeys.contains(KeyEvent.VK_Q))
+            vector = new Pose2d(vector.getTranslation(), vector.getRotation().rotateBy(Rotation2d.fromRadians(omega)));
+
+        this.robot.drive(vector);
+    }
+
+    public void start() {
+        long lastUpdate = System.currentTimeMillis();
+
+        while (true) {
+            this.setPixelsInOneUnit(convertMaxValueToPixels(this.maxValue));
+
+            this.clearFrame();
+            this.drawBackground();
+            this.purePursuit.update(4.5, 3, 360, 360);
+            this.updateValues();
+            this.displayPath();
+            this.displayRobot();
+            this.displayObstacles();
+            this.writeValues();
+            this.manualDrive();
+
+            this.repaint();
+
+            try {
+                long period = System.currentTimeMillis() - lastUpdate;
+                lastUpdate = System.currentTimeMillis();
+                Thread.sleep((long) Math.max(((1000 - period) / FPS), 0));
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
     @Override
     public void mouseDragged(MouseEvent e) {
         Translation2d mouseLocation = this.getMouseTranslation(e);
@@ -293,24 +344,14 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.obstacleAvoiding.setFiltering(!this.obstacleAvoiding.isFiltering());
         }
 
-//        double velocity = this.purePursuit.getConstants().maxVel();
-//        double omega = this.purePursuit.getConstants().maxOmegaVel();
-//        if (e.getKeyCode() == KeyEvent.VK_W)
-//            manualVelocity = manualVelocity.plus(new Transform2d(new Translation2d(0, velocity), new Rotation2d()));
-//        if (e.getKeyCode() == KeyEvent.VK_S)
-//            manualVelocity = manualVelocity.plus(new Transform2d(new Translation2d(0, -velocity), new Rotation2d()));
-//        if (e.getKeyCode() == KeyEvent.VK_A)
-//            manualVelocity = manualVelocity.plus(new Transform2d(new Translation2d(-velocity, 0), new Rotation2d()));
-//        if (e.getKeyCode() == KeyEvent.VK_D)
-//            manualVelocity = manualVelocity.plus(new Transform2d(new Translation2d(velocity, 0), new Rotation2d()));
-//        if (e.getKeyCode() == KeyEvent.VK_E)
-//            manualVelocity = manualVelocity.plus(new Transform2d(new Translation2d(), Rotation2d.fromDegrees(omega)));
-//        if (e.getKeyCode() == KeyEvent.VK_Q)
-//            manualVelocity = manualVelocity.plus(new Transform2d(new Translation2d(), Rotation2d.fromDegrees(omega)));
+        System.out.println("added " + e.getKeyChar());
+        this.pressedKeys.add(e.getKeyCode());
     }
 
     @Override
     public void keyReleased(KeyEvent e) {
+        System.out.println("removed " + e.getKeyChar());
+        this.pressedKeys.remove((Integer) e.getKeyCode());
     }
 
     @Override
@@ -350,37 +391,6 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     @Override
     public void mouseWheelMoved(MouseWheelEvent e) {
         this.maxValue += e.getPreciseWheelRotation();
-    }
-
-    public void start() {
-        long lastUpdate = System.currentTimeMillis();
-
-        while (true) {
-            this.setPixelsInOneUnit(convertMaxValueToPixels(this.maxValue));
-
-            this.clearFrame();
-            this.drawBackground();
-            this.purePursuit.update(4.5, 3, 360, 360);
-            this.updateValues();
-            this.displayPath();
-            this.displayRobot();
-            this.displayObstacles();
-            this.writeValues();
-
-//            if (!this.purePursuit.isRunning()) {
-//                this.robot.drive(this.manualVelocity);
-//            }
-
-            this.repaint();
-
-            try {
-                long period = System.currentTimeMillis() - lastUpdate;
-                lastUpdate = System.currentTimeMillis();
-                Thread.sleep((long) Math.max(((1000 - period) / FPS), 0));
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
     }
 
     private void drawRobotPose(Translation2d pose) {
