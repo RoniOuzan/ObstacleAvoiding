@@ -107,7 +107,8 @@ public class Translation2d implements Interpolatable<Translation2d> {
     }
 
     public Translation2d normalized() {
-        return this.div(this.getNorm());
+        double norm = this.getNorm();
+        return this.div(norm == 0 ? 1 : norm);
     }
 
     /**

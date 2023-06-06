@@ -68,7 +68,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     public GUI() {
         super("Path Follower", DIMENSION, PIXELS_IN_ONE_UNIT);
 
-        this.robot = new Robot(new Pose2d(new Translation2d(0, 0), Rotation2d.fromDegrees(0)),
+        this.robot = new Robot(new Pose2d(new Translation2d(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2), Rotation2d.fromDegrees(0)),
                 new Robot.Constants(4.5, 360, 1 / FPS));
 
         List<Obstacle> blueObstacles = Arrays.asList(
@@ -240,23 +240,24 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         if (this.purePursuit.isRunning())
             return;
 
-        double velocity = this.robot.getConstants().maxVel();
         double omega = this.robot.getConstants().maxOmegaVel();
-        Pose2d vector = new Pose2d();
+        Pose2d velocity = new Pose2d();
         if (this.pressedKeys.contains(KeyEvent.VK_W))
-            vector = vector.plus(new Transform2d(new Translation2d(0, velocity), new Rotation2d()));
+            velocity = velocity.plus(new Transform2d(new Translation2d(0, 1), new Rotation2d()));
         if (this.pressedKeys.contains(KeyEvent.VK_S))
-            vector = vector.plus(new Transform2d(new Translation2d(0, -velocity), new Rotation2d()));
+            velocity = velocity.plus(new Transform2d(new Translation2d(0, -1), new Rotation2d()));
         if (this.pressedKeys.contains(KeyEvent.VK_A))
-            vector = vector.plus(new Transform2d(new Translation2d(-velocity, 0), new Rotation2d()));
+            velocity = velocity.plus(new Transform2d(new Translation2d(-1, 0), new Rotation2d()));
         if (this.pressedKeys.contains(KeyEvent.VK_D))
-            vector = vector.plus(new Transform2d(new Translation2d(velocity, 0), new Rotation2d()));
+            velocity = velocity.plus(new Transform2d(new Translation2d(1, 0), new Rotation2d()));
         if (this.pressedKeys.contains(KeyEvent.VK_E))
-            vector = new Pose2d(vector.getTranslation(), vector.getRotation().rotateBy(Rotation2d.fromRadians(-omega)));
+            velocity = new Pose2d(velocity.getTranslation(), velocity.getRotation().rotateBy(Rotation2d.fromRadians(-omega)));
         if (this.pressedKeys.contains(KeyEvent.VK_Q))
-            vector = new Pose2d(vector.getTranslation(), vector.getRotation().rotateBy(Rotation2d.fromRadians(omega)));
+            velocity = new Pose2d(velocity.getTranslation(), velocity.getRotation().rotateBy(Rotation2d.fromRadians(omega)));
 
-        this.robot.drive(vector);
+        this.robot.drive(new Pose2d(
+                velocity.getTranslation().normalized().times(this.robot.getConstants().maxVel() * 0.6),
+                velocity.getRotation()));
     }
 
     public void start() {
@@ -322,7 +323,11 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     @Override
     public void keyPressed(KeyEvent e) {
         if (e.getKeyCode() == KeyEvent.VK_R) {
+            this.defaultWaypoints.set(0, new Waypoint(this.robot.getPosition().getTranslation(), this.robot.getPosition().getRotation().getDegrees(), Waypoint.RobotReference.CENTER));
+            this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
+
             this.purePursuit.reset();
+
             this.positions.clear();
             this.currentWaypoint.clear();
             this.driveVelocities.clear();
@@ -333,12 +338,12 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.robotAngle.clear();
             this.distance.clear();
 
-            this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
+            this.purePursuit.setRunning(true);
         } else if (e.getKeyCode() == KeyEvent.VK_T) {
             this.purePursuit.setRunning(!this.purePursuit.isRunning());
         } else if (e.getKeyCode() == KeyEvent.VK_G) {
             this.showAlienatedObstacles = !this.showAlienatedObstacles;
-        } else if (e.getKeyCode() == KeyEvent.VK_A) {
+        } else if (e.getKeyCode() == KeyEvent.VK_Y) {
             this.autoGeneratePath = !this.autoGeneratePath;
         } else if (e.getKeyCode() == KeyEvent.VK_F) {
             this.obstacleAvoiding.setFiltering(!this.obstacleAvoiding.isFiltering());
