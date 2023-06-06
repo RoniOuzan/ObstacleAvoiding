@@ -1,6 +1,6 @@
-package main.java.obstacleavoiding.gui.types.draw;
+package obstacleavoiding.gui.types.draw;
 
-import main.java.obstacleavoiding.gui.DrawType;
+import obstacleavoiding.gui.DrawType;
 
 public interface DrawTopLeft extends DrawType {
 }

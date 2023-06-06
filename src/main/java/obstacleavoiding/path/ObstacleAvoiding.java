@@ -1,10 +1,10 @@
-package main.java.obstacleavoiding.path;
+package obstacleavoiding.path;
 
-import main.java.obstacleavoiding.math.geometry.Rotation2d;
-import main.java.obstacleavoiding.math.geometry.Translation2d;
-import main.java.obstacleavoiding.path.obstacles.Obstacle;
-import main.java.obstacleavoiding.path.util.Bounds;
-import main.java.obstacleavoiding.path.util.Waypoint;
+import obstacleavoiding.math.geometry.Rotation2d;
+import obstacleavoiding.math.geometry.Translation2d;
+import obstacleavoiding.path.obstacles.Obstacle;
+import obstacleavoiding.path.util.Bounds;
+import obstacleavoiding.path.util.Waypoint;
 
 import java.util.ArrayList;
 import java.util.Arrays;

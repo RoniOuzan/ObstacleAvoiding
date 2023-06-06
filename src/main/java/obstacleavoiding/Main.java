@@ -1,6 +1,6 @@
-package main.java.obstacleavoiding;
+package obstacleavoiding;
 
-import main.java.obstacleavoiding.path.GUI;
+import obstacleavoiding.path.GUI;
 
 public class Main {
     public static void main(String[] args) {

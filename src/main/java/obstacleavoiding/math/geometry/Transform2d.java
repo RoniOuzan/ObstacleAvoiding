@@ -1,4 +1,4 @@
-package main.java.obstacleavoiding.math.geometry;
+package obstacleavoiding.math.geometry;
 
 import java.util.Objects;
 

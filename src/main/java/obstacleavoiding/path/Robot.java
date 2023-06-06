@@ -1,9 +1,9 @@
-package main.java.obstacleavoiding.path;
+package obstacleavoiding.path;
 
-import main.java.obstacleavoiding.math.MathUtil;
-import main.java.obstacleavoiding.math.geometry.*;
-
-import java.sql.Driver;
+import com.github.strikerx3.jxinput.XInputDevice;
+import obstacleavoiding.math.geometry.Pose2d;
+import obstacleavoiding.math.geometry.Rotation2d;
+import obstacleavoiding.math.geometry.Translation2d;
 
 public class Robot {
     private Pose2d position;

@@ -1,15 +1,15 @@
-package main.java.obstacleavoiding.path;
+package obstacleavoiding.path;
 
-import main.java.obstacleavoiding.gui.Frame;
-import main.java.obstacleavoiding.gui.types.draw.DrawCentered;
-import main.java.obstacleavoiding.gui.types.field.ZeroLeftBottom;
-import main.java.obstacleavoiding.math.MathUtil;
-import main.java.obstacleavoiding.math.geometry.*;
-import main.java.obstacleavoiding.path.obstacles.DraggableObstacle;
-import main.java.obstacleavoiding.path.obstacles.Obstacle;
-import main.java.obstacleavoiding.path.util.Alliance;
-import main.java.obstacleavoiding.path.util.Bounds;
-import main.java.obstacleavoiding.path.util.Waypoint;
+import obstacleavoiding.gui.Frame;
+import obstacleavoiding.gui.types.draw.DrawCentered;
+import obstacleavoiding.gui.types.field.ZeroLeftBottom;
+import obstacleavoiding.math.MathUtil;
+import obstacleavoiding.math.geometry.*;
+import obstacleavoiding.path.obstacles.DraggableObstacle;
+import obstacleavoiding.path.obstacles.Obstacle;
+import obstacleavoiding.path.util.Alliance;
+import obstacleavoiding.path.util.Bounds;
+import obstacleavoiding.path.util.Waypoint;
 
 import javax.swing.*;
 import java.awt.*;
@@ -19,6 +19,7 @@ import java.awt.event.MouseWheelEvent;
 import java.util.List;
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.zip.InflaterInputStream;
 
 public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private static final boolean IS_CHARGED_UP_FIELD = true;
@@ -60,7 +61,6 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private final List<Double> robotAngle = new ArrayList<>();
     private final List<Double> distance = new ArrayList<>();
 
-    private final Set<Integer> pressedKeys = new HashSet<>();
 
     private double maxValue = DEFAULT_MAX_VALUE;
 
@@ -68,7 +68,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private Obstacle draggedObstacle = null;
 
     public GUI() {
-        super("Path Follower", DIMENSION, PIXELS_IN_ONE_UNIT);
+        super("Path Follower", DIMENSION, PIXELS_IN_ONE_UNIT, FPS);
 
         this.robot = new Robot(new Pose2d(new Translation2d(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2), Rotation2d.fromDegrees(0)),
                 new Robot.Constants(4.5, 360, 1 / FPS));
@@ -238,56 +238,20 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         }
     }
 
-    private void manualDrive() {
-        if (this.purePursuit.isRunning())
-            return;
-
-        double omega = this.robot.getConstants().maxOmegaVel();
-        Pose2d velocity = new Pose2d();
-        if (this.pressedKeys.contains(KeyEvent.VK_W))
-            velocity = velocity.plus(new Transform2d(new Translation2d(0, 1), new Rotation2d()));
-        if (this.pressedKeys.contains(KeyEvent.VK_S))
-            velocity = velocity.plus(new Transform2d(new Translation2d(0, -1), new Rotation2d()));
-        if (this.pressedKeys.contains(KeyEvent.VK_A))
-            velocity = velocity.plus(new Transform2d(new Translation2d(-1, 0), new Rotation2d()));
-        if (this.pressedKeys.contains(KeyEvent.VK_D))
-            velocity = velocity.plus(new Transform2d(new Translation2d(1, 0), new Rotation2d()));
-        if (this.pressedKeys.contains(KeyEvent.VK_E))
-            velocity = new Pose2d(velocity.getTranslation(), velocity.getRotation().rotateBy(Rotation2d.fromRadians(-omega)));
-        if (this.pressedKeys.contains(KeyEvent.VK_Q))
-            velocity = new Pose2d(velocity.getTranslation(), velocity.getRotation().rotateBy(Rotation2d.fromRadians(omega)));
-
-        this.robot.drive(new Pose2d(
-                velocity.getTranslation().normalized().times(this.robot.getConstants().maxVel() * 0.6),
-                velocity.getRotation()));
+    @Override
+    public void update() {
+        this.drawBackground();
+        this.purePursuit.update(4.5, 3, 360, 360);
+        this.updateValues();
+        this.displayPath();
+        this.displayRobot();
+        this.displayObstacles();
+        this.writeValues();
     }
 
-    public void start() {
-        long lastUpdate = System.currentTimeMillis();
-
-        while (true) {
-            this.setPixelsInOneUnit(convertMaxValueToPixels(this.maxValue));
-
-            this.clearFrame();
-            this.drawBackground();
-            this.purePursuit.update(4.5, 3, 360, 360);
-            this.updateValues();
-            this.displayPath();
-            this.displayRobot();
-            this.displayObstacles();
-            this.writeValues();
-            this.manualDrive();
-
-            this.repaint();
-
-            try {
-                long period = System.currentTimeMillis() - lastUpdate;
-                lastUpdate = System.currentTimeMillis();
-                Thread.sleep((long) Math.max(((1000 - period) / FPS), 0));
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
+    @Override
+    public double getPixelsInUnits() {
+        return convertMaxValueToPixels(this.maxValue);
     }
 
     @Override
@@ -323,6 +287,31 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     }
 
     @Override
+    public void keyListen(Set<Integer> keys) {
+        if (this.purePursuit.isRunning())
+            return;
+
+        double omega = this.robot.getConstants().maxOmegaVel();
+        Pose2d velocity = new Pose2d();
+        if (keys.contains(KeyEvent.VK_W))
+            velocity = velocity.plus(new Transform2d(new Translation2d(0, 1), new Rotation2d()));
+        if (keys.contains(KeyEvent.VK_S))
+            velocity = velocity.plus(new Transform2d(new Translation2d(0, -1), new Rotation2d()));
+        if (keys.contains(KeyEvent.VK_A))
+            velocity = velocity.plus(new Transform2d(new Translation2d(-1, 0), new Rotation2d()));
+        if (keys.contains(KeyEvent.VK_D))
+            velocity = velocity.plus(new Transform2d(new Translation2d(1, 0), new Rotation2d()));
+        if (keys.contains(KeyEvent.VK_E))
+            velocity = new Pose2d(velocity.getTranslation(), velocity.getRotation().rotateBy(Rotation2d.fromRadians(-omega)));
+        if (keys.contains(KeyEvent.VK_Q))
+            velocity = new Pose2d(velocity.getTranslation(), velocity.getRotation().rotateBy(Rotation2d.fromRadians(omega)));
+
+        this.robot.drive(new Pose2d(
+                velocity.getTranslation().normalized().times(this.robot.getConstants().maxVel() * 0.6),
+                velocity.getRotation()));
+    }
+
+    @Override
     public void keyPressed(KeyEvent e) {
         if (e.getKeyCode() == KeyEvent.VK_R) {
             this.defaultWaypoints.set(0, new Waypoint(this.robot.getPosition().getTranslation(), this.robot.getPosition().getRotation().getDegrees(), Waypoint.RobotReference.CENTER));
@@ -352,13 +341,11 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         }
 
         System.out.println("added " + e.getKeyChar());
-        this.pressedKeys.add(e.getKeyCode());
     }
 
     @Override
     public void keyReleased(KeyEvent e) {
         System.out.println("removed " + e.getKeyChar());
-        this.pressedKeys.remove((Integer) e.getKeyCode());
     }
 
     @Override

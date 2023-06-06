@@ -1,4 +1,4 @@
-package main.java.obstacleavoiding.path.pid;
+package obstacleavoiding.path.pid;
 
 public class PIDPreset {
     private final double kP;

@@ -1,4 +1,4 @@
-package main.java.obstacleavoiding.gui;
+package obstacleavoiding.gui;
 
 import javax.swing.*;
 import java.awt.*;

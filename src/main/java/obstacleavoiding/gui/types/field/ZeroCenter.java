@@ -1,6 +1,6 @@
-package main.java.obstacleavoiding.gui.types.field;
+package obstacleavoiding.gui.types.field;
 
-import main.java.obstacleavoiding.math.geometry.Dimension2d;
+import obstacleavoiding.math.geometry.Dimension2d;
 
 public interface ZeroCenter extends ZeroLeftBottom {
     @Override

@@ -1,4 +1,4 @@
-package main.java.obstacleavoiding.math;
+package obstacleavoiding.math;
 
 import java.util.function.Function;
 

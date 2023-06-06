@@ -1,15 +1,16 @@
-package main.java.obstacleavoiding.gui;
+package obstacleavoiding.gui;
 
-import main.java.obstacleavoiding.math.geometry.Dimension2d;
-import main.java.obstacleavoiding.math.geometry.Translation2d;
+import com.github.strikerx3.jxinput.XInputComponents;
+import com.github.strikerx3.jxinput.XInputDevice;
+import com.github.strikerx3.jxinput.exceptions.XInputNotLoadedException;
+import obstacleavoiding.math.geometry.Dimension2d;
+import obstacleavoiding.math.geometry.Translation2d;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.ArrayList;
-import java.util.ConcurrentModificationException;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -19,13 +20,19 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
     private final Dimension2d dimension;
 
     private double pixelsInOneUnit;
+    private final double fps;
 
     private final List<JFrame> graphs = new ArrayList<>();
 
-    public Frame(String title, Dimension2d frameSize, Color background, double pixelsInOneUnit) {
+    private final List<XInputDevice> inputDevices = new ArrayList<>();
+
+    private final Set<Integer> pressedKeys = new HashSet<>();
+
+    public Frame(String title, Dimension2d frameSize, Color background, double pixelsInOneUnit, double fps) {
         super(title);
         this.dimension = frameSize;
         this.pixelsInOneUnit = pixelsInOneUnit;
+        this.fps = fps;
 
         this.panel = new Panel();
         this.add(this.panel);
@@ -44,12 +51,12 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
         this.repaint();
     }
 
-    public Frame(String title, Dimension2d frameSize, double pixelsInOneUnit) {
-        this(title, frameSize, Color.WHITE, pixelsInOneUnit);
+    public Frame(String title, Dimension2d frameSize, double pixelsInOneUnit, double fps) {
+        this(title, frameSize, Color.WHITE, pixelsInOneUnit, fps);
     }
 
-    public Frame(String title, Dimension2d frameSize) {
-        this(title, frameSize, Color.WHITE, 1);
+    public Frame(String title, Dimension2d frameSize, double fps) {
+        this(title, frameSize, Color.WHITE, 1, fps);
     }
 
     @Override
@@ -83,6 +90,14 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
         return convertY(convertYWithSize(y, size), dimension);
     }
 
+    public void addDevice(int device) {
+        try {
+            this.inputDevices.add(XInputDevice.getDeviceFor(device));
+        } catch (XInputNotLoadedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public void addGraph(String title, Map<Supplier<List<Double>>, Color> values, double min, double max) {
         JFrame graph = Graph.createAndShowGui(title, values, min, max);
         graph.addKeyListener(new KeyHandler());
@@ -107,11 +122,6 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
 
     public void clearFrame() {
         this.panel.graphics.clear();
-        this.update();
-    }
-
-    public void update() {
-//        this.repaint();
     }
 
     public Dimension2d getDimension() {
@@ -130,7 +140,6 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
             g.setColor(color);
             g.fillRect(convertX(X, this.dimension), convertY(Y, this.dimension), 1, 1);
         });
-        this.update();
     }
 
     public void drawPolygon(Color color, List<Translation2d> translations) {
@@ -149,7 +158,6 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
             g.setColor(color);
             g.drawPolygon(x, y, translations.length);
         });
-        this.update();
     }
 
     public void drawConnectedPoints(Color color, Translation2d... translations) {
@@ -164,7 +172,6 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
             g.setColor(color);
             g.drawPolyline(x, y, translations.length);
         });
-        this.update();
     }
 
     public void drawConnectedPoints(Color color, List<? extends Translation2d> translations) {
@@ -187,7 +194,6 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
             g.setColor(color);
             g.fillPolygon(x, y, translations.length);
         });
-        this.update();
     }
 
     public void drawRect(double x, double y, double width, double height, Color color) {
@@ -200,7 +206,6 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
             g.setColor(color);
             g.drawRect(convertXWithSize(X, newWidth, dimension), convertYWithSize(Y, newHeight, dimension), convertWidth(newWidth), convertHeight(newHeight));
         });
-        this.update();
     }
 
     public void drawRect(Translation2d translation2d, double width, double height, Color color) {
@@ -216,7 +221,6 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
             g.drawRect(convertX(newTranslation1.getX(), this.dimension), convertY(newTranslation1.getY(), this.dimension),
                     convertWidth(newTranslation2.getX() - newTranslation1.getX()), convertHeight(newTranslation2.getY() - newTranslation1.getY()));
         });
-        this.update();
     }
 
     public void fillRect(double x, double y, double width, double height, Color color) {
@@ -229,7 +233,6 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
             g.setColor(color);
             g.fillRect(convertXWithSize(X, newWidth, dimension), convertYWithSize(Y, newHeight, dimension), convertWidth(newWidth), convertHeight(newHeight));
         });
-        this.update();
     }
 
     public void fillRect(Translation2d translation2d, double width, double height, Color color) {
@@ -245,7 +248,6 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
             g.fillRect(convertX(newTranslation1.getX(), this.dimension), convertY(newTranslation1.getY(), this.dimension),
                     convertWidth(newTranslation2.getX() - newTranslation1.getX()), convertHeight(newTranslation2.getY() - newTranslation1.getY()));
         });
-        this.update();
     }
 
     public void drawLine(Translation2d translation1, Translation2d translation2, double width, Color color) {
@@ -257,7 +259,6 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
                     width / 2,
                     color);
         }
-        this.update();
     }
 
     public void drawLine(double x1, double y1, double x2, double y2, double width, Color color) {
@@ -273,7 +274,6 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
             g.drawLine(convertX(newTranslation1.getX(), dimension), convertY(newTranslation1.getY(), dimension),
                     convertX(newTranslation2.getX(), dimension), convertY(newTranslation2.getY(), dimension));
         });
-        this.update();
     }
 
     public void drawThinLine(double x1, double y1, double x2, double y2, Color color) {
@@ -294,7 +294,6 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
                     (int) diameter,
                     (int) diameter);
         });
-        this.update();
     }
 
     public void fillPoint(double x, double y, double radius, Color color) {
@@ -311,7 +310,6 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
                     (int) (diameter),
                     (int) (diameter));
         });
-        this.update();
     }
 
     public void fillPoint(Translation2d point, double radius, Color color) {
@@ -328,12 +326,10 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
             g.setFont(new Font("ariel", Font.PLAIN, (int) newSize));
             g.drawString(text, convertX(X, this.dimension), convertY(Y, this.dimension));
         });
-        this.update();
     }
 
     public void drawString(double x, double y, String text, double size, Color color) {
         this.write(x, y, text, size, color);
-        this.update();
     }
 
     public void drawImage(Image image, Translation2d pose, double width, double height, double angle) {
@@ -361,6 +357,40 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
         return new Translation2d(convertPixelsToX(e.getX(), this.dimension), convertPixelsToY(e.getY(), this.dimension));
     }
 
+    public void start() {
+        long lastUpdate = System.currentTimeMillis();
+
+        while (true) {
+            this.setPixelsInOneUnit(this.getPixelsInUnits());
+
+            this.clearFrame();
+            this.inputDevices.forEach(d -> {
+                if (d.poll() && d.isConnected())
+                    this.deviceListen(d, d.getComponents());
+            });
+            this.keyListen(this.pressedKeys);
+            this.update();
+            this.repaint();
+
+            try {
+                long period = System.currentTimeMillis() - lastUpdate;
+                lastUpdate = System.currentTimeMillis();
+                Thread.sleep((long) Math.max(((1000 - period) / this.fps), 0));
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public void update() {
+    }
+
+    public double getPixelsInUnits() {
+        return this.pixelsInOneUnit;
+    }
+
+    public void deviceListen(XInputDevice device, XInputComponents components) {}
+
     public void mousePressed(MouseEvent e) {}
     public void mouseReleased(MouseEvent e) {}
     public void mouseEntered(MouseEvent e) {}
@@ -372,6 +402,7 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
     public void keyTyped(KeyEvent e) {}
     public void keyPressed(KeyEvent e) {}
     public void keyReleased(KeyEvent e) {}
+    public void keyListen(Set<Integer> keys) {}
 
     public void mouseWheelMoved(MouseWheelEvent e) {}
 
@@ -429,11 +460,13 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
         @Override
         public void keyPressed(KeyEvent e) {
             Frame.this.keyPressed(e);
+            Frame.this.pressedKeys.add(e.getKeyCode());
         }
 
         @Override
         public void keyReleased(KeyEvent e) {
             Frame.this.keyReleased(e);
+            Frame.this.pressedKeys.remove(e.getKeyCode());
         }
     }
 

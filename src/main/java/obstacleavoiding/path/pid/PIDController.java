@@ -2,9 +2,9 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-package main.java.obstacleavoiding.path.pid;
+package obstacleavoiding.path.pid;
 
-import main.java.obstacleavoiding.math.MathUtil;
+import obstacleavoiding.math.MathUtil;
 
 /** Implements a PID control loop. */
 public class PIDController implements AutoCloseable {

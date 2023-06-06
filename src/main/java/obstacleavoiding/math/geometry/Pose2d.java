@@ -1,6 +1,6 @@
-package main.java.obstacleavoiding.math.geometry;
+package obstacleavoiding.math.geometry;
 
-import main.java.obstacleavoiding.math.interpolation.Interpolatable;
+import obstacleavoiding.math.interpolation.Interpolatable;
 
 import java.util.Collections;
 import java.util.Comparator;

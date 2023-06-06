@@ -1,6 +1,6 @@
-package main.java.obstacleavoiding.path.pid;
+package obstacleavoiding.path.pid;
 
-import main.java.obstacleavoiding.math.MathUtil;
+import obstacleavoiding.math.MathUtil;
 
 /**
  * Implements a PID control loop whose setpoint is constrained by a trapezoid profile. Users should

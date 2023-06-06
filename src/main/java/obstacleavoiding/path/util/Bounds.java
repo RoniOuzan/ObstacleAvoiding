@@ -1,7 +1,7 @@
-package main.java.obstacleavoiding.path.util;
+package obstacleavoiding.path.util;
 
-import main.java.obstacleavoiding.math.MathUtil;
-import main.java.obstacleavoiding.math.geometry.Translation2d;
+import obstacleavoiding.math.MathUtil;
+import obstacleavoiding.math.geometry.Translation2d;
 
 public class Bounds {
     private final double maxX;

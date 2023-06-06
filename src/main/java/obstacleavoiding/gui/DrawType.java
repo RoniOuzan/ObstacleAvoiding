@@ -1,4 +1,4 @@
-package main.java.obstacleavoiding.gui;
+package obstacleavoiding.gui;
 
 public interface DrawType {
     default int convertXWithSize(double x, double size) {

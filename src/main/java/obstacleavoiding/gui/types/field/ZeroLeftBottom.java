@@ -1,7 +1,7 @@
-package main.java.obstacleavoiding.gui.types.field;
+package obstacleavoiding.gui.types.field;
 
-import main.java.obstacleavoiding.gui.FieldType;
-import main.java.obstacleavoiding.math.geometry.Dimension2d;
+import obstacleavoiding.gui.FieldType;
+import obstacleavoiding.math.geometry.Dimension2d;
 
 public interface ZeroLeftBottom extends FieldType {
     @Override

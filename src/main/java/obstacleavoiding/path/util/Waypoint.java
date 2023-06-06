@@ -1,9 +1,9 @@
-package main.java.obstacleavoiding.path.util;
+package obstacleavoiding.path.util;
 
-import main.java.obstacleavoiding.math.geometry.Pose2d;
-import main.java.obstacleavoiding.math.geometry.Rotation2d;
-import main.java.obstacleavoiding.math.geometry.Translation2d;
-import main.java.obstacleavoiding.path.GUI;
+import obstacleavoiding.math.geometry.Pose2d;
+import obstacleavoiding.math.geometry.Rotation2d;
+import obstacleavoiding.math.geometry.Translation2d;
+import obstacleavoiding.path.GUI;
 
 import java.util.UUID;
 

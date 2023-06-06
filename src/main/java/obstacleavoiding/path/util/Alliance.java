@@ -1,4 +1,4 @@
-package main.java.obstacleavoiding.path.util;
+package obstacleavoiding.path.util;
 
 import java.awt.*;
 

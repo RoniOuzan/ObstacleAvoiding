@@ -1,4 +1,4 @@
-package main.java.obstacleavoiding.math.interpolation;
+package obstacleavoiding.math.interpolation;
 
 /**
  * An object should extend interpolatable if you wish to interpolate between a lower and upper

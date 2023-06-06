@@ -1,6 +1,6 @@
-package main.java.obstacleavoiding.gui;
+package obstacleavoiding.gui;
 
-import main.java.obstacleavoiding.math.geometry.Dimension2d;
+import obstacleavoiding.math.geometry.Dimension2d;
 
 public interface FieldType {
     default int convertX(double x, Dimension2d dimension) {

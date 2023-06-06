@@ -1,4 +1,4 @@
-package main.java.obstacleavoiding.math.util;
+package obstacleavoiding.math.util;
 
 public final class Units {
   private static final double kInchesPerFoot = 12.0;

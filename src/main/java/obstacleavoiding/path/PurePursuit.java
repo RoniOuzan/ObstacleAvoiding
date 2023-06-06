@@ -1,11 +1,11 @@
-package main.java.obstacleavoiding.path;
+package obstacleavoiding.path;
 
-import main.java.obstacleavoiding.math.MathUtil;
-import main.java.obstacleavoiding.math.geometry.Pose2d;
-import main.java.obstacleavoiding.math.geometry.Rotation2d;
-import main.java.obstacleavoiding.math.geometry.Translation2d;
-import main.java.obstacleavoiding.path.pid.PIDController;
-import main.java.obstacleavoiding.path.util.Waypoint;
+import obstacleavoiding.math.MathUtil;
+import obstacleavoiding.math.geometry.Pose2d;
+import obstacleavoiding.math.geometry.Rotation2d;
+import obstacleavoiding.math.geometry.Translation2d;
+import obstacleavoiding.path.pid.PIDController;
+import obstacleavoiding.path.util.Waypoint;
 
 import java.util.ArrayList;
 import java.util.Arrays;
