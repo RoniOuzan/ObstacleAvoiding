@@ -138,7 +138,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
         this.purePursuit = new PurePursuit(
                 this.robot,
-                new PurePursuit.Constants(1, 4, 1.5),
+                new PurePursuit.Constants(1, 4, 3),
                 this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints)
         );
 
@@ -247,9 +247,9 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.purePursuit.update(4.5, 3, 360, 360);
         this.updateValues();
         this.displayPath();
-        this.displayRobot();
         this.displayObstacles();
         this.writeValues();
+        this.displayRobot();
     }
 
     @Override
@@ -271,7 +271,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         double rightAxis = -Math.pow(MathUtil.limitDot(components.getAxes().rx, 3), 1) * this.robot.getConstants().maxOmegaVel();
 
         Rotation2d angle = leftAxis.getNorm() < 0.01 ? this.robot.getVelocity().getTranslation().getAngle() : leftAxis.getAngle();
-        double magnitude = Math.pow(leftAxis.getNorm(), 2) * this.robot.getConstants().maxVel();
+        double magnitude = Math.pow(leftAxis.getNorm(), 4) * this.robot.getConstants().maxVel();
 
         Translation2d accel = new Translation2d(magnitude, angle).minus(this.robot.getVelocity().getTranslation());
         accel = new Translation2d(Math.min(accel.getNorm(), this.robot.getConstants().maxAccel() * this.robot.getPeriod()), accel.getAngle());
@@ -350,6 +350,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
 
             this.purePursuit.reset();
+            this.robot.drive(new Pose2d());
 
             this.positions.clear();
             this.currentWaypoint.clear();
@@ -400,7 +401,10 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         }
 
         if (!drag) {
+            this.robot.drive(new Pose2d());
+
             this.defaultWaypoints.get(this.defaultWaypoints.size() - 1).set(mouseLocation);
+            this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
         }
     }
 
