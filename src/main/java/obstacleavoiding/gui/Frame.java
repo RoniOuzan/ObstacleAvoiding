@@ -125,7 +125,7 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
     }
 
     public Dimension2d getDimension() {
-        return dimension;
+        return new Dimension2d((int) this.getSize().getWidth() - 15, (int) this.getSize().getHeight() - 40);
     }
 
     public Translation2d getDimensionWithUnits() {
@@ -365,8 +365,9 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
 
             this.clearFrame();
             this.inputDevices.forEach(d -> {
-                if (d.poll() && d.isConnected())
-                    this.deviceListen(d, d.getComponents());
+                if (d.poll() && d.isConnected()) {
+                    this.deviceListen(d, d.getComponents(), d.getLastComponents());
+                }
             });
             this.keyListen(this.pressedKeys);
             this.update();
@@ -389,7 +390,7 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
         return this.pixelsInOneUnit;
     }
 
-    public void deviceListen(XInputDevice device, XInputComponents components) {}
+    public void deviceListen(XInputDevice device, XInputComponents components, XInputComponents lastComponents) {}
 
     public void mousePressed(MouseEvent e) {}
     public void mouseReleased(MouseEvent e) {}

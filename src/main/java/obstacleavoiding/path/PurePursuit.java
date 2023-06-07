@@ -89,7 +89,7 @@ public class PurePursuit {
             double stopVelocity = Math.pow(MathUtil.clamp(this.getDistanceToFinalWaypoint() / this.constants.finalSlowDistance, 0, 1), 0.75) * this.robot.getConstants().maxVel();
             double maxVelocity = Math.min(this.robot.getConstants().maxVel() - Math.min(slowPercentage * driftPercent, 3), stopVelocity);
             targetDriveVelocity = Math.min(maxVelocity, maxVel);
-            driveVelocity += MathUtil.clamp(this.driveController.calculate(this.driveVelocity, this.targetDriveVelocity), -maxAccel * period, maxAccel * period);
+            driveVelocity += MathUtil.clamp(this.driveController.calculate(this.robot.getVelocity().getTranslation().getNorm(), this.targetDriveVelocity), -maxAccel * period, maxAccel * period);
             driveVelocity = MathUtil.clamp(driveVelocity, 0, maxVelocity);
 
             if (isNotLastWaypoint) {

@@ -36,6 +36,12 @@ public class Waypoint extends Translation2d {
         this(translation2d.getX(), translation2d.getY(), 0, robotReference);
     }
 
+    public void set(Pose2d pose2d) {
+        this.setX(pose2d.getX());
+        this.setY(pose2d.getY());
+        this.setHeading(pose2d.getRotation().getDegrees());
+    }
+
     public double getHeading() {
         return heading;
     }
