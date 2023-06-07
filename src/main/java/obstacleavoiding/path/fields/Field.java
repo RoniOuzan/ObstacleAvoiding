@@ -27,8 +27,8 @@ public abstract class Field {
         this.height = height;
         this.image = new ImageIcon("src/main/java/obstacleavoiding/path/images/" + name + "Field.png").getImage();
         this.fieldType = fieldType;
-        this.obstacles = new ArrayList<>(this.generateBlueObstacles());
-        this.obstacles.addAll(this.obstacles.stream().map(o -> this.fieldType.convertToRedObstacle(o, this.getBounds())).toList());
+        this.obstacles = new ArrayList<>(this.generateAllianceObstacles());
+        this.obstacles.addAll(this.obstacles.stream().map(o -> this.fieldType.convertToOtherAllianceObstacle(o, this.getBounds())).toList());
         this.obstacles.addAll(this.generateGeneralObstacles());
         this.obstacles.addAll(Arrays.asList(
                         new Obstacle("RightX", Alliance.NONE,
@@ -58,7 +58,7 @@ public abstract class Field {
         this(name, 16.54, 8.02, fieldType);
     }
     
-    protected abstract List<Obstacle> generateBlueObstacles();
+    protected abstract List<Obstacle> generateAllianceObstacles();
     protected abstract List<Obstacle> generateGeneralObstacles();
 
     public Translation2d getBounds() {

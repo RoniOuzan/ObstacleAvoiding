@@ -1,5 +1,7 @@
 package obstacleavoiding.path.util;
 
+import obstacleavoiding.path.obstacles.Obstacle;
+
 import java.awt.*;
 
 public enum Alliance {
@@ -19,5 +21,13 @@ public enum Alliance {
 
     public Color getColor(int alpha) {
         return new Color(this.color.getRed(), this.color.getGreen(), this.color.getBlue(), alpha);
+    }
+
+    public Alliance getOther() {
+        if (this == RED)
+            return BLUE;
+        else if (this == BLUE)
+            return RED;
+        return NONE;
     }
 }

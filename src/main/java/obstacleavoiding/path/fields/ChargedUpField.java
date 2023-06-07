@@ -14,7 +14,7 @@ public class ChargedUpField extends Field {
     }
 
     @Override
-    protected List<Obstacle> generateBlueObstacles() {
+    protected List<Obstacle> generateAllianceObstacles() {
         return Arrays.asList(
                 new Obstacle("BlueRamp", Alliance.BLUE,
                         new Translation2d(2.951, 3.985),

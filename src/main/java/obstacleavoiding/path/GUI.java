@@ -9,6 +9,7 @@ import obstacleavoiding.math.MathUtil;
 import obstacleavoiding.math.geometry.*;
 import obstacleavoiding.path.fields.ChargedUpField;
 import obstacleavoiding.path.fields.Field;
+import obstacleavoiding.path.fields.InfiniteRecharge;
 import obstacleavoiding.path.fields.RapidReactField;
 import obstacleavoiding.path.obstacles.DraggableObstacle;
 import obstacleavoiding.path.obstacles.Obstacle;
@@ -76,7 +77,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         super("Path Follower", DIMENSION, PIXELS_IN_ONE_UNIT, FPS);
         this.addDevice(0);
 
-        this.field = new RapidReactField();
+        this.field = new InfiniteRecharge();
         this.obstacles = new ArrayList<>(this.field.getObstacles());
 
         this.robot = new Robot(new Pose2d(new Translation2d(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2), Rotation2d.fromDegrees(0)),

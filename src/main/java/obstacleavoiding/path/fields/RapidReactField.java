@@ -14,7 +14,7 @@ public class RapidReactField extends Field {
     }
 
     @Override
-    protected List<Obstacle> generateBlueObstacles() {
+    protected List<Obstacle> generateAllianceObstacles() {
         return Arrays.asList(
                 new Obstacle("ThrustsDR", Alliance.BLUE,
                         new Translation2d(2.877, 5.532),
