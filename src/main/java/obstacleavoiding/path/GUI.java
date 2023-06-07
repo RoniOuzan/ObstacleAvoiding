@@ -224,7 +224,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         double rightAxis = -Math.pow(MathUtil.limitDot(components.getAxes().rx, 3), 1) * this.robot.getConstants().maxOmegaVel();
 
         Rotation2d angle = leftAxis.getNorm() < 0.01 ? this.robot.getVelocity().getTranslation().getAngle() : leftAxis.getAngle();
-        double magnitude = Math.pow(leftAxis.getNorm(), 4) * this.robot.getConstants().maxVel();
+        double magnitude = Math.pow(leftAxis.getNorm(), 2) * this.robot.getConstants().maxVel();
 
         Translation2d accel = new Translation2d(magnitude, angle).minus(this.robot.getVelocity().getTranslation());
         accel = new Translation2d(Math.min(accel.getNorm(), this.robot.getConstants().maxAccel() * this.robot.getPeriod()), accel.getAngle());
