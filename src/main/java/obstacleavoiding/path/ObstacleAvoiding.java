@@ -101,12 +101,23 @@ public class ObstacleAvoiding {
 
                                 int escapeTimes = 0;
                                 while (this.getObstacle(newMiddle) != null) {
-                                    newMiddle = newMiddle.plus(new Translation2d(0.1, angleFromMiddle));
+                                    newMiddle = newMiddle.plus(new Translation2d(0.05, angleFromMiddle));
                                     escapeTimes++;
 
-                                    if (escapeTimes >= 150) break;
+                                    if (escapeTimes >= 100) break;
                                 }
-                                if (escapeTimes == 150) continue;
+
+                                if (this.getObstacle(newMiddle) != null || !this.bounds.isInOfBounds(newMiddle)) {
+                                    escapeTimes = 0;
+                                    newMiddle = newMiddle.minus(new Translation2d(5, angleFromMiddle));
+                                    while (this.getObstacle(newMiddle) != null) {
+                                        newMiddle = newMiddle.minus(new Translation2d(0.05, angleFromMiddle));
+                                        escapeTimes++;
+
+                                        if (escapeTimes >= 100) break;
+                                    }
+                                    if (escapeTimes == 100) continue;
+                                }
 
                                 if (!this.bounds.isInOfBounds(newMiddle))
                                     continue;

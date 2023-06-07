@@ -7,9 +7,11 @@ import obstacleavoiding.gui.types.draw.DrawCentered;
 import obstacleavoiding.gui.types.field.ZeroLeftBottom;
 import obstacleavoiding.math.MathUtil;
 import obstacleavoiding.math.geometry.*;
+import obstacleavoiding.path.fields.ChargedUpField;
+import obstacleavoiding.path.fields.Field;
+import obstacleavoiding.path.fields.RapidReactField;
 import obstacleavoiding.path.obstacles.DraggableObstacle;
 import obstacleavoiding.path.obstacles.Obstacle;
-import obstacleavoiding.path.util.Alliance;
 import obstacleavoiding.path.util.Bounds;
 import obstacleavoiding.path.util.Waypoint;
 
@@ -36,7 +38,9 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     public static final double ROBOT_WITH_BUMPER = BUMPER_WIDTH + ROBOT_WIDTH + BUMPER_WIDTH;
     public static final double HALF_ROBOT = ROBOT_WITH_BUMPER / 2;
 
-    private static final double MINI_ROBOT_WIDTH = ROBOT_WITH_BUMPER;
+    private static final double MINI_ROBOT_WITH_BUMPER = ROBOT_WITH_BUMPER;
+
+    private final Field field;
 
     private final List<Obstacle> obstacles;
     private final ObstacleAvoiding obstacleAvoiding;
@@ -44,7 +48,6 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private final PurePursuit purePursuit;
     private final Robot robot;
 
-    private final Image fieldImage = new ImageIcon("src/main/java/obstacleavoiding/path/images/Field.png").getImage();
     private final Image robotImage = new ImageIcon("src/main/java/obstacleavoiding/path/images/Robot.png").getImage();
     private final Image invisibleRobotImage = new ImageIcon("src/main/java/obstacleavoiding/path/images/InvisibleRobot.png").getImage();
 
@@ -73,62 +76,11 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         super("Path Follower", DIMENSION, PIXELS_IN_ONE_UNIT, FPS);
         this.addDevice(0);
 
+        this.field = new RapidReactField();
+        this.obstacles = new ArrayList<>(this.field.getObstacles());
+
         this.robot = new Robot(new Pose2d(new Translation2d(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2), Rotation2d.fromDegrees(0)),
                 new Robot.Constants(4.5, 9, 360, 720, 1 / FPS));
-
-        List<Obstacle> blueObstacles = Arrays.asList(
-                new Obstacle("BlueRamp", Alliance.BLUE,
-                        new Translation2d(2.951, 3.985),
-                        new Translation2d(4.828, 3.985),
-                        new Translation2d(4.828, 1.509),
-                        new Translation2d(2.951, 1.509)),
-                new Obstacle("BlueBarrier", Alliance.BLUE ,
-                        new Translation2d(1.458, 5.506),
-                        new Translation2d(3.363, 5.506),
-                        new Translation2d(3.363, 5.474),
-                        new Translation2d(1.458, 5.474)),
-                new Obstacle("BlueGrid", Alliance.BLUE,
-                        new Translation2d(0, 5.500),
-                        new Translation2d(1.381, 5.500),
-                        new Translation2d(1.381, 0),
-                        new Translation2d(0, 0)));
-        List<Obstacle> redObstacles = blueObstacles.stream().map(o ->
-                        new Obstacle(
-                                o.getName(),
-                                Alliance.RED,
-                                o.getCorners().stream().map(c -> new Translation2d(DEFAULT_MAX_VALUE - c.getX(), c.getY())).toList()))
-                .toList();
-
-        this.obstacles = new ArrayList<>(Arrays.asList(
-                new Obstacle("RightX", Alliance.NONE,
-                        new Translation2d(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y),
-                        new Translation2d(DEFAULT_MAX_VALUE + 0.1, DEFAULT_MAX_Y),
-                        new Translation2d(DEFAULT_MAX_VALUE + 0.1, 0),
-                        new Translation2d(DEFAULT_MAX_VALUE, 0)),
-                new Obstacle("LeftX", Alliance.NONE,
-                        new Translation2d(0, DEFAULT_MAX_Y),
-                        new Translation2d(-0.1, DEFAULT_MAX_Y),
-                        new Translation2d(-0.1, -DEFAULT_MAX_Y),
-                        new Translation2d(0, -DEFAULT_MAX_Y)),
-                new Obstacle("UpY", Alliance.NONE,
-                        new Translation2d(0, DEFAULT_MAX_Y + 0.1),
-                        new Translation2d(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y + 0.1),
-                        new Translation2d(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y),
-                        new Translation2d(0, DEFAULT_MAX_Y)),
-                new Obstacle("DownY", Alliance.NONE,
-                        new Translation2d(0, -0.1),
-                        new Translation2d(DEFAULT_MAX_VALUE, -0.1),
-                        new Translation2d(DEFAULT_MAX_VALUE, 0),
-                        new Translation2d(0, 0)),
-
-                new DraggableObstacle("Robot", Alliance.RED,
-                        new Translation2d(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2).plus(new Translation2d(Math.hypot(HALF_ROBOT, HALF_ROBOT), Rotation2d.fromDegrees(45))),
-                        new Translation2d(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2).plus(new Translation2d(Math.hypot(HALF_ROBOT, HALF_ROBOT), Rotation2d.fromDegrees(135))),
-                        new Translation2d(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2).plus(new Translation2d(Math.hypot(HALF_ROBOT, HALF_ROBOT), Rotation2d.fromDegrees(-135))),
-                        new Translation2d(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2).plus(new Translation2d(Math.hypot(HALF_ROBOT, HALF_ROBOT), Rotation2d.fromDegrees(-45))))
-        ));
-        this.obstacles.addAll(blueObstacles);
-        this.obstacles.addAll(redObstacles);
 
         this.obstacleAvoiding = new ObstacleAvoiding(HALF_ROBOT, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), this.obstacles);
 
@@ -160,7 +112,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     public void drawBackground() {
         if (IS_CHARGED_UP_FIELD)
-            this.drawImage(fieldImage, convertX(0, DIMENSION), (int) (convertY(0, DIMENSION) - convertUnits(DEFAULT_MAX_Y)),
+            this.drawImage(this.field.getImage(), convertX(0, DIMENSION), (int) (convertY(0, DIMENSION) - convertUnits(DEFAULT_MAX_Y)),
                     (int) convertUnits(DEFAULT_MAX_VALUE), (int) convertUnits(DEFAULT_MAX_Y));
         else
             this.drawGrid();
@@ -180,7 +132,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         for (Map.Entry<Pose2d, Integer> entry : this.positions.entrySet()) {
             this.drawImage(invisibleRobotImage,
                     entry.getKey().getTranslation(),
-                    MINI_ROBOT_WIDTH, MINI_ROBOT_WIDTH,
+                    MINI_ROBOT_WITH_BUMPER, MINI_ROBOT_WITH_BUMPER,
                     -entry.getKey().getRotation().getDegrees());
         }
     }
@@ -194,7 +146,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     public void displayObstacles() {
         for (Obstacle obstacle : this.obstacles) {
-            this.fillPolygon(obstacle.getAlliance().getColor(50), obstacle.getCorners());
+            this.fillPolygon(obstacle.getAlliance().getColor(100), obstacle.getCorners());
             if (obstacle instanceof DraggableObstacle) {
                 this.fillPoint(obstacle.getCenter(), convertPixelsToUnits(7), Color.RED);
             }
@@ -418,11 +370,6 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     @Override
     public void mouseWheelMoved(MouseWheelEvent e) {
         this.maxValue += e.getPreciseWheelRotation();
-    }
-
-    private void drawRobotPose(Translation2d pose) {
-        this.fillPoint(pose.getX(), pose.getY(), convertPixelsToUnits(2), Color.RED);
-        this.drawPoint(pose.getX(), pose.getY(), convertPixelsToUnits(2), new Color(20, 20, 20));
     }
 
     private void drawWaypoint(Translation2d waypoint) {
