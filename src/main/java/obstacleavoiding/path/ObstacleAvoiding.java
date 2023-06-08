@@ -5,11 +5,9 @@ import obstacleavoiding.math.geometry.Translation2d;
 import obstacleavoiding.path.obstacles.Obstacle;
 import obstacleavoiding.path.util.Bounds;
 import obstacleavoiding.path.util.Waypoint;
+import obstacleavoiding.util.Entry;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 /**
  * This class creates a path that not crashing given obstacles with a given distance from the obstacles
@@ -62,11 +60,13 @@ public class ObstacleAvoiding {
         if (waypoints.stream().anyMatch(w -> this.getObstacle(w) != null))
             return new ArrayList<>(waypoints);
 
-        List<List<Waypoint>> trajectories = new ArrayList<>();
+        long started = System.nanoTime();
+        Map<List<Waypoint>, Integer> trajectories = new HashMap<>();
         for (int b = 0; b < 4; b++) {
+            printStateFinished("Started " + b, started);
             List<Waypoint> trajectory = new ArrayList<>(waypoints);
             boolean split = false;
-            for (int a = 0; a < 20 && getDistributingObstacles(trajectory).size() > 0; a++) {
+            while (getDistributingObstacles(trajectory).size() > 0 && trajectory.size() <= 30) {
                 int size = trajectory.size() - 1;
                 for (int i = 0; i < size; i++) {
                     Waypoint waypoint1 = trajectory.get(i);
@@ -96,27 +96,27 @@ public class ObstacleAvoiding {
                                 double y = (slopeMiddle * x) - (slopeMiddle * middle.getX()) + middle.getY();
 
                                 Translation2d newMiddle = new Translation2d(x, y);
-                                Rotation2d angleFromMiddle = newMiddle.minus(middle).plus(newMiddle.minus(obstacle.getCenter())).getAngle();
-                                newMiddle = newMiddle.plus(new Translation2d(isCloseToCorner(newMiddle, obstacle, 0.3) ? 0.6 : 0.3, angleFromMiddle));
+                                Rotation2d angleFromMiddle = newMiddle.minus(middle).getAngle();
+                                newMiddle = newMiddle.plus(new Translation2d(isCloseToCorner(newMiddle, obstacle, 0.3) ? 0.4 : 0.25, angleFromMiddle));
 
                                 int escapeTimes = 0;
                                 while (this.getObstacle(newMiddle) != null) {
-                                    newMiddle = newMiddle.plus(new Translation2d(0.05, angleFromMiddle));
+                                    newMiddle = newMiddle.plus(new Translation2d(0.1, angleFromMiddle));
                                     escapeTimes++;
 
-                                    if (escapeTimes >= 100) break;
+                                    if (escapeTimes >= 20) break;
                                 }
 
                                 if (this.getObstacle(newMiddle) != null || !this.bounds.isInOfBounds(newMiddle)) {
                                     escapeTimes = 0;
                                     newMiddle = newMiddle.minus(new Translation2d(5, angleFromMiddle));
                                     while (this.getObstacle(newMiddle) != null) {
-                                        newMiddle = newMiddle.minus(new Translation2d(0.05, angleFromMiddle));
+                                        newMiddle = newMiddle.minus(new Translation2d(0.1, angleFromMiddle));
                                         escapeTimes++;
 
-                                        if (escapeTimes >= 100) break;
+                                        if (escapeTimes >= 20) break;
                                     }
-                                    if (escapeTimes == 100) continue;
+                                    if (escapeTimes == 20) continue;
                                 }
 
                                 if (!this.bounds.isInOfBounds(newMiddle))
@@ -126,7 +126,7 @@ public class ObstacleAvoiding {
                             }
 
                             middles = middles.stream().sorted(Comparator.comparing(middle::getDistance)).toList();
-                            if (!split && a < 5) {
+                            if (!split && trajectory.size() < 10) {
                                 if (b < middles.size())
                                     middle = middles.get(b);
 
@@ -141,6 +141,9 @@ public class ObstacleAvoiding {
                 }
             }
 
+            printStateFinished("Filter " + b + ", " + trajectory.size(), started);
+            if (trajectory.size() > 30)
+                continue;
             if (this.isFiltering) {
                 for (int i = 0; i < trajectory.size(); i++) {
                     for (int j = trajectory.size() - 1; j > i; j--) {
@@ -159,10 +162,17 @@ public class ObstacleAvoiding {
                 }
             }
 
-            trajectories.add(trajectory);
+            if (this.getDistributingObstacles(trajectory).size() == 0)
+                trajectories.put(trajectory, b);
         }
 
-        return trajectories.stream().filter(t -> this.getDistributingObstacles(t).size() == 0).min(Comparator.comparing(ObstacleAvoiding::getPathDistance)).orElse(waypoints);
+        Entry<List<Waypoint>, Integer> result = trajectories.entrySet().stream().map(e -> new Entry<>(e.getKey(), e.getValue())).min(Comparator.comparing(e -> getPathDistance(e.a()))).orElse(new Entry<>(waypoints, -1));
+        printStateFinished("Finished " + result.b(), started);
+        return result.a();
+    }
+
+    private void printStateFinished(String text, long started) {
+        System.out.println(text + ": " + (System.nanoTime() - started) / 1_000_000_000d);
     }
 
     private boolean isCloseToCorner(Translation2d translation2d, Obstacle obstacle, double threshold) {

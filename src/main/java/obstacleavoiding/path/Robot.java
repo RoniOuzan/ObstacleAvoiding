@@ -1,6 +1,5 @@
 package obstacleavoiding.path;
 
-import com.github.strikerx3.jxinput.XInputDevice;
 import obstacleavoiding.math.geometry.Pose2d;
 import obstacleavoiding.math.geometry.Rotation2d;
 import obstacleavoiding.math.geometry.Translation2d;
@@ -13,9 +12,6 @@ public class Robot {
 
     private final Constants constants;
 
-    private double period = 0;
-    private long lastUpdate = 0;
-
     public Robot(Pose2d position, Constants constants) {
         this.position = position;
         this.velocity = new Pose2d();
@@ -24,7 +20,6 @@ public class Robot {
 
     public void drive(Pose2d velocity) {
         this.lastVelocity = this.velocity;
-        this.period = (System.currentTimeMillis() - this.lastUpdate) / 1000d;
 
         double calculatedVelocity = Math.min(velocity.getTranslation().getNorm(), constants.maxVel);
         velocity = new Pose2d(
@@ -35,12 +30,6 @@ public class Robot {
                         this.position.getTranslation().plus(velocity.getTranslation().times(constants.period)),
                 this.position.getRotation().rotateBy(Rotation2d.fromRadians(velocity.getRotation().getRadians() * constants.period)));
         this.velocity = velocity;
-
-        this.lastUpdate = System.currentTimeMillis();
-    }
-
-    public double getPeriod() {
-        return period;
     }
 
     public void setAngle(double degrees) {
@@ -48,23 +37,15 @@ public class Robot {
     }
 
     public double getAcceleration() {
-        return (this.velocity.getTranslation().getNorm() - this.lastVelocity.getTranslation().getNorm()) / this.period;
+        return (this.velocity.getTranslation().getNorm() - this.lastVelocity.getTranslation().getNorm()) / constants.period;
     }
 
     public Pose2d getPosition() {
         return position;
     }
 
-    public void setPosition(Pose2d position) {
-        this.position = position;
-    }
-
     public Pose2d getVelocity() {
         return velocity;
-    }
-
-    public Pose2d getRobotRelativeVelocity() {
-        return new Pose2d(this.velocity.getTranslation().rotateBy(this.position.getRotation()), this.velocity.getRotation());
     }
 
     public Constants getConstants() {
