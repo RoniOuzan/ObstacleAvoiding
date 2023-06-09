@@ -56,8 +56,7 @@ public class PurePursuit {
 
     public void reset() {
         this.currentWaypoint = this.waypoints.get(1);
-        this.robot.drive(new Pose2d());
-        this.driveVelocity = 0;
+        this.driveVelocity = this.robot.getVelocity().getTranslation().getNorm();
         this.omegaVelocity = 0;
         this.lastUpdate = System.nanoTime();
         this.lastDriftPercentage = 0;

@@ -28,10 +28,10 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
 
     private final Set<Integer> pressedKeys = new HashSet<>();
 
-    public Frame(String title, Dimension2d frameSize, Color background, double pixelsInOneUnit, double fps) {
+    public Frame(String title, Dimension2d frameSize, Color background, double fps) {
         super(title);
         this.dimension = frameSize;
-        this.pixelsInOneUnit = pixelsInOneUnit;
+        this.pixelsInOneUnit = getPixelsInUnits();
         this.fps = fps;
 
         this.panel = new Panel();
@@ -51,12 +51,8 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
         this.repaint();
     }
 
-    public Frame(String title, Dimension2d frameSize, double pixelsInOneUnit, double fps) {
-        this(title, frameSize, Color.WHITE, pixelsInOneUnit, fps);
-    }
-
     public Frame(String title, Dimension2d frameSize, double fps) {
-        this(title, frameSize, Color.WHITE, 1, fps);
+        this(title, frameSize, Color.WHITE, fps);
     }
 
     @Override

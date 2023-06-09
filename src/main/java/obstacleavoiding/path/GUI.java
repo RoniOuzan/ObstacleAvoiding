@@ -26,13 +26,14 @@ import java.util.function.Supplier;
 public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private static final boolean IS_CHARGED_UP_FIELD = true;
 
-    private static final int SETTINGS_WIDTH = 150;
+    private static final int SETTINGS_WIDTH = 200;
 
     private static final double DEFAULT_MAX_VALUE = 16.54; // 8.27
     private static final Dimension2d FIELD_DIMENSION = new Dimension2d(1713, 837);
+    private static final Dimension2d FRAME_DIMENSION = FIELD_DIMENSION.plus(new Dimension2d(SETTINGS_WIDTH, 0));
     private static final double DEFAULT_MAX_Y = DEFAULT_MAX_VALUE * ((double) FIELD_DIMENSION.getY() / FIELD_DIMENSION.getX());
 
-    private static final int GRAPH_HISTORY = 50;
+    private static final int GRAPH_HISTORY = 0;
 
     private static final double FPS = 20;
     private static final double PERIOD = 1 / FPS;
@@ -76,7 +77,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private Obstacle draggedObstacle = null;
 
     public GUI() {
-        super("Path Follower", FIELD_DIMENSION.plus(new Dimension2d(SETTINGS_WIDTH, 0)), FIELD_DIMENSION.getX() / DEFAULT_MAX_VALUE, FPS);
+        super("Path Follower", FRAME_DIMENSION, FPS);
         this.addDevice(0);
 
         this.field = new ChargedUpField();
@@ -85,10 +86,11 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.robot = new Robot(new Pose2d(new Translation2d(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2), Rotation2d.fromDegrees(0)),
                 new Robot.Constants(4.5, 9, 360, 720, 1 / FPS));
 
-        this.obstacleAvoiding = new ObstacleAvoiding(0.5, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), this.obstacles);
+        this.obstacleAvoiding = new ObstacleAvoiding(HALF_ROBOT + 0.05, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), this.obstacles);
 
         this.defaultWaypoints = new ArrayList<>();
         this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 2, DEFAULT_MAX_Y / 2 + 2, 90, Waypoint.RobotReference.CENTER));
+        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2, 90, Waypoint.RobotReference.CENTER));
         this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 - 2, DEFAULT_MAX_Y / 2 - 2, 0, Waypoint.RobotReference.CENTER));
 
         this.purePursuit = new PurePursuit(
@@ -115,7 +117,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     public void drawBackground() {
         if (IS_CHARGED_UP_FIELD)
-            this.drawImage(this.field.getImage(), convertX(0, this.getDimension()), (int) (convertY(0, this.getDimension()) - convertUnits(DEFAULT_MAX_Y)),
+            this.drawImage(this.field.getImage(), convertX(0, FIELD_DIMENSION), (int) (convertY(0, FIELD_DIMENSION) - convertUnits(DEFAULT_MAX_Y)),
                     (int) convertUnits(DEFAULT_MAX_VALUE), (int) convertUnits(DEFAULT_MAX_Y));
         else
             this.drawGrid();
@@ -184,26 +186,26 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     public void updateValues() {
         if (this.purePursuit.isRunning()) {
             this.positions.put(this.robot.getPosition(), this.purePursuit.getCurrentWaypointIndex());
+        }
 
-            this.currentWaypoint.add(this.purePursuit.getCurrentWaypointIndex() * 1d / this.purePursuit.getWaypoints().size());
-            this.driveVelocities.add(this.robot.getVelocity().getTranslation().getNorm());
-            this.targetDriveVelocities.add(this.purePursuit.getTargetDriveVelocity());
-            this.driftPercentageVelocities.add(this.purePursuit.getDriftPercentage());
-            this.omegaVelocities.add(this.robot.getVelocity().getRotation().getDegrees());
-            this.drivingAngles.add(this.robot.getVelocity().getTranslation().getAngle().getDegrees());
-            this.robotAngle.add(this.robot.getPosition().getRotation().bound(0, 360).getDegrees());
-            this.distance.add(this.purePursuit.getPathDistance() - this.purePursuit.getDistanceToFinalWaypoint());
+        this.currentWaypoint.add(this.purePursuit.getCurrentWaypointIndex() * 1d / this.purePursuit.getWaypoints().size());
+        this.driveVelocities.add(this.robot.getVelocity().getTranslation().getNorm());
+        this.targetDriveVelocities.add(this.purePursuit.getTargetDriveVelocity());
+        this.driftPercentageVelocities.add(this.purePursuit.getDriftPercentage());
+        this.omegaVelocities.add(this.robot.getVelocity().getRotation().getDegrees());
+        this.drivingAngles.add(this.robot.getVelocity().getTranslation().getAngle().getDegrees());
+        this.robotAngle.add(this.robot.getPosition().getRotation().bound(0, 360).getDegrees());
+        this.distance.add(this.purePursuit.getPathDistance() - this.purePursuit.getDistanceToFinalWaypoint());
 
-            if (GRAPH_HISTORY > 0) {
-                limitList(this.currentWaypoint);
-                limitList(this.driveVelocities);
-                limitList(this.targetDriveVelocities);
-                limitList(this.driftPercentageVelocities);
-                limitList(this.omegaVelocities);
-                limitList(this.drivingAngles);
-                limitList(this.robotAngle);
-                limitList(this.distance);
-            }
+        if (GRAPH_HISTORY > 0) {
+            limitList(this.currentWaypoint);
+            limitList(this.driveVelocities);
+            limitList(this.targetDriveVelocities);
+            limitList(this.driftPercentageVelocities);
+            limitList(this.omegaVelocities);
+            limitList(this.drivingAngles);
+            limitList(this.robotAngle);
+            limitList(this.distance);
         }
     }
 
@@ -215,6 +217,10 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     public void reset() {
         this.purePursuit.setRunning(false);
         this.defaultWaypoints.set(0, new Waypoint(this.robot.getPosition().getTranslation(), this.robot.getPosition().getRotation().getDegrees(), Waypoint.RobotReference.CENTER));
+        this.defaultWaypoints.set(1, new Waypoint(this.robot.getPosition().getTranslation()
+                .plus(this.robot.getVelocity().getTranslation().div(this.robot.getConstants().maxAccel() / this.robot.getVelocity().getTranslation().getNorm())),
+                this.robot.getPosition().getRotation().getDegrees(),
+                Waypoint.RobotReference.CENTER));
         this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
         this.purePursuit.setRunning(true);
 
@@ -250,7 +256,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     @Override
     public double getPixelsInUnits() {
-        return this.getDimension().getX() / this.maxValue;
+        return FIELD_DIMENSION.getX() / this.maxValue;
     }
 
     @Override
@@ -269,11 +275,11 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         Translation2d leftAxis = new Translation2d(
                 MathUtil.limitDot(components.getAxes().lx, 3),
                 MathUtil.limitDot(components.getAxes().ly, 3)
-        ).normalized();
+        );
         double rightAxis = -Math.pow(MathUtil.limitDot(components.getAxes().rx, 3), 1) * this.robot.getConstants().maxOmegaVel();
 
         Rotation2d angle = leftAxis.getNorm() < 0.01 ? this.robot.getVelocity().getTranslation().getAngle() : leftAxis.getAngle();
-        double magnitude = Math.pow(leftAxis.getNorm(), 2) * this.robot.getConstants().maxVel();
+        double magnitude = Math.pow(Math.min(leftAxis.getNorm(), 1), 2) * this.robot.getConstants().maxVel();
 
         Translation2d accel = new Translation2d(magnitude, angle).minus(this.robot.getVelocity().getTranslation());
         accel = new Translation2d(Math.min(accel.getNorm(), this.robot.getConstants().maxAccel() * PERIOD), accel.getAngle());
@@ -320,9 +326,6 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     @Override
     public void keyListen(Set<Integer> keys) {
-        if (this.purePursuit.isRunning() || !this.isControllerDrive || keys.size() == 0)
-            return;
-
         double omega = this.robot.getConstants().maxOmegaVel();
         Pose2d velocity = new Pose2d();
         if (keys.contains(KeyEvent.VK_W))
@@ -338,8 +341,11 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         if (keys.contains(KeyEvent.VK_Q))
             velocity = new Pose2d(velocity.getTranslation(), velocity.getRotation().rotateBy(Rotation2d.fromRadians(omega)));
 
-        if (velocity.getTranslation().getNorm() >= 0.1 || velocity.getRotation().getDegrees() > 1)
+        if (velocity.getTranslation().getNorm() >= 0.01 || velocity.getRotation().getDegrees() > 0.5)
             this.isControllerDrive = false;
+
+        if (this.purePursuit.isRunning() || this.isControllerDrive || keys.size() == 0)
+            return;
 
         this.robot.drive(new Pose2d(
                 velocity.getTranslation().normalized().times(this.robot.getConstants().maxVel() * 0.6),
