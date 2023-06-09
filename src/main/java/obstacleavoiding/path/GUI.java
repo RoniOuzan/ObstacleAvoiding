@@ -28,10 +28,10 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     private static final int SETTINGS_WIDTH = 200;
 
-    private static final double DEFAULT_MAX_VALUE = 16.54; // 8.27
-    private static final Dimension2d FIELD_DIMENSION = new Dimension2d(1713, 837);
-    private static final Dimension2d FRAME_DIMENSION = FIELD_DIMENSION.plus(new Dimension2d(SETTINGS_WIDTH, 0));
-    private static final double DEFAULT_MAX_Y = DEFAULT_MAX_VALUE * ((double) FIELD_DIMENSION.getY() / FIELD_DIMENSION.getX());
+    public static final double DEFAULT_MAX_VALUE = 16.54; // 8.27
+    public static final Dimension2d FIELD_DIMENSION = new Dimension2d(1713, 837);
+    public static final Dimension2d FRAME_DIMENSION = FIELD_DIMENSION.plus(new Dimension2d(SETTINGS_WIDTH, 0));
+    public static final double DEFAULT_MAX_Y = DEFAULT_MAX_VALUE * ((double) FIELD_DIMENSION.getY() / FIELD_DIMENSION.getX());
 
     private static final int GRAPH_HISTORY = 50;
 
@@ -43,6 +43,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     public static final double HALF_ROBOT = ROBOT_WITH_BUMPER / 2;
 
     private static final double MINI_ROBOT_WITH_BUMPER = ROBOT_WITH_BUMPER;
+
+    private final Settings settings;
 
     private final Field field;
 
@@ -79,6 +81,14 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     public GUI() {
         super("Path Follower", FRAME_DIMENSION, FPS);
         this.addDevice(0);
+
+        Map<String, Object> values = new HashMap<>();
+        values.put("MaxVel", 4.5);
+        values.put("MaxAccel", 9.0);
+        values.put("MaxOmegaVel", 360.0);
+        values.put("MaxOmegaAccel", 360.0);
+        this.settings = new Settings(SETTINGS_WIDTH, values);
+        this.add(this.settings);
 
         this.field = new ChargedUpField();
         this.obstacles = new ArrayList<>(this.field.getObstacles());
@@ -196,6 +206,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.robotAngle.add(this.robot.getPosition().getRotation().bound(0, 360).getDegrees());
         this.distance.add(this.purePursuit.getPathDistance() - this.purePursuit.getDistanceToFinalWaypoint());
 
+        System.out.println(this.settings.getValue("MaxVel"));
+
         if (GRAPH_HISTORY > 0) {
             limitList(this.currentWaypoint);
             limitList(this.driveVelocities);
@@ -240,7 +252,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     @Override
     public void update() {
         this.drawBackground();
-        this.purePursuit.update(4.5, 3, 360, 360);
+        this.purePursuit.update((double) this.settings.getValue("MaxVel"), (double) this.settings.getValue("MaxAccel"),
+                (double) this.settings.getValue("MaxOmegaVel"), (double) this.settings.getValue("MaxOmegaAccel"));
         this.updateValues();
         this.displayPath();
         this.displayObstacles();
@@ -289,6 +302,9 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     @Override
     public void mouseDragged(MouseEvent e) {
         Translation2d mouseLocation = this.getMouseTranslation(e);
+
+        if (mouseLocation.getX() > this.maxValue)
+            return;
 
         boolean drag = false;
         for (int i = this.purePursuit.getWaypoints().size() - 1; i >= 0 && !drag; i--) {
@@ -365,6 +381,9 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     public void mousePressed(MouseEvent e) {
         Translation2d mouseLocation = this.getMouseTranslation(e);
         System.out.println("Clicked (" + mouseLocation.getX() + "," + mouseLocation.getY() + ")");
+
+        if (mouseLocation.getX() > this.maxValue)
+            return;
 
         boolean drag = false;
         for (int i = this.purePursuit.getWaypoints().size() - 1; i >= 0 && !drag; i--) {
