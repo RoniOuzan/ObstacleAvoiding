@@ -57,7 +57,7 @@ public class PurePursuit {
     public void reset() {
         this.currentWaypoint = this.waypoints.get(1);
         this.driveVelocity = this.robot.getVelocity().getTranslation().getNorm();
-        this.omegaVelocity = 0;
+        this.omegaVelocity = this.robot.getVelocity().getRotation().getDegrees();
         this.lastUpdate = System.nanoTime();
         this.lastDriftPercentage = 0;
 
@@ -78,7 +78,7 @@ public class PurePursuit {
             double normalDriftPercentage = driftPercentage;
 
             double driftPercent;
-            if (this.getCurrentWaypointIndex() < this.waypoints.size() - 1) {
+            if (isNotLastWaypoint) {
                 driftPercent = this.getNextWaypoint().minus(this.getCurrentWaypoint()).getAngle().minus(this.getCurrentWaypoint().minus(this.getPreviousWaypoint()).getAngle()).getDegrees();
                 driftPercent = Math.abs(driftPercent) / 30;
             } else {
@@ -101,16 +101,22 @@ public class PurePursuit {
                 angle = angle.times(1 - driftPercentage).plus(angleFromNext.times(driftPercentage));
             }
 
+            double angleDiff = MathUtil.clamp(angle.getAngle().minus(this.robot.getVelocity().getTranslation().getAngle()).getDegrees(), -20, 20);
+            angle = new Translation2d(1, this.robot.getVelocity().getTranslation().getAngle().plus(Rotation2d.fromDegrees(angleDiff)));
+
+            double anglePercent = (this.getPathDistance() - this.getDistanceToFinalWaypoint()) / this.getPathDistance();
+            if (anglePercent >= 0.001)
+                anglePercent = Math.pow(anglePercent, 0.5d);
+
             double targetOmegaVelocity = this.omegaController.calculate(
                     this.robot.getPosition().getRotation().getDegrees(),
-                    (this.getFinalWaypoint().getHeading() - this.getStartWaypoint().getHeading()) * Math.pow((this.getPathDistance() - this.getDistanceToFinalWaypoint()) / this.getPathDistance(), 0.5) + this.getStartWaypoint().getHeading());
+                    (this.getFinalWaypoint().getHeading() - this.getStartWaypoint().getHeading()) * anglePercent + this.getStartWaypoint().getHeading());
             omegaVelocity += MathUtil.clamp(targetOmegaVelocity - omegaVelocity, -maxOmegaAccel * period, maxOmegaAccel * period);
             omegaVelocity = MathUtil.clamp(omegaVelocity, -maxOmegaVel, maxOmegaVel);
 
-            Rotation2d omega = Rotation2d.fromDegrees(omegaVelocity);
             this.robot.drive(new Pose2d(
                     new Translation2d(driveVelocity, angle.getAngle()),
-                    omega));
+                    Rotation2d.fromDegrees(omegaVelocity)));
 
             if (driftPercentage >= 0.9) {
                 if (this.getCurrentWaypointIndex() < this.waypoints.size() - 1) {
@@ -187,7 +193,7 @@ public class PurePursuit {
     }
 
     public int getCurrentWaypointIndex() {
-        for (int i = 0; i < this.waypoints.size(); i++) {
+        for (int i = 1; i < this.waypoints.size(); i++) {
             if (this.waypoints.get(i).equals(this.currentWaypoint))
                 return i;
         }
@@ -217,7 +223,6 @@ public class PurePursuit {
 
     public void setWaypoints(List<Waypoint> waypoints) {
         this.waypoints = waypoints;
-
     }
 
     public Constants getConstants() {

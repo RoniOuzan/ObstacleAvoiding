@@ -33,7 +33,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private static final Dimension2d FRAME_DIMENSION = FIELD_DIMENSION.plus(new Dimension2d(SETTINGS_WIDTH, 0));
     private static final double DEFAULT_MAX_Y = DEFAULT_MAX_VALUE * ((double) FIELD_DIMENSION.getY() / FIELD_DIMENSION.getX());
 
-    private static final int GRAPH_HISTORY = 0;
+    private static final int GRAPH_HISTORY = 50;
 
     private static final double FPS = 20;
     private static final double PERIOD = 1 / FPS;
@@ -90,7 +90,6 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
         this.defaultWaypoints = new ArrayList<>();
         this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 2, DEFAULT_MAX_Y / 2 + 2, 90, Waypoint.RobotReference.CENTER));
-        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2, 90, Waypoint.RobotReference.CENTER));
         this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 - 2, DEFAULT_MAX_Y / 2 - 2, 0, Waypoint.RobotReference.CENTER));
 
         this.purePursuit = new PurePursuit(
@@ -217,15 +216,10 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     public void reset() {
         this.purePursuit.setRunning(false);
         this.defaultWaypoints.set(0, new Waypoint(this.robot.getPosition().getTranslation(), this.robot.getPosition().getRotation().getDegrees(), Waypoint.RobotReference.CENTER));
-        this.defaultWaypoints.set(1, new Waypoint(this.robot.getPosition().getTranslation()
-                .plus(this.robot.getVelocity().getTranslation().div(this.robot.getConstants().maxAccel() / this.robot.getVelocity().getTranslation().getNorm())),
-                this.robot.getPosition().getRotation().getDegrees(),
-                Waypoint.RobotReference.CENTER));
         this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
         this.purePursuit.setRunning(true);
 
         this.purePursuit.reset();
-        this.robot.drive(new Pose2d());
 
         this.positions.clear();
 
@@ -394,11 +388,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         }
 
         if (!drag) {
-            this.robot.drive(new Pose2d());
-
-            this.defaultWaypoints.get(0).set(this.robot.getPosition());
             this.defaultWaypoints.get(this.defaultWaypoints.size() - 1).set(mouseLocation);
-
             this.reset();
         }
     }
