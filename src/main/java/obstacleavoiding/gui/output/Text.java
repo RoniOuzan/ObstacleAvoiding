@@ -4,7 +4,7 @@ import obstacleavoiding.math.geometry.Dimension2d;
 
 import java.awt.*;
 
-public class Text extends Label {
+public class Text extends Label implements OutputTool {
     public Text(String text, Dimension2d size, Dimension2d location) {
         super(text);
         this.setSize(size.getX(), size.getY());

@@ -20,7 +20,7 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
     private final Dimension2d dimension;
 
     private double pixelsInOneUnit;
-    private final double fps;
+    private double fps;
 
     private final List<JFrame> graphs = new ArrayList<>();
 
@@ -63,6 +63,14 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
 
     public Dimension2d convertDimension(Dimension2d dimension) {
         return new Dimension2d(convertX(dimension.getX(), this.dimension), convertY(dimension.getY(), this.dimension));
+    }
+
+    public void setFPS(double fps) {
+        this.fps = fps;
+    }
+
+    public double getPeriod() {
+        return 1 / this.fps;
     }
 
     protected double convertUnits(double units) {

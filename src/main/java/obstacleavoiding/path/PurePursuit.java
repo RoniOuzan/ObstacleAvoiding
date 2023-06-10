@@ -101,8 +101,10 @@ public class PurePursuit {
                 angle = angle.times(1 - driftPercentage).plus(angleFromNext.times(driftPercentage));
             }
 
-            double angleDiff = MathUtil.clamp(angle.getAngle().minus(this.robot.getVelocity().getTranslation().getAngle()).getDegrees(), -20, 20);
-            angle = new Translation2d(1, this.robot.getVelocity().getTranslation().getAngle().plus(Rotation2d.fromDegrees(angleDiff)));
+//            if (this.robot.isMoving()) {
+//                double angleDiff = MathUtil.clamp(angle.getAngle().minus(this.robot.getVelocity().getTranslation().getAngle()).getDegrees(), -20, 20);
+//                angle = new Translation2d(1, this.robot.getVelocity().getTranslation().getAngle().plus(Rotation2d.fromDegrees(angleDiff)));
+//            }
 
             double anglePercent = (this.getPathDistance() - this.getDistanceToFinalWaypoint()) / this.getPathDistance();
             if (anglePercent >= 0.001)
@@ -116,7 +118,7 @@ public class PurePursuit {
 
             this.robot.drive(new Pose2d(
                     new Translation2d(driveVelocity, angle.getAngle()),
-                    Rotation2d.fromDegrees(omegaVelocity)));
+                    Rotation2d.fromDegrees(omegaVelocity)), period);
 
             if (driftPercentage >= 0.9) {
                 if (this.getCurrentWaypointIndex() < this.waypoints.size() - 1) {
@@ -166,10 +168,10 @@ public class PurePursuit {
     }
 
     public void setRunning(boolean running) {
-        this.isRunning = running;
-        if (isRunning) {
+        if (!this.isRunning && running) {
             this.lastUpdate = System.nanoTime();
         }
+        this.isRunning = running;
     }
 
     public boolean isRunning() {

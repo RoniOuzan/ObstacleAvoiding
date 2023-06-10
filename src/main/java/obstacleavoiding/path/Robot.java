@@ -18,7 +18,7 @@ public class Robot {
         this.constants = constants;
     }
 
-    public void drive(Pose2d velocity) {
+    public void drive(Pose2d velocity, double period) {
         this.lastVelocity = this.velocity;
 
         double calculatedVelocity = Math.min(velocity.getTranslation().getNorm(), constants.maxVel);
@@ -27,9 +27,17 @@ public class Robot {
                 velocity.getRotation());
 
         this.position = new Pose2d(
-                        this.position.getTranslation().plus(velocity.getTranslation().times(constants.period)),
-                this.position.getRotation().rotateBy(Rotation2d.fromRadians(velocity.getRotation().getRadians() * constants.period)));
+                        this.position.getTranslation().plus(velocity.getTranslation().times(period)),
+                this.position.getRotation().rotateBy(Rotation2d.fromRadians(velocity.getRotation().getRadians() * period)));
         this.velocity = velocity;
+    }
+
+    public boolean isMoving() {
+        return this.velocity.getTranslation().getNorm() > 0.01;
+    }
+
+    public boolean isRotating() {
+        return Math.abs(this.velocity.getRotation().getDegrees()) > 0.01;
     }
 
     public void setAngle(double degrees) {
