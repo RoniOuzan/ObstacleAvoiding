@@ -5,7 +5,6 @@ import obstacleavoiding.math.geometry.Translation2d;
 import obstacleavoiding.path.obstacles.Obstacle;
 import obstacleavoiding.path.util.Bounds;
 import obstacleavoiding.path.util.Waypoint;
-import obstacleavoiding.util.Entry;
 
 import java.util.*;
 
@@ -16,6 +15,9 @@ import java.util.*;
  * shortest out of them.
  */
 public class ObstacleAvoiding {
+
+    private static final int MAX_PATH_LENGTH = 30;
+
     private final List<Obstacle> obstacles;
     private final double distanceThreshold;
 
@@ -57,23 +59,23 @@ public class ObstacleAvoiding {
      * @return the list of waypoints that represents the path that avoided the obstacles.
      */
     public List<Waypoint> generateWaypointsBinary(List<Waypoint> waypoints) {
-        if (waypoints.stream().anyMatch(w -> this.getObstacle(w) != null))
+        if (waypoints.stream().anyMatch(w -> this.getObstacle(w) != null) ||
+                this.isPathSafe(waypoints))
             return new ArrayList<>(waypoints);
 
-        long started = System.nanoTime();
-        Map<List<Waypoint>, Integer> trajectories = new HashMap<>();
+        long started = System.currentTimeMillis();
+        List<List<Waypoint>> trajectories = new ArrayList<>();
         for (int b = 0; b < 4; b++) {
             printStateFinished("Started " + b, started);
             List<Waypoint> trajectory = new ArrayList<>(waypoints);
             boolean split = false;
-            while (getDistributingObstacles(trajectory).size() > 0 && trajectory.size() <= 30) {
+            while (trajectory.size() <= MAX_PATH_LENGTH && !isPathSafe(trajectory)) {
                 int size = trajectory.size() - 1;
                 for (int i = 0; i < size; i++) {
                     Waypoint waypoint1 = trajectory.get(i);
                     Waypoint waypoint2 = trajectory.get(i + 1);
 
-                    List<Obstacle> obstacles = this.getDistributingObstacle(waypoint1, waypoint2);
-                    if (obstacles.size() > 0) {
+                    if (this.isObstacleDistributing(waypoint1, waypoint2)) {
                         Waypoint middle = new Waypoint(waypoint1.interpolate(waypoint2, 0.5), 0, Waypoint.RobotReference.CENTER);
 
                         Obstacle obstacle = this.getObstacle(middle);
@@ -109,14 +111,14 @@ public class ObstacleAvoiding {
 
                                 if (this.getObstacle(newMiddle) != null || !this.bounds.isInOfBounds(newMiddle)) {
                                     escapeTimes = 0;
-                                    newMiddle = newMiddle.minus(new Translation2d(5, angleFromMiddle));
+                                    newMiddle = newMiddle.minus(new Translation2d(2, angleFromMiddle));
                                     while (this.getObstacle(newMiddle) != null) {
                                         newMiddle = newMiddle.minus(new Translation2d(0.1, angleFromMiddle));
                                         escapeTimes++;
 
-                                        if (escapeTimes >= 20) break;
+                                        if (escapeTimes >= 10) break;
                                     }
-                                    if (escapeTimes == 20) continue;
+                                    if (escapeTimes == 10) continue;
                                 }
 
                                 if (!this.bounds.isInOfBounds(newMiddle))
@@ -126,7 +128,7 @@ public class ObstacleAvoiding {
                             }
 
                             middles = middles.stream().sorted(Comparator.comparing(middle::getDistance)).toList();
-                            if (!split && trajectory.size() < 10) {
+                            if (!split && trajectory.size() < 5) {
                                 if (b < middles.size())
                                     middle = middles.get(b);
 
@@ -141,38 +143,44 @@ public class ObstacleAvoiding {
                 }
             }
 
-            printStateFinished("Filter " + b + ", " + trajectory.size(), started);
-            if (trajectory.size() > 30)
+            printStateFinished("Filter " + b + ", " + trajectory.size() + ", " + getDistributingObstacles(trajectory), started);
+            if (trajectory.size() > MAX_PATH_LENGTH)
                 continue;
+
             if (this.isFiltering) {
-                for (int i = 0; i < trajectory.size(); i++) {
-                    for (int j = trajectory.size() - 1; j > i; j--) {
-                        if (this.getDistributingObstacle(trajectory.get(i), trajectory.get(j)).size() == 0) {
-                            List<Integer> remove = new ArrayList<>();
-                            for (int k = i + 1; k < j && !waypoints.contains(trajectory.get(k)); k++) {
-                                remove.add(k);
+                for (int i = 0; i < trajectory.size() - 1; i++) {
+                    for (int j = getLatestDefaultWaypointIndex(trajectory, waypoints, trajectory.size() - 1, i); j > i; j--) {
+                        if (!this.isObstacleDistributing(trajectory.get(i), trajectory.get(j))) {
+                            Set<Waypoint> remove = new HashSet<>();
+                            for (int k = i + 1; k < j; k++) {
+                                remove.add(trajectory.get(k));
                             }
-                            remove.sort(Comparator.comparingInt(i2 -> i2));
-                            for (int k = remove.size() - 1; k >= 0; k--) {
-                                trajectory.remove((int) remove.get(k));
-                            }
+                            trajectory.removeAll(remove);
                             break;
                         }
                     }
                 }
             }
 
-            if (this.getDistributingObstacles(trajectory).size() == 0)
-                trajectories.put(trajectory, b);
+            if (this.isPathSafe(trajectory))
+                trajectories.add(trajectory);
         }
 
-        Entry<List<Waypoint>, Integer> result = trajectories.entrySet().stream().map(e -> new Entry<>(e.getKey(), e.getValue())).min(Comparator.comparing(e -> getPathDistance(e.a()))).orElse(new Entry<>(waypoints, -1));
-        printStateFinished("Finished " + result.b(), started);
-        return result.a();
+        List<Waypoint> result = trajectories.stream().min(Comparator.comparing(ObstacleAvoiding::getPathDistance)).orElse(waypoints);
+        printStateFinished("Finished", started);
+        return result;
+    }
+
+    private int getLatestDefaultWaypointIndex(List<Waypoint> trajectory, List<Waypoint> waypoints, int max, int min) {
+        for (int i = min; i <= Math.min(max, trajectory.size() - 1); i++) {
+            if (waypoints.contains(trajectory.get(i)))
+                return i;
+        }
+        return max;
     }
 
     private void printStateFinished(String text, long started) {
-        System.out.println(text + ": " + (System.nanoTime() - started) / 1_000_000_000d);
+        System.out.println(text + ": " + (System.currentTimeMillis() - started) / 1_000d);
     }
 
     private boolean isCloseToCorner(Translation2d translation2d, Obstacle obstacle, double threshold) {
@@ -205,6 +213,14 @@ public class ObstacleAvoiding {
         return obstacles;
     }
 
+    public boolean isPathSafe(List<Waypoint> waypoints) {
+        for (int i = 0; i < waypoints.size() - 1; i++) {
+            if (isObstacleDistributing(waypoints.get(i), waypoints.get(i + 1)))
+                return false;
+        }
+        return true;
+    }
+
     /**
      * Returns the distributing obstacles between 2 points.
      *
@@ -215,6 +231,10 @@ public class ObstacleAvoiding {
      */
     public List<Obstacle> getDistributingObstacle(Translation2d initialPose, Translation2d finalPose) {
         return this.obstacles.parallelStream().map(o -> o.getExtendedObstacle(this.distanceThreshold)).filter(o -> o.isLineInside(initialPose, finalPose)).toList();
+    }
+
+    public boolean isObstacleDistributing(Translation2d initialPose, Translation2d finalPose) {
+        return this.obstacles.parallelStream().map(o -> o.getExtendedObstacle(this.distanceThreshold)).anyMatch(o -> o.isLineInside(initialPose, finalPose));
     }
 
     /**

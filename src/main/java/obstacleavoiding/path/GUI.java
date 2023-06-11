@@ -3,19 +3,16 @@ package obstacleavoiding.path;
 import com.github.strikerx3.jxinput.XInputComponents;
 import com.github.strikerx3.jxinput.XInputDevice;
 import obstacleavoiding.gui.Frame;
-import obstacleavoiding.gui.input.MultipleOption;
 import obstacleavoiding.gui.types.draw.DrawCentered;
 import obstacleavoiding.gui.types.field.ZeroLeftBottom;
 import obstacleavoiding.math.MathUtil;
 import obstacleavoiding.math.geometry.*;
 import obstacleavoiding.path.fields.ChargedUpField;
 import obstacleavoiding.path.fields.Field;
-import obstacleavoiding.path.fields.Fields;
 import obstacleavoiding.path.obstacles.DraggableObstacle;
 import obstacleavoiding.path.obstacles.Obstacle;
 import obstacleavoiding.path.settings.Settings;
 import obstacleavoiding.path.settings.tables.BooleanTable;
-import obstacleavoiding.path.settings.tables.SelectOptionTable;
 import obstacleavoiding.path.settings.tables.SliderTable;
 import obstacleavoiding.path.settings.tables.TableType;
 import obstacleavoiding.path.util.Bounds;
@@ -95,6 +92,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
         this.defaultWaypoints = new ArrayList<>();
         this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 2, DEFAULT_MAX_Y / 2 + 2, 90, Waypoint.RobotReference.CENTER));
+        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 1, DEFAULT_MAX_Y / 2 + 1, 90, Waypoint.RobotReference.CENTER));
         this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 - 2, DEFAULT_MAX_Y / 2 - 2, 0, Waypoint.RobotReference.CENTER));
 
         this.purePursuit = new PurePursuit(
@@ -116,7 +114,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.addGraph("Values", graphValues, 0, 1);
 
         List<TableType<?>> values = new ArrayList<>();
-        values.add(new SelectOptionTable<>("Field", "CHARGED_UP", "CHARGED_UP", "RAPID_REACT"));
+//        values.add(new SelectOptionTable<>("Field", "CHARGED_UP", "CHARGED_UP", "RAPID_REACT"));
         values.add(new SliderTable("FPS", FPS, 1, 50).setValueParser(this::setFPS));
         values.add(new SliderTable("MaxVel", 4.5, 0, 4.9));
         values.add(new SliderTable("MaxAccel", 8, 0, 10));
@@ -391,6 +389,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.settings.setValue("AutoGenerate", !(boolean) this.settings.getValue("AutoGenerate"));
         } else if (e.getKeyCode() == KeyEvent.VK_F) {
             this.settings.setValue("Filter", !this.obstacleAvoiding.isFiltering());
+        } else if (e.getKeyCode() == KeyEvent.VK_P) {
+            System.out.println(this.obstacleAvoiding.getDistributingObstacles(this.purePursuit.getWaypoints()));
         }
     }
 
