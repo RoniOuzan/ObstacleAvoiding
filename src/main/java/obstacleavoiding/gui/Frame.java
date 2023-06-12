@@ -396,10 +396,11 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
 
     public void deviceListen(XInputDevice device, XInputComponents components, XInputComponents lastComponents) {}
 
-    public void mousePressed(MouseEvent e) {}
-    public void mouseReleased(MouseEvent e) {}
-    public void mouseEntered(MouseEvent e) {}
-    public void mouseExited(MouseEvent e) {}
+    public void mouseClicked(MouseEvent e, Translation2d mouseLocation) {}
+    public void mousePressed(MouseEvent e, Translation2d mouseLocation) {}
+    public void mouseReleased(MouseEvent e, Translation2d mouseLocation) {}
+    public void mouseEntered(MouseEvent e, Translation2d mouseLocation) {}
+    public void mouseExited(MouseEvent e, Translation2d mouseLocation) {}
 
     public void mouseDragged(MouseEvent e) {}
     public void mouseMoved(MouseEvent e) {}
@@ -414,26 +415,27 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
     private class MouseHandler implements MouseListener {
         @Override
         public void mouseClicked(MouseEvent e) {
+            Frame.this.mouseClicked(e, Frame.this.getMouseTranslation(e));
         }
 
         @Override
         public void mousePressed(MouseEvent e) {
-            Frame.this.mousePressed(e);
+            Frame.this.mousePressed(e, Frame.this.getMouseTranslation(e));
         }
 
         @Override
         public void mouseReleased(MouseEvent e) {
-            Frame.this.mouseReleased(e);
+            Frame.this.mouseReleased(e, Frame.this.getMouseTranslation(e));
         }
 
         @Override
         public void mouseEntered(MouseEvent e) {
-            Frame.this.mouseEntered(e);
+            Frame.this.mouseEntered(e, Frame.this.getMouseTranslation(e));
         }
 
         @Override
         public void mouseExited(MouseEvent e) {
-            Frame.this.mouseExited(e);
+            Frame.this.mouseExited(e, Frame.this.getMouseTranslation(e));
         }
     }
 

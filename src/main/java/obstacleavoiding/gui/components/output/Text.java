@@ -1,11 +1,11 @@
-package obstacleavoiding.gui.output;
+package obstacleavoiding.gui.components.output;
 
 import obstacleavoiding.math.geometry.Dimension2d;
 
 import java.awt.*;
 
-public class Text extends Label implements OutputTool {
-    public Text(String text, Dimension2d size, Dimension2d location) {
+public class Text extends Label implements OutputComponent {
+    public Text(Dimension2d size, Dimension2d location, String text) {
         super(text);
         this.setSize(size.getX(), size.getY());
         this.setLocation(location.getX(), location.getY());

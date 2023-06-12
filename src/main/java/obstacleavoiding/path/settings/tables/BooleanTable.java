@@ -1,6 +1,7 @@
 package obstacleavoiding.path.settings.tables;
 
-import obstacleavoiding.gui.input.Checklist;
+import obstacleavoiding.gui.components.Component;
+import obstacleavoiding.gui.components.input.Checklist;
 import obstacleavoiding.math.geometry.Dimension2d;
 import obstacleavoiding.path.GUI;
 import obstacleavoiding.path.settings.Settings;

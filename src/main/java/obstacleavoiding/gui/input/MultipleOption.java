@@ -1,10 +1,11 @@
 package obstacleavoiding.gui.input;
 
+import obstacleavoiding.gui.components.input.InputComponent;
 import obstacleavoiding.math.geometry.Dimension2d;
 
 import javax.swing.*;
 
-public class MultipleOption<T> extends JComboBox<T> {
+public class MultipleOption<T> extends JComboBox<T> implements InputComponent {
 
     private final T[] options;
 

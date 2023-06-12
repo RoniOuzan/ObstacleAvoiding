@@ -1,10 +1,10 @@
 package obstacleavoiding.path.settings.tables;
 
+import obstacleavoiding.gui.components.Component;
 import obstacleavoiding.gui.input.MultipleOption;
 import obstacleavoiding.math.geometry.Dimension2d;
 import obstacleavoiding.path.GUI;
 
-import java.awt.*;
 import java.util.Arrays;
 import java.util.List;
 

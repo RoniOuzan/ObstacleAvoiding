@@ -1,12 +1,11 @@
-package obstacleavoiding.gui.input;
+package obstacleavoiding.gui.components.input;
 
-import obstacleavoiding.gui.output.Text;
 import obstacleavoiding.math.geometry.Dimension2d;
 
 import javax.swing.*;
 import java.awt.*;
 
-public class Checklist extends JCheckBox {
+public class Checklist extends JCheckBox implements InputComponent {
     public Checklist(Dimension2d size, Dimension2d location, String text, boolean defaultValue) {
         super(text, defaultValue);
         this.setSize(size.getX(), size.getY());

@@ -9,8 +9,8 @@ import java.util.List;
 import java.util.Objects;
 
 public class Dimension2d implements Interpolatable<Dimension2d> {
-    private final int m_x;
-    private final int m_y;
+    private int m_x;
+    private int m_y;
 
     /** Constructs a Translation2d with X and Y components equal to zero. */
     public Dimension2d() {
@@ -56,6 +56,14 @@ public class Dimension2d implements Interpolatable<Dimension2d> {
      */
     public int getY() {
         return m_y;
+    }
+
+    public void setX(int x) {
+        this.m_x = x;
+    }
+
+    public void setY(int y) {
+        this.m_y = y;
     }
 
     /**

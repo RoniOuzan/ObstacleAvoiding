@@ -1,7 +1,8 @@
 package obstacleavoiding.path.settings.tables;
 
-import obstacleavoiding.gui.input.Slider;
-import obstacleavoiding.gui.output.Text;
+import obstacleavoiding.gui.components.Component;
+import obstacleavoiding.gui.components.input.Slider;
+import obstacleavoiding.gui.components.output.Text;
 import obstacleavoiding.math.MathUtil;
 import obstacleavoiding.math.geometry.Dimension2d;
 import obstacleavoiding.path.GUI;
@@ -53,9 +54,9 @@ public class SliderTable extends TableType<Double> {
         this.minX = gap;
         this.maxX = GUI.SETTINGS_WIDTH - gap - 15;
 
-        this.nameText = new Text(this.getName() + ":",
-                new Dimension2d(100, TEXT_SIZE),
-                new Dimension2d(gap, lastY + gap))
+        this.nameText = new Text(new Dimension2d(100, TEXT_SIZE),
+                new Dimension2d(gap, lastY + gap),
+                this.getName() + ":")
                 .setTextSize(TEXT_SIZE).setTextColor(Color.WHITE);
 
         this.slider = new Slider(
@@ -64,22 +65,22 @@ public class SliderTable extends TableType<Double> {
                 this.getDefaultValue(), this.maximum, this.minimum).setBackgroundColor(Settings.BACKGROUND);
 
         this.currentText = new Text(
-                doubleToString(this.getDefaultValue()),
                 new Dimension2d(30, TEXT_SIZE),
                 new Dimension2d((int) (MathUtil.deadband(this.getDefaultValue(), this.minimum, this.maximum) * (maxX - minX) + minX),
-                        this.slider.getY() + this.slider.getHeight()))
+                        this.slider.getY() + this.slider.getHeight()),
+                doubleToString(this.getDefaultValue()))
                 .setTextSize(TEXT_SIZE).setTextColor(Color.WHITE);
 
         this.minText = new Text(
-                doubleToString(this.minimum),
                 new Dimension2d(30, TEXT_SIZE),
-                new Dimension2d(minX, this.slider.getY() + this.slider.getHeight()))
+                new Dimension2d(minX, this.slider.getY() + this.slider.getHeight()),
+                doubleToString(this.minimum))
                 .setTextSize(TEXT_SIZE).setTextColor(Color.WHITE);
 
         this.maxText = new Text(
-                doubleToString(this.maximum),
                 new Dimension2d(30, TEXT_SIZE),
-                new Dimension2d(maxX, this.slider.getY() + this.slider.getHeight()))
+                new Dimension2d(maxX, this.slider.getY() + this.slider.getHeight()),
+                doubleToString(this.maximum))
                 .setTextSize(TEXT_SIZE).setTextColor(Color.WHITE);
 
         return Arrays.asList(this.nameText, this.slider, this.currentText, this.minText, this.maxText);

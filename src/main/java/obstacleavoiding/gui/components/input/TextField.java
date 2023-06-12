@@ -1,10 +1,10 @@
-package obstacleavoiding.gui.input;
+package obstacleavoiding.gui.components.input;
 
 import obstacleavoiding.math.geometry.Dimension2d;
 
 import javax.swing.*;
 
-public class TextField<T> extends JFormattedTextField implements InputTool {
+public class TextField<T> extends JFormattedTextField implements InputComponent {
     public TextField(Dimension2d size, Dimension2d location, T value) {
         this.setValue(value);
         this.setColumns(1);

@@ -1,12 +1,11 @@
-package obstacleavoiding.gui.input;
+package obstacleavoiding.gui.components.input;
 
-import obstacleavoiding.gui.output.Text;
 import obstacleavoiding.math.geometry.Dimension2d;
 
 import javax.swing.*;
 import java.awt.*;
 
-public class Slider extends JSlider {
+public class Slider extends JSlider implements InputComponent {
     public Slider(Dimension2d size, Dimension2d location, double value, double maximum, double minimum) {
         super((int) (minimum * 10), (int) (maximum * 10), (int) (value * 10));
         this.setSize(size.getX(), size.getY());
