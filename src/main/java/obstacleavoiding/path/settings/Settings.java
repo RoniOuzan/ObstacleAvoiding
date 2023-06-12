@@ -22,6 +22,7 @@ public class Settings extends JPanel {
     public Settings(List<TableType<?>> values) {
         this.setLocation(GUI.FIELD_DIMENSION.getX(), 0);
         this.setSize(GUI.SETTINGS_WIDTH, (int) (GUI.FIELD_DIMENSION.getY() * SETTINGS_HEIGHT_PERCENT));
+        this.setBackground(BACKGROUND);
         this.setLayout(new GroupLayout(this));
 
         int gap = (int) (GUI.SETTINGS_WIDTH * GAP_PERCENT) / 2;

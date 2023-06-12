@@ -2,29 +2,22 @@ package obstacleavoiding.path.settings.tables;
 
 import obstacleavoiding.gui.components.Component;
 import obstacleavoiding.gui.components.input.Slider;
-import obstacleavoiding.gui.components.output.Text;
-import obstacleavoiding.math.MathUtil;
 import obstacleavoiding.math.geometry.Dimension2d;
 import obstacleavoiding.path.GUI;
 import obstacleavoiding.path.settings.Settings;
 
 import java.awt.*;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class SliderTable extends TableType<Double> {
-    private static final int SLIDER_HEIGHT = 20;
-    private static final int TEXT_SIZE = 14;
-    private static final int TEXT_WIDTH = 30;
+    private static final int SLIDER_HEIGHT = 50;
 
     private final double minimum;
     private final double maximum;
 
-    private int minX;
-    private int maxX;
-
     private Slider slider;
-    private Text currentText;
 
     public SliderTable(String name, double defaultValue, double minimum, double maximum) {
         super(name, defaultValue);
@@ -34,7 +27,7 @@ public class SliderTable extends TableType<Double> {
 
     @Override
     public int getLastY() {
-        return this.currentText.getY() + this.currentText.getHeight();
+        return this.slider.getY() + this.slider.getHeight();
     }
 
     @Override
@@ -49,52 +42,13 @@ public class SliderTable extends TableType<Double> {
 
     @Override
     public List<Component> getComponents(int lastY, int gap) {
-        this.minX = gap;
-        this.maxX = GUI.SETTINGS_WIDTH - gap - TEXT_WIDTH;
-
-        Text nameText = new Text(new Dimension2d(100, TEXT_SIZE),
-                new Dimension2d(gap, lastY + gap),
-                this.getName() + ":")
-                .setTextSize(TEXT_SIZE).setTextColor(Color.WHITE);
-
         this.slider = new Slider(
-                new Dimension2d(GUI.SETTINGS_WIDTH - (3 * gap), SLIDER_HEIGHT),
-                new Dimension2d(gap, nameText.getY() + TEXT_SIZE),
+                new Dimension2d(GUI.SETTINGS_WIDTH - (2 * gap), SLIDER_HEIGHT),
+                new Dimension2d(gap, lastY + gap),
+                this.getName(),
                 this.getDefaultValue(), this.maximum, this.minimum)
                 .setBackgroundColor(Settings.BACKGROUND).setColor(new Color(245, 212, 9));
 
-        this.currentText = new Text(
-                new Dimension2d(TEXT_WIDTH, TEXT_SIZE),
-                new Dimension2d((int) (MathUtil.deadband(this.getDefaultValue(), this.minimum, this.maximum) * (maxX - minX) + minX),
-                        this.slider.getY() + this.slider.getHeight()),
-                doubleToString(this.getDefaultValue()))
-                .setTextSize(TEXT_SIZE).setTextColor(Color.WHITE);
-
-        Text minText = new Text(
-                new Dimension2d(TEXT_WIDTH, TEXT_SIZE),
-                new Dimension2d(minX, this.slider.getY() + this.slider.getHeight()),
-                doubleToString(this.minimum))
-                .setTextSize(TEXT_SIZE).setTextColor(Color.WHITE);
-
-        Text maxText = new Text(
-                new Dimension2d(TEXT_WIDTH, TEXT_SIZE),
-                new Dimension2d(maxX, this.slider.getY() + this.slider.getHeight()),
-                doubleToString(this.maximum))
-                .setTextSize(TEXT_SIZE).setTextColor(Color.WHITE);
-
-        return Arrays.asList(nameText, this.slider, this.currentText, minText, maxText);
-    }
-
-    @Override
-    public void update() {
-        this.currentText.setLocation((int) ((MathUtil.clamp(this.getValue() - this.minimum, 0, this.maximum) / (this.maximum - this.minimum)) * (maxX - minX) + minX),
-                this.currentText.getY());
-        this.currentText.setText(doubleToString(this.getValue()));
-    }
-
-    private static String doubleToString(double num) {
-        if (num % 1 == 0)
-            return Integer.toString((int) num);
-        return Double.toString(num);
+        return Collections.singletonList(this.slider);
     }
 }
