@@ -7,13 +7,15 @@ import obstacleavoiding.gui.types.draw.DrawCentered;
 import obstacleavoiding.gui.types.field.ZeroLeftBottom;
 import obstacleavoiding.math.MathUtil;
 import obstacleavoiding.math.geometry.*;
-import obstacleavoiding.path.fields.ChargedUpField;
-import obstacleavoiding.path.fields.Field;
+import obstacleavoiding.path.fields.Fields;
 import obstacleavoiding.path.obstacles.DraggableObstacle;
 import obstacleavoiding.path.obstacles.Obstacle;
 import obstacleavoiding.path.settings.Settings;
 import obstacleavoiding.path.settings.WaypointSettings;
-import obstacleavoiding.path.settings.tables.*;
+import obstacleavoiding.path.settings.tables.BooleanTable;
+import obstacleavoiding.path.settings.tables.SelectOptionTable;
+import obstacleavoiding.path.settings.tables.SliderTable;
+import obstacleavoiding.path.settings.tables.TableType;
 import obstacleavoiding.path.util.Bounds;
 import obstacleavoiding.path.util.Waypoint;
 
@@ -27,8 +29,6 @@ import java.util.*;
 import java.util.function.Supplier;
 
 public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
-    private static final boolean IS_CHARGED_UP_FIELD = true;
-
     public static final int SETTINGS_WIDTH = 200;
 
     public static final double DEFAULT_MAX_VALUE = 16.54; // 8.27
@@ -46,12 +46,11 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     private static final double MINI_ROBOT_WITH_BUMPER = ROBOT_WITH_BUMPER;
 
+    private static final Fields DEFAULT_FIELD = Fields.CHARGED_UP;
+
     private final Settings settings;
     private final WaypointSettings waypointSettings;
 
-    private final Field field;
-
-    private final List<Obstacle> obstacles;
     private final ObstacleAvoiding obstacleAvoiding;
     private final List<Waypoint> defaultWaypoints;
     private final PurePursuit purePursuit;
@@ -84,17 +83,14 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         super("Path Follower", FRAME_DIMENSION, FPS);
         this.addDevice(0);
 
-        this.field = new ChargedUpField();
-        this.obstacles = new ArrayList<>(this.field.getObstacles());
-
         this.robot = new Robot(new Pose2d(new Translation2d(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2), Rotation2d.fromDegrees(0)),
                 new Robot.Constants(4.5, 9, 360, 720, 1 / FPS));
 
-        this.obstacleAvoiding = new ObstacleAvoiding(HALF_ROBOT + 0.05, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), this.obstacles);
+        this.obstacleAvoiding = new ObstacleAvoiding(HALF_ROBOT + 0.05, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), DEFAULT_FIELD.getField().getObstacles());
 
         this.defaultWaypoints = new ArrayList<>();
         this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 2, DEFAULT_MAX_Y / 2 + 2, 90, Waypoint.RobotReference.CENTER));
-        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 1, DEFAULT_MAX_Y / 2 + 1, 90, Waypoint.RobotReference.CENTER));
+//        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 1, DEFAULT_MAX_Y / 2 + 1, 90, Waypoint.RobotReference.CENTER));
         this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 - 2, DEFAULT_MAX_Y / 2 - 2, 0, Waypoint.RobotReference.CENTER));
 
         this.purePursuit = new PurePursuit(
@@ -116,6 +112,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.addGraph("Values", graphValues, 0, 1);
 
         List<TableType<?>> values = new ArrayList<>();
+        values.add(new SelectOptionTable<>("Field", DEFAULT_FIELD, Fields.values()).onChange((c, l) -> this.obstacleAvoiding.setObstacles(c.getField().getObstacles())));
         values.add(new SliderTable("FPS", FPS, 1, 50).setValueParser(this::setFPS));
         values.add(new SliderTable("MaxVel", 4.5, 0, 4.9));
         values.add(new SliderTable("MaxAccel", 8, 0, 10));
@@ -129,7 +126,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.settings = new Settings(values);
         this.add(this.settings);
 
-        this.waypointSettings = new WaypointSettings(() -> this.selectedWaypoint);
+        this.waypointSettings = new WaypointSettings();
         this.add(this.waypointSettings);
 
         this.purePursuit.reset();
@@ -137,11 +134,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     }
 
     public void drawBackground() {
-        if (IS_CHARGED_UP_FIELD)
-            this.drawImage(this.field.getImage(), convertX(0, FIELD_DIMENSION), (int) (convertY(0, FIELD_DIMENSION) - convertUnits(DEFAULT_MAX_Y)),
-                    (int) convertUnits(DEFAULT_MAX_VALUE), (int) convertUnits(DEFAULT_MAX_Y));
-        else
-            this.drawGrid();
+        this.drawImage(this.settings.getValue("Field", DEFAULT_FIELD).getField().getImage(), convertX(0, FIELD_DIMENSION), (int) (convertY(0, FIELD_DIMENSION) - convertUnits(DEFAULT_MAX_Y)),
+                (int) convertUnits(DEFAULT_MAX_VALUE), (int) convertUnits(DEFAULT_MAX_Y));
 
         for (Waypoint waypoint : this.purePursuit.getWaypoints()) {
             this.drawImage(invisibleRobotImage,
@@ -175,14 +169,14 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     }
 
     public void displayObstacles() {
-        for (Obstacle obstacle : this.obstacles) {
+        for (Obstacle obstacle : this.obstacleAvoiding.getObstacles()) {
             this.fillPolygon(obstacle.getAlliance().getColor(50), obstacle.getCorners());
             if (obstacle instanceof DraggableObstacle) {
                 this.fillPoint(obstacle.getCenter(), convertPixelsToUnits(7), Color.RED);
             }
         }
-        if ((boolean) this.settings.getValue("ExtendedObstacles", false)) {
-            this.obstacles.stream().map(o -> o.getExtendedObstacle(this.obstacleAvoiding.getDistanceThreshold()))
+        if (this.settings.getValue("ExtendedObstacles", false)) {
+            this.obstacleAvoiding.getObstacles().stream().map(o -> o.getExtendedObstacle(this.obstacleAvoiding.getDistanceThreshold()))
                     .forEach(o -> this.fillPolygon(new Color(0, 0, 0, 30), o.getCorners()));
         }
     }
@@ -271,9 +265,9 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     public void update() {
         this.drawBackground();
         this.settings.update();
-        this.waypointSettings.update();
-        this.purePursuit.update((double) this.settings.getValue("MaxVel", 0d), (double) this.settings.getValue("MaxAccel", 0d),
-                (double) this.settings.getValue("MaxOmegaVel", 0d), (double) this.settings.getValue("MaxOmegaAccel", 0d));
+        this.waypointSettings.update(this.selectedWaypoint);
+        this.purePursuit.update(this.settings.getValue("MaxVel", 0d), this.settings.getValue("MaxAccel", 0d),
+                this.settings.getValue("MaxOmegaVel", 0d), this.settings.getValue("MaxOmegaAccel", 0d));
         this.updateValues();
         this.displayPath();
         this.displayObstacles();
@@ -318,7 +312,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
                 this.robot.getVelocity().getTranslation().plus(accel),
                  Rotation2d.fromDegrees(this.robot.getVelocity().getRotation().getDegrees() + omegaAccel)), getPeriod());
 
-        if (this.robot.isMoving() && (boolean) this.settings.getValue("AutoGenerate", false)) {
+        if (this.robot.isMoving() && this.settings.getValue("AutoGenerate", false)) {
             this.resetPath();
         }
     }
@@ -336,7 +330,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             if (waypoint == this.draggedWaypoint) {
                 waypoint.set(mouseLocation);
 
-                if ((boolean) this.settings.getValue("AutoGenerate", false)) {
+                if (this.settings.getValue("AutoGenerate", false)) {
                     this.resetPath();
                 }
 
@@ -344,12 +338,12 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             }
         }
 
-        for (int i = this.obstacles.size() - 1; i >= 0 && !drag; i--) {
-            Obstacle obstacle = this.obstacles.get(i);
+        for (int i = this.obstacleAvoiding.getObstacles().size() - 1; i >= 0 && !drag; i--) {
+            Obstacle obstacle = this.obstacleAvoiding.getObstacles().get(i);
             if (obstacle == this.draggedObstacle) {
                 obstacle.setCorners(DraggableObstacle.getCornersOfObstacle(mouseLocation, obstacle));
 
-                if ((boolean) this.settings.getValue("AutoGenerate", false)) {
+                if (this.settings.getValue("AutoGenerate", false)) {
                     this.resetPath();
                 }
 
@@ -404,7 +398,6 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
         if (this.selectedWaypoint != null) {
             if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE && this.purePursuit.getWaypoints().size() > 2) {
-                this.defaultWaypoints.remove(this.selectedWaypoint);
                 this.purePursuit.getWaypoints().remove(this.selectedWaypoint);
                 this.selectedWaypoint = null;
 
@@ -448,8 +441,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             }
         }
 
-        for (int i = this.obstacles.size() - 1; i >= 0 && !drag; i--) {
-            Obstacle obstacle = this.obstacles.get(i);
+        for (int i = this.obstacleAvoiding.getObstacles().size() - 1; i >= 0 && !drag; i--) {
+            Obstacle obstacle = this.obstacleAvoiding.getObstacles().get(i);
             if (obstacle instanceof DraggableObstacle) {
                 if (obstacle.getCenter().getDistance(mouseLocation) <= convertPixelsToUnits(20)) {
                     this.draggedWaypoint = null;
@@ -489,32 +482,5 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private void drawSelectedWaypoint(Translation2d waypoint) {
         this.fillPoint(waypoint.getX(), waypoint.getY(), convertPixelsToUnits(8), Color.WHITE);
         this.fillPoint(waypoint.getX(), waypoint.getY(), convertPixelsToUnits(6), Color.GREEN);
-    }
-
-    private void drawGrid() {
-        for (double i = (int) -Math.floor(this.maxValue); i <= this.maxValue; i += 0.25) {
-            this.drawThinLine(i, this.getDimensionWithUnits().getY() / -2, i, this.getDimensionWithUnits().getY() / 2,
-                    Math.floor(i * 10) / 10d % 1 == 0 ? new Color(60, 60, 60) : new Color(230, 230, 230));
-        }
-
-        for (double i = (int) -Math.floor(this.maxValue); i <= this.maxValue; i += 0.25) {
-            this.drawThinLine(this.getDimensionWithUnits().getX() / -2, i, this.getDimensionWithUnits().getX() / 2, i,
-                    Math.floor(i * 10) / 10d % 1 == 0 ? new Color(60, 60, 60) : new Color(230, 230, 230));
-        }
-
-        this.drawLine(0, this.getDimensionWithUnits().getY() / -2, 0, this.getDimensionWithUnits().getY() / 2, convertPixelsToUnits(5), Color.BLACK);
-        this.drawLine(this.getDimensionWithUnits().getX() / -2, 0, this.getDimensionWithUnits().getX() / 2, 0, convertPixelsToUnits(5), Color.BLACK);
-
-        double textSize = convertPixelsToUnits(20);
-        for (int i = 0; i <= this.maxValue; i += this.maxValue / 10) {
-            this.write(0, i - (textSize / 2), " " + i, textSize, Color.BLACK);
-            if (i != 0)
-                this.write(0, -i - (textSize / 2), -i + "", textSize, Color.BLACK);
-        }
-        for (int i = 0; i <= this.maxValue; i += this.maxValue / 10 ) {
-            this.write(i - (textSize / 2), -textSize, " " + i, textSize, Color.BLACK);
-            if (i != 0)
-                this.write(-i - (textSize / 2), -textSize, -i + "", textSize, Color.BLACK);
-        }
     }
 }

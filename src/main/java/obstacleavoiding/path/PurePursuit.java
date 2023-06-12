@@ -101,11 +101,6 @@ public class PurePursuit {
                 angle = angle.times(1 - driftPercentage).plus(angleFromNext.times(driftPercentage));
             }
 
-//            if (this.robot.isMoving()) {
-//                double angleDiff = MathUtil.clamp(angle.getAngle().minus(this.robot.getVelocity().getTranslation().getAngle()).getDegrees(), -20, 20);
-//                angle = new Translation2d(1, this.robot.getVelocity().getTranslation().getAngle().plus(Rotation2d.fromDegrees(angleDiff)));
-//            }
-
             double anglePercent = (this.getPathDistance() - this.getDistanceToFinalWaypoint()) / this.getPathDistance();
             if (anglePercent >= 0.001)
                 anglePercent = Math.pow(anglePercent, 0.5d);

@@ -5,7 +5,6 @@ import obstacleavoiding.gui.components.input.TextField;
 import obstacleavoiding.gui.components.output.Text;
 import obstacleavoiding.math.geometry.Dimension2d;
 import obstacleavoiding.path.GUI;
-import obstacleavoiding.path.settings.Settings;
 
 import java.awt.*;
 import java.util.Arrays;

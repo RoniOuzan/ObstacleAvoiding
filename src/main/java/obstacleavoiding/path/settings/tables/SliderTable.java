@@ -15,6 +15,7 @@ import java.util.List;
 public class SliderTable extends TableType<Double> {
     private static final int SLIDER_HEIGHT = 20;
     private static final int TEXT_SIZE = 14;
+    private static final int TEXT_WIDTH = 30;
 
     private final double minimum;
     private final double maximum;
@@ -22,10 +23,7 @@ public class SliderTable extends TableType<Double> {
     private int minX;
     private int maxX;
 
-    private Text nameText;
     private Slider slider;
-    private Text minText;
-    private Text maxText;
     private Text currentText;
 
     public SliderTable(String name, double defaultValue, double minimum, double maximum) {
@@ -52,38 +50,39 @@ public class SliderTable extends TableType<Double> {
     @Override
     public List<Component> getComponents(int lastY, int gap) {
         this.minX = gap;
-        this.maxX = GUI.SETTINGS_WIDTH - gap - 15;
+        this.maxX = GUI.SETTINGS_WIDTH - gap - TEXT_WIDTH;
 
-        this.nameText = new Text(new Dimension2d(100, TEXT_SIZE),
+        Text nameText = new Text(new Dimension2d(100, TEXT_SIZE),
                 new Dimension2d(gap, lastY + gap),
                 this.getName() + ":")
                 .setTextSize(TEXT_SIZE).setTextColor(Color.WHITE);
 
         this.slider = new Slider(
-                new Dimension2d(GUI.SETTINGS_WIDTH - (2 * gap), SLIDER_HEIGHT),
-                new Dimension2d(gap, this.nameText.getY() + TEXT_SIZE),
-                this.getDefaultValue(), this.maximum, this.minimum).setBackgroundColor(Settings.BACKGROUND);
+                new Dimension2d(GUI.SETTINGS_WIDTH - (3 * gap), SLIDER_HEIGHT),
+                new Dimension2d(gap, nameText.getY() + TEXT_SIZE),
+                this.getDefaultValue(), this.maximum, this.minimum)
+                .setBackgroundColor(Settings.BACKGROUND).setColor(new Color(245, 212, 9));
 
         this.currentText = new Text(
-                new Dimension2d(30, TEXT_SIZE),
+                new Dimension2d(TEXT_WIDTH, TEXT_SIZE),
                 new Dimension2d((int) (MathUtil.deadband(this.getDefaultValue(), this.minimum, this.maximum) * (maxX - minX) + minX),
                         this.slider.getY() + this.slider.getHeight()),
                 doubleToString(this.getDefaultValue()))
                 .setTextSize(TEXT_SIZE).setTextColor(Color.WHITE);
 
-        this.minText = new Text(
-                new Dimension2d(30, TEXT_SIZE),
+        Text minText = new Text(
+                new Dimension2d(TEXT_WIDTH, TEXT_SIZE),
                 new Dimension2d(minX, this.slider.getY() + this.slider.getHeight()),
                 doubleToString(this.minimum))
                 .setTextSize(TEXT_SIZE).setTextColor(Color.WHITE);
 
-        this.maxText = new Text(
-                new Dimension2d(30, TEXT_SIZE),
+        Text maxText = new Text(
+                new Dimension2d(TEXT_WIDTH, TEXT_SIZE),
                 new Dimension2d(maxX, this.slider.getY() + this.slider.getHeight()),
                 doubleToString(this.maximum))
                 .setTextSize(TEXT_SIZE).setTextColor(Color.WHITE);
 
-        return Arrays.asList(this.nameText, this.slider, this.currentText, this.minText, this.maxText);
+        return Arrays.asList(nameText, this.slider, this.currentText, minText, maxText);
     }
 
     @Override

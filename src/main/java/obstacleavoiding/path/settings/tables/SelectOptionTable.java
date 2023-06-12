@@ -1,12 +1,16 @@
 package obstacleavoiding.path.settings.tables;
 
 import obstacleavoiding.gui.components.Component;
-import obstacleavoiding.gui.input.MultipleOption;
+import obstacleavoiding.gui.components.input.MultipleOption;
 import obstacleavoiding.math.geometry.Dimension2d;
 import obstacleavoiding.path.GUI;
+import obstacleavoiding.path.settings.Settings;
 
+import java.awt.*;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class SelectOptionTable<T> extends TableType<T> {
 
@@ -15,9 +19,18 @@ public class SelectOptionTable<T> extends TableType<T> {
     private final T[] options;
     private MultipleOption<T> multipleOption;
 
+    private BiConsumer<T, T> onChange;
+
+    private T lastT = null;
+
     public SelectOptionTable(String name, T defaultOption, T... options) {
         super(name, defaultOption);
         this.options = options;
+    }
+
+    public SelectOptionTable<T> onChange(BiConsumer<T, T> onChange) {
+        this.onChange = onChange;
+        return this;
     }
 
     @Override
@@ -41,8 +54,20 @@ public class SelectOptionTable<T> extends TableType<T> {
                 new Dimension2d(GUI.SETTINGS_WIDTH - (2 * gap), HEIGHT),
                 new Dimension2d(gap, lastY + gap),
                 this.getDefaultValue(),
-                this.options);
+                this.options)
+                .setBackgroundColor(Settings.BACKGROUND).setTextColor(Color.WHITE);
 
         return Arrays.asList(this.multipleOption);
+    }
+
+    @Override
+    public void update() {
+        T t = this.getValue();
+
+        if (lastT != null && !lastT.equals(t)) {
+            this.onChange.accept(t, lastT);
+        }
+
+        lastT = t;
     }
 }

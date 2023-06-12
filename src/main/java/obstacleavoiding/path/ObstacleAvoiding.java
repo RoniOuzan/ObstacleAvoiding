@@ -18,7 +18,7 @@ public class ObstacleAvoiding {
 
     private static final int MAX_PATH_LENGTH = 30;
 
-    private final List<Obstacle> obstacles;
+    private List<Obstacle> obstacles;
     private final double distanceThreshold;
 
     private final Bounds bounds;
@@ -149,7 +149,7 @@ public class ObstacleAvoiding {
 
             if (this.isFiltering) {
                 for (int i = 0; i < trajectory.size() - 1; i++) {
-                    for (int j = getLatestDefaultWaypointIndex(trajectory, waypoints, trajectory.size() - 1, i); j > i; j--) {
+                    for (int j = getLatestDefaultWaypointIndex(trajectory, waypoints, i); j > i; j--) {
                         if (!this.isObstacleDistributing(trajectory.get(i), trajectory.get(j))) {
                             Set<Waypoint> remove = new HashSet<>();
                             for (int k = i + 1; k < j; k++) {
@@ -171,12 +171,12 @@ public class ObstacleAvoiding {
         return result;
     }
 
-    private int getLatestDefaultWaypointIndex(List<Waypoint> trajectory, List<Waypoint> waypoints, int max, int min) {
-        for (int i = min; i <= Math.min(max, trajectory.size() - 1); i++) {
+    private int getLatestDefaultWaypointIndex(List<Waypoint> trajectory, List<Waypoint> waypoints, int min) {
+        for (int i = min + 1; i <= trajectory.size() - 1; i++) {
             if (waypoints.contains(trajectory.get(i)))
                 return i;
         }
-        return max;
+        return trajectory.size() - 1;
     }
 
     private void printStateFinished(String text, long started) {
@@ -276,6 +276,10 @@ public class ObstacleAvoiding {
      */
     public List<Obstacle> getObstacles() {
         return obstacles;
+    }
+
+    public void setObstacles(List<Obstacle> obstacles) {
+        this.obstacles = obstacles;
     }
 
     /**

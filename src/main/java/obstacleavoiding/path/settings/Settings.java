@@ -22,6 +22,7 @@ public class Settings extends JPanel {
     public Settings(List<TableType<?>> values) {
         this.setLocation(GUI.FIELD_DIMENSION.getX(), 0);
         this.setSize(GUI.SETTINGS_WIDTH, (int) (GUI.FIELD_DIMENSION.getY() * SETTINGS_HEIGHT_PERCENT));
+        this.setLayout(new GroupLayout(this));
 
         int gap = (int) (GUI.SETTINGS_WIDTH * GAP_PERCENT) / 2;
 
@@ -45,9 +46,9 @@ public class Settings extends JPanel {
         });
     }
 
-    public Object getValue(String name, Object defaultValue) {
+    public <T> T getValue(String name, T defaultValue) {
         if (this.map.containsKey(name))
-            return this.map.get(name).getValue();
+            return (T) this.map.get(name).getValue();
         return defaultValue;
     }
 

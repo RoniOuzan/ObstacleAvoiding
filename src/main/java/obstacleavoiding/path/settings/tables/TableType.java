@@ -2,7 +2,6 @@ package obstacleavoiding.path.settings.tables;
 
 import obstacleavoiding.gui.components.Component;
 
-import java.awt.*;
 import java.util.List;
 import java.util.function.Consumer;
 
