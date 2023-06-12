@@ -49,6 +49,7 @@ public class Slider extends JSlider implements InputComponent {
         private static final int TRACK_WIDTH = 8;
         private static final int TRACK_ARC = 5;
         private static final Dimension THUMB_SIZE = new Dimension(20, 20);
+        private static final Font FONT = new Font("Ariel", Font.BOLD, 15);
         private final RoundRectangle2D.Float trackShape = new RoundRectangle2D.Float();
 
         public CustomSliderUI() {
@@ -99,8 +100,12 @@ public class Slider extends JSlider implements InputComponent {
             Shape clip = g2.getClip();
 
             g2.setColor(Color.WHITE);
-            g2.setFont(new Font("Ariel", Font.BOLD, 15));
-            g2.drawString(Slider.this.getName() + ":", 8, 15);
+            g2.setFont(FONT);
+            String nameText = Slider.this.getName() + ":";
+            g2.drawString(nameText, 8, g2.getFont().getSize());
+
+            String value = Slider.this.getCurrentValue() % 1 == 0 ? Integer.toString((int) Slider.this.getCurrentValue()) : Double.toString(Slider.this.getCurrentValue());
+            g2.drawString(value, 8 + FrameUtil.getStringLength(nameText + "  ", g2.getFont()), g2.getFont().getSize());
 
             boolean horizontal = isHorizontal();
             boolean inverted = slider.getInverted();
@@ -144,21 +149,16 @@ public class Slider extends JSlider implements InputComponent {
             g2.setColor(Color.WHITE);
 
             String minimum = (Slider.this.getMinimum() / 10d) % 1 == 0 ? Integer.toString((int) (Slider.this.getMinimum() / 10d)) : Double.toString(Slider.this.getMinimum() / 10d);
-            FrameUtil.drawCenteredString(g2, minimum, 12, slider.getHeight(), new Font("Ariel", Font.BOLD, 15));
+            FrameUtil.drawCenteredString(g2, minimum, 12, slider.getHeight() - 3, FONT);
 
             String maximum = (Slider.this.getMaximum() / 10d) % 1 == 0 ? Integer.toString((int) (Slider.this.getMaximum() / 10d)) : Double.toString(Slider.this.getMaximum() / 10d);
-            FrameUtil.drawCenteredString(g2, maximum, slider.getWidth() - 12, slider.getHeight(), new Font("Ariel", Font.BOLD, 15));
+            FrameUtil.drawCenteredString(g2, maximum, slider.getWidth() - 12, slider.getHeight() - 3, FONT);
         }
 
         @Override
         public void paintThumb(final Graphics g) {
             g.setColor(Slider.this.color);
             g.fillOval(thumbRect.x, thumbRect.y, thumbRect.width, thumbRect.height);
-
-            g.setColor(Color.WHITE);
-            String value = Slider.this.getCurrentValue() % 1 == 0 ? Integer.toString((int) Slider.this.getCurrentValue()) : Double.toString(Slider.this.getCurrentValue());
-            FrameUtil.drawCenteredString(g, value, thumbRect.x + (thumbRect.width / 2), slider.getHeight(),
-                    new Font("Ariel", Font.BOLD, 15));
         }
 
         @Override

@@ -6,13 +6,11 @@ import obstacleavoiding.math.geometry.Dimension2d;
 import obstacleavoiding.path.GUI;
 import obstacleavoiding.path.settings.Settings;
 
-import java.awt.*;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 public class SliderTable extends TableType<Double> {
-    private static final int SLIDER_HEIGHT = 50;
+    private static final int SLIDER_HEIGHT = 45;
 
     private final double minimum;
     private final double maximum;
@@ -47,7 +45,7 @@ public class SliderTable extends TableType<Double> {
                 new Dimension2d(gap, lastY + gap),
                 this.getName(),
                 this.getDefaultValue(), this.maximum, this.minimum)
-                .setBackgroundColor(Settings.BACKGROUND).setColor(new Color(245, 212, 9));
+                .setBackgroundColor(Settings.BACKGROUND).setColor(GUI.COLOR);
 
         return Collections.singletonList(this.slider);
     }

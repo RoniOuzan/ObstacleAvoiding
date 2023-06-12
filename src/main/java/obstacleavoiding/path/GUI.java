@@ -16,6 +16,7 @@ import obstacleavoiding.path.settings.tables.BooleanTable;
 import obstacleavoiding.path.settings.tables.SelectOptionTable;
 import obstacleavoiding.path.settings.tables.SliderTable;
 import obstacleavoiding.path.settings.tables.TableType;
+import obstacleavoiding.path.util.Alliance;
 import obstacleavoiding.path.util.Bounds;
 import obstacleavoiding.path.util.Waypoint;
 
@@ -29,6 +30,8 @@ import java.util.*;
 import java.util.function.Supplier;
 
 public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
+    public static final Color COLOR = new Color(245, 212, 9); // #F5D409
+
     public static final int SETTINGS_WIDTH = 200;
 
     public static final double DEFAULT_MAX_VALUE = 16.54; // 8.27
@@ -47,6 +50,9 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private static final double MINI_ROBOT_WITH_BUMPER = ROBOT_WITH_BUMPER;
 
     private static final Fields DEFAULT_FIELD = Fields.CHARGED_UP;
+    private static final Alliance DEFAULT_ALLIANCE = Alliance.NONE;
+
+    private static final String IMAGES_PATH = "src/main/java/obstacleavoiding/path/images/";
 
     private final Settings settings;
     private final WaypointSettings waypointSettings;
@@ -56,8 +62,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private final PurePursuit purePursuit;
     private final Robot robot;
 
-    private final Image robotImage = new ImageIcon("src/main/java/obstacleavoiding/path/images/RedRobot.png").getImage();
-    private final Image invisibleRobotImage = new ImageIcon("src/main/java/obstacleavoiding/path/images/RedInvisibleRobot.png").getImage();
+    private Image robotImage = new ImageIcon(IMAGES_PATH + DEFAULT_ALLIANCE.getText() + "Robot.png").getImage();
+    private Image invisibleRobotImage = new ImageIcon(IMAGES_PATH + DEFAULT_ALLIANCE.getText() + "InvisibleRobot.png").getImage();
 
     private boolean isControllerDrive = true;
 
@@ -113,6 +119,10 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
         List<TableType<?>> values = new ArrayList<>();
         values.add(new SelectOptionTable<>("Field", DEFAULT_FIELD, Fields.values()).onChange((c, l) -> this.obstacleAvoiding.setObstacles(c.getField().getObstacles())));
+        values.add(new SelectOptionTable<>("Alliance", DEFAULT_ALLIANCE, Alliance.values()).onChange((c, l) -> {
+            robotImage = new ImageIcon(IMAGES_PATH + c.getText() + "Robot.png").getImage();
+            invisibleRobotImage = new ImageIcon(IMAGES_PATH + c.getText() + "InvisibleRobot.png").getImage();
+        }));
         values.add(new SliderTable("FPS", FPS, 1, 50).setValueParser(this::setFPS));
         values.add(new SliderTable("MaxVel", 4.5, 0, 4.9));
         values.add(new SliderTable("MaxAccel", 8, 0, 10));
@@ -170,14 +180,16 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     public void displayObstacles() {
         for (Obstacle obstacle : this.obstacleAvoiding.getObstacles()) {
-            this.fillPolygon(obstacle.getAlliance().getColor(50), obstacle.getCorners());
+            this.fillPolygon(obstacle.getAlliance().getColor(50), obstacle.getCorners()
+                    .parallelStream().map(c -> new Translation2d(Math.min(c.getX(), DEFAULT_MAX_VALUE), Math.min(c.getY(), DEFAULT_MAX_Y))).toList());
             if (obstacle instanceof DraggableObstacle) {
                 this.fillPoint(obstacle.getCenter(), convertPixelsToUnits(7), Color.RED);
             }
         }
         if (this.settings.getValue("ExtendedObstacles", false)) {
             this.obstacleAvoiding.getObstacles().stream().map(o -> o.getExtendedObstacle(this.obstacleAvoiding.getDistanceThreshold()))
-                    .forEach(o -> this.fillPolygon(new Color(0, 0, 0, 30), o.getCorners()));
+                    .forEach(o -> this.fillPolygon(new Color(0, 0, 0, 30), o.getCorners()
+                            .parallelStream().map(c -> new Translation2d(Math.min(c.getX(), DEFAULT_MAX_VALUE), Math.min(c.getY(), DEFAULT_MAX_Y))).toList()));
         }
     }
 

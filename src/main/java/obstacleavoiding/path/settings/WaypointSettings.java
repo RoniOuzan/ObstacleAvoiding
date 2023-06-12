@@ -38,8 +38,8 @@ public class WaypointSettings extends JPanel {
         g.setColor(BACKGROUND);
         g.fillRect(0, 0, this.getWidth(), this.getHeight());
 
-        g.setColor(BACKGROUND.brighter());
-        g.fillRect(0, 0, this.getWidth(), 10);
+        g.setColor(GUI.COLOR);
+        g.fillRect(0, 0, this.getWidth(), 8);
     }
 
     public void addAll() {

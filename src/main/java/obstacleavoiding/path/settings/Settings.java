@@ -12,8 +12,8 @@ import java.util.Map;
 
 public class Settings extends JPanel {
 
-    public static final double SETTINGS_HEIGHT_PERCENT = 0.6;
-    public static final double GAP_PERCENT = 0.1;
+    public static final double SETTINGS_HEIGHT_PERCENT = 0.65;
+    public static final double GAP_PERCENT = 0.05;
 
     public static final Color BACKGROUND = Color.DARK_GRAY;
 
