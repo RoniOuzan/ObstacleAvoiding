@@ -134,8 +134,12 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         values.add(new BooleanTable("Filter", true).setValueParser(this.obstacleAvoiding::setFiltering));
         values.add(new BooleanTable("Reset", false).onTrue(this::reset).setAlways(false));
         values.add(new BooleanTable("Running", true).setValueParser(this.purePursuit::setRunning));
-        values.add(new BooleanTable("ExtendedObstacles", false));
-        values.add(new BooleanTable("AutoGenerate", false).onTrue(this::resetPath));
+        values.add(new BooleanTable("Extended Obstacles", false));
+        values.add(new BooleanTable("Auto Generate", false).onTrue(this::resetPath));
+        values.add(new BooleanTable("Create Waypoint", false).setAlways(false).onTrue(() -> {
+                    this.defaultWaypoints.add(this.defaultWaypoints.size() - 1, new Waypoint(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2, Waypoint.RobotReference.CENTER));
+                    this.resetPath();
+                }));
         this.settings = new Settings(values);
         this.add(this.settings);
 
@@ -189,7 +193,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
                 this.fillPoint(obstacle.getCenter(), convertPixelsToUnits(7), Color.RED);
             }
         }
-        if (this.settings.getValue("ExtendedObstacles", false)) {
+        if (this.settings.getValue("Extended Obstacles", false)) {
             this.obstacleAvoiding.getObstacles().stream().map(o -> o.getExtendedObstacle(this.obstacleAvoiding.getDistanceThreshold()))
                     .forEach(o -> this.fillPolygon(new Color(0, 0, 0, 30), o.getCorners()
                             .parallelStream().map(c -> new Translation2d(Math.min(c.getX(), DEFAULT_MAX_VALUE), Math.min(c.getY(), DEFAULT_MAX_Y))).toList()));
@@ -327,7 +331,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
                 this.robot.getVelocity().getTranslation().plus(accel),
                  Rotation2d.fromDegrees(this.robot.getVelocity().getRotation().getDegrees() + omegaAccel)), getPeriod());
 
-        if (this.robot.isMoving() && this.settings.getValue("AutoGenerate", false)) {
+        if (this.robot.isMoving() && this.settings.getValue("Auto Generate", false)) {
             this.resetPath();
         }
     }
@@ -343,7 +347,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             if (waypoint == this.draggedWaypoint) {
                 waypoint.set(mouseLocation);
 
-                if (this.settings.getValue("AutoGenerate", false)) {
+                if (this.settings.getValue("Auto Generate", false)) {
                     this.resetPath();
                 }
 
@@ -356,7 +360,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             if (obstacle == this.draggedObstacle) {
                 obstacle.setCorners(DraggableObstacle.getCornersOfObstacle(mouseLocation, obstacle));
 
-                if (this.settings.getValue("AutoGenerate", false)) {
+                if (this.settings.getValue("Auto Generate", false)) {
                     this.resetPath();
                 }
 
@@ -400,9 +404,9 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         } else if (e.getKeyCode() == KeyEvent.VK_T) {
             this.settings.setValue("Running", !this.purePursuit.isRunning());
         } else if (e.getKeyCode() == KeyEvent.VK_G) {
-            this.settings.setValue("ExtendedObstacles", !(boolean) this.settings.getValue("ExtendedObstacles", false));
+            this.settings.setValue("Extended Obstacles", !(boolean) this.settings.getValue("Extended Obstacles", false));
         } else if (e.getKeyCode() == KeyEvent.VK_Y) {
-            this.settings.setValue("AutoGenerate", !(boolean) this.settings.getValue("AutoGenerate", false));
+            this.settings.setValue("Auto Generate", !(boolean) this.settings.getValue("Auto Generate", false));
         } else if (e.getKeyCode() == KeyEvent.VK_F) {
             this.settings.setValue("Filter", !this.obstacleAvoiding.isFiltering());
         } else if (e.getKeyCode() == KeyEvent.VK_P) {
@@ -410,8 +414,9 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         }
 
         if (this.selectedWaypoint != null) {
-            if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE && this.purePursuit.getWaypoints().size() > 2) {
+            if (e.getKeyChar() == KeyEvent.VK_BACK_SPACE && this.defaultWaypoints.size() > 2) {
                 this.purePursuit.getWaypoints().remove(this.selectedWaypoint);
+                this.defaultWaypoints.remove(this.selectedWaypoint);
                 this.selectedWaypoint = null;
 
                 this.resetPath();
