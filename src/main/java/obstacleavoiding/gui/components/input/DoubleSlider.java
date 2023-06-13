@@ -8,10 +8,10 @@ import javax.swing.plaf.basic.BasicSliderUI;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 
-public class Slider extends JSlider implements InputComponent {
+public class DoubleSlider extends JSlider implements InputComponent {
     private Color color = new Color(246, 146, 36);
 
-    public Slider(Dimension2d size, Dimension2d location, String name, double value, double maximum, double minimum) {
+    public DoubleSlider(Dimension2d size, Dimension2d location, String name, double value, double maximum, double minimum) {
         super(JSlider.HORIZONTAL, (int) (minimum * 10), (int) (maximum * 10), (int) (value * 10));
         this.setName(name);
         this.setSize(size.getX(), size.getY());
@@ -29,12 +29,12 @@ public class Slider extends JSlider implements InputComponent {
         this.setValue((int) (value * 10));
     }
 
-    public Slider setBackgroundColor(Color color) {
+    public DoubleSlider setBackgroundColor(Color color) {
         this.setBackground(color);
         return this;
     }
 
-    public Slider setColor(Color color) {
+    public DoubleSlider setColor(Color color) {
         this.color = color;
         return this;
     }
@@ -54,7 +54,7 @@ public class Slider extends JSlider implements InputComponent {
         private final RoundRectangle2D.Float trackShape = new RoundRectangle2D.Float();
 
         public CustomSliderUI() {
-            super(Slider.this);
+            super(DoubleSlider.this);
         }
 
         @Override
@@ -102,10 +102,10 @@ public class Slider extends JSlider implements InputComponent {
 
             g2.setColor(Color.WHITE);
             g2.setFont(FONT);
-            String nameText = Slider.this.getName() + ":";
+            String nameText = DoubleSlider.this.getName() + ":";
             g2.drawString(nameText, 8, g2.getFont().getSize());
 
-            String value = Slider.this.getCurrentValue() % 1 == 0 ? Integer.toString((int) Slider.this.getCurrentValue()) : Double.toString(Slider.this.getCurrentValue());
+            String value = DoubleSlider.this.getCurrentValue() % 1 == 0 ? Integer.toString((int) DoubleSlider.this.getCurrentValue()) : Double.toString(DoubleSlider.this.getCurrentValue());
             g2.drawString(value, 8 + FrameUtil.getStringLength(nameText + "  ", g2.getFont()), g2.getFont().getSize());
 
             boolean horizontal = isHorizontal();
@@ -149,22 +149,22 @@ public class Slider extends JSlider implements InputComponent {
 
             g2.setColor(Color.WHITE);
 
-            String minimum = (Slider.this.getMinimum() / 10d) % 1 == 0 ? Integer.toString((int) (Slider.this.getMinimum() / 10d)) : Double.toString(Slider.this.getMinimum() / 10d);
+            String minimum = (DoubleSlider.this.getMinimum() / 10d) % 1 == 0 ? Integer.toString((int) (DoubleSlider.this.getMinimum() / 10d)) : Double.toString(DoubleSlider.this.getMinimum() / 10d);
             FrameUtil.drawCenteredString(g2, minimum, 12, slider.getHeight() - 3, FONT);
 
-            String maximum = (Slider.this.getMaximum() / 10d) % 1 == 0 ? Integer.toString((int) (Slider.this.getMaximum() / 10d)) : Double.toString(Slider.this.getMaximum() / 10d);
+            String maximum = (DoubleSlider.this.getMaximum() / 10d) % 1 == 0 ? Integer.toString((int) (DoubleSlider.this.getMaximum() / 10d)) : Double.toString(DoubleSlider.this.getMaximum() / 10d);
             FrameUtil.drawCenteredString(g2, maximum, slider.getWidth() - 12, slider.getHeight() - 3, FONT);
         }
 
         @Override
         public void paintThumb(final Graphics g) {
-            g.setColor(Slider.this.color);
+            g.setColor(DoubleSlider.this.color);
             g.fillOval(thumbRect.x, thumbRect.y, thumbRect.width, thumbRect.height);
         }
 
         @Override
         public void paintFocus(final Graphics g) {
-            g.setColor(Slider.this.color);
+            g.setColor(DoubleSlider.this.color);
             g.fillOval(thumbRect.x, thumbRect.y, thumbRect.width, thumbRect.height);
         }
     }

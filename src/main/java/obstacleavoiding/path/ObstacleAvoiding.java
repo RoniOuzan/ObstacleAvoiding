@@ -5,6 +5,7 @@ import obstacleavoiding.math.geometry.Translation2d;
 import obstacleavoiding.path.obstacles.Obstacle;
 import obstacleavoiding.path.util.Bounds;
 import obstacleavoiding.path.util.Waypoint;
+import obstacleavoiding.path.util.WaypointAutoHeading;
 
 import java.util.*;
 
@@ -76,7 +77,7 @@ public class ObstacleAvoiding {
                     Waypoint waypoint2 = trajectory.get(i + 1);
 
                     if (this.isObstacleDistributing(waypoint1, waypoint2)) {
-                        Waypoint middle = new Waypoint(waypoint1.interpolate(waypoint2, 0.5), 0, Waypoint.RobotReference.CENTER);
+                        Waypoint middle = new WaypointAutoHeading(waypoint1.interpolate(waypoint2, 0.5), Waypoint.RobotReference.CENTER);
 
                         Obstacle obstacle = this.getObstacle(middle);
                         if (obstacle != null) {
@@ -124,7 +125,7 @@ public class ObstacleAvoiding {
                                 if (!this.bounds.isInOfBounds(newMiddle))
                                     continue;
 
-                                middles.add(new Waypoint(newMiddle, 0, Waypoint.RobotReference.CENTER));
+                                middles.add(new WaypointAutoHeading(newMiddle, Waypoint.RobotReference.CENTER));
                             }
 
                             middles = middles.stream().sorted(Comparator.comparing(middle::getDistance)).toList();
@@ -166,9 +167,12 @@ public class ObstacleAvoiding {
                 trajectories.add(trajectory);
         }
 
-        List<Waypoint> result = trajectories.stream().min(Comparator.comparing(ObstacleAvoiding::getPathDistance)).orElse(waypoints);
+        List<Waypoint> trajectory = trajectories.stream().min(Comparator.comparing(ObstacleAvoiding::getPathDistance)).orElse(waypoints);
+
+
+
         printStateFinished("Finished", started);
-        return result;
+        return trajectory;
     }
 
     private int getLatestDefaultWaypointIndex(List<Waypoint> trajectory, List<Waypoint> waypoints, int min) {

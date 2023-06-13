@@ -1,7 +1,7 @@
 package obstacleavoiding.path.settings.tables;
 
 import obstacleavoiding.gui.components.Component;
-import obstacleavoiding.gui.components.input.Slider;
+import obstacleavoiding.gui.components.input.DoubleSlider;
 import obstacleavoiding.math.geometry.Dimension2d;
 import obstacleavoiding.path.GUI;
 import obstacleavoiding.path.settings.Settings;
@@ -9,15 +9,15 @@ import obstacleavoiding.path.settings.Settings;
 import java.util.Collections;
 import java.util.List;
 
-public class SliderTable extends TableType<Double> {
+public class DoubleSliderTable extends TableType<Double> {
     private static final int SLIDER_HEIGHT = 45;
 
     private final double minimum;
     private final double maximum;
 
-    private Slider slider;
+    private DoubleSlider slider;
 
-    public SliderTable(String name, double defaultValue, double minimum, double maximum) {
+    public DoubleSliderTable(String name, double defaultValue, double minimum, double maximum) {
         super(name, defaultValue);
         this.minimum = minimum;
         this.maximum = maximum;
@@ -40,7 +40,7 @@ public class SliderTable extends TableType<Double> {
 
     @Override
     public List<Component> getComponents(int lastY, int gap) {
-        this.slider = new Slider(
+        this.slider = new DoubleSlider(
                 new Dimension2d(GUI.SETTINGS_WIDTH - (2 * gap), SLIDER_HEIGHT),
                 new Dimension2d(gap, lastY + gap),
                 this.getName(),

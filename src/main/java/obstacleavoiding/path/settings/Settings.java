@@ -49,8 +49,9 @@ public class Settings extends JPanel {
     }
 
     public <T> T getValue(String name, T defaultValue) {
-        if (this.map.containsKey(name))
-            return (T) this.map.get(name).getValue();
+        TableType<T> table = (TableType<T>) this.map.get(name);
+        if (table != null)
+            return table.getValue();
         return defaultValue;
     }
 

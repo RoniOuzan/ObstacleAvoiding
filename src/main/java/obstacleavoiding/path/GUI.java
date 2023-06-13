@@ -12,10 +12,7 @@ import obstacleavoiding.path.obstacles.DraggableObstacle;
 import obstacleavoiding.path.obstacles.Obstacle;
 import obstacleavoiding.path.settings.Settings;
 import obstacleavoiding.path.settings.WaypointSettings;
-import obstacleavoiding.path.settings.tables.BooleanTable;
-import obstacleavoiding.path.settings.tables.SelectOptionTable;
-import obstacleavoiding.path.settings.tables.SliderTable;
-import obstacleavoiding.path.settings.tables.TableType;
+import obstacleavoiding.path.settings.tables.*;
 import obstacleavoiding.path.util.Alliance;
 import obstacleavoiding.path.util.Bounds;
 import obstacleavoiding.path.util.Waypoint;
@@ -78,6 +75,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private final List<Double> robotAngle = new ArrayList<>();
     private final List<Double> distance = new ArrayList<>();
 
+    private int graphHistory = GRAPH_HISTORY;
+
     private double maxValue = DEFAULT_MAX_VALUE;
 
     private Waypoint draggedWaypoint = null;
@@ -126,11 +125,12 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             robotImage = new ImageIcon(IMAGES_PATH + c.getText() + "Robot.png").getImage();
             invisibleRobotImage = new ImageIcon(IMAGES_PATH + c.getText() + "InvisibleRobot.png").getImage();
         }));
-        values.add(new SliderTable("FPS", FPS, 1, 50).setValueParser(this::setFPS));
-        values.add(new SliderTable("MaxVel", 4.5, 0, 4.9));
-        values.add(new SliderTable("MaxAccel", 8, 0, 10));
-        values.add(new SliderTable("MaxOmegaVel", 360, 0, 720));
-        values.add(new SliderTable("MaxOmegaAccel", 360, 0, 1080));
+        values.add(new DoubleSliderTable("FPS", FPS, 1, 50).setValueParser(this::setFPS));
+        values.add(new DoubleSliderTable("MaxVel", 4.5, 0, 4.9));
+        values.add(new DoubleSliderTable("MaxAccel", 8, 0, 10));
+        values.add(new DoubleSliderTable("MaxOmegaVel", 360, 0, 720));
+        values.add(new DoubleSliderTable("MaxOmegaAccel", 360, 0, 1080));
+        values.add(new IntegerSliderTable("GraphHistory", GRAPH_HISTORY, 0, 200).setValueParser(d -> graphHistory = d));
         values.add(new BooleanTable("Filter", true).setValueParser(this.obstacleAvoiding::setFiltering));
         values.add(new BooleanTable("Reset", false).onTrue(this::reset).setAlways(false));
         values.add(new BooleanTable("Running", true).setValueParser(this.purePursuit::setRunning));
@@ -226,16 +226,18 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.positions.put(this.robot.getPosition(), this.purePursuit.getCurrentWaypointIndex());
         }
 
-        this.currentWaypoint.add(this.purePursuit.getCurrentWaypointIndex() * 1d / this.purePursuit.getWaypoints().size());
-        this.driveVelocities.add(this.robot.getVelocity().getTranslation().getNorm());
-        this.targetDriveVelocities.add(this.purePursuit.getTargetDriveVelocity());
-        this.driftPercentageVelocities.add(this.purePursuit.getDriftPercentage());
-        this.omegaVelocities.add(this.robot.getVelocity().getRotation().getDegrees());
-        this.drivingAngles.add(this.robot.getVelocity().getTranslation().getAngle().getDegrees());
-        this.robotAngle.add(this.robot.getPosition().getRotation().bound(0, 360).getDegrees());
-        this.distance.add(this.purePursuit.getPathDistance() - this.purePursuit.getDistanceToFinalWaypoint());
+        if (this.graphHistory > 0 || this.purePursuit.isRunning()) {
+            this.currentWaypoint.add(this.purePursuit.getCurrentWaypointIndex() * 1d / this.purePursuit.getWaypoints().size());
+            this.driveVelocities.add(this.robot.getVelocity().getTranslation().getNorm());
+            this.targetDriveVelocities.add(this.purePursuit.getTargetDriveVelocity());
+            this.driftPercentageVelocities.add(this.purePursuit.getDriftPercentage());
+            this.omegaVelocities.add(this.robot.getVelocity().getRotation().getDegrees());
+            this.drivingAngles.add(this.robot.getVelocity().getTranslation().getAngle().getDegrees());
+            this.robotAngle.add(this.robot.getPosition().getRotation().bound(0, 360).getDegrees());
+            this.distance.add(this.purePursuit.getPathDistance() - this.purePursuit.getDistanceToFinalWaypoint());
+        }
 
-        if (GRAPH_HISTORY > 0) {
+        if (this.graphHistory > 0) {
             limitList(this.currentWaypoint);
             limitList(this.driveVelocities);
             limitList(this.targetDriveVelocities);
@@ -248,7 +250,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     }
 
     private void limitList(List<?> list) {
-        while (list.size() > GRAPH_HISTORY)
+        while (list.size() > this.graphHistory)
             list.remove(0);
     }
 
@@ -266,7 +268,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
         this.positions.clear();
 
-        if (GRAPH_HISTORY <= 0) {
+        if (this.graphHistory <= 0) {
             this.currentWaypoint.clear();
             this.driveVelocities.clear();
             this.targetDriveVelocities.clear();

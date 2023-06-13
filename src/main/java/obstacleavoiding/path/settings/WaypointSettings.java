@@ -3,10 +3,9 @@ package obstacleavoiding.path.settings;
 import static obstacleavoiding.path.settings.Settings.*;
 
 import obstacleavoiding.gui.components.Component;
-import obstacleavoiding.gui.components.input.MultipleOption;
 import obstacleavoiding.path.GUI;
 import obstacleavoiding.path.settings.tables.SelectOptionTable;
-import obstacleavoiding.path.settings.tables.SliderTable;
+import obstacleavoiding.path.settings.tables.DoubleSliderTable;
 import obstacleavoiding.path.settings.tables.TableType;
 import obstacleavoiding.path.util.Waypoint;
 
@@ -28,7 +27,7 @@ public class WaypointSettings extends JPanel {
         this.setLayout(new GroupLayout(this));
 
         this.tables = Arrays.asList(
-                new SliderTable("Heading", 0, -180, 180),
+                new DoubleSliderTable("Heading", 0, -180, 180),
                 new SelectOptionTable<>("RobotReference", Waypoint.RobotReference.CENTER, Waypoint.RobotReference.values())
         );
 

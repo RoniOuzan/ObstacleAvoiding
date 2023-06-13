@@ -6,6 +6,7 @@ import obstacleavoiding.math.geometry.Rotation2d;
 import obstacleavoiding.math.geometry.Translation2d;
 import obstacleavoiding.path.pid.PIDController;
 import obstacleavoiding.path.util.Waypoint;
+import obstacleavoiding.path.util.WaypointAutoHeading;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -101,13 +102,17 @@ public class PurePursuit {
                 angle = angle.times(1 - driftPercentage).plus(angleFromNext.times(driftPercentage));
             }
 
-            double anglePercent = (this.getPathDistance() - this.getDistanceToFinalWaypoint()) / this.getPathDistance();
+            int lastHeading = this.getLastHeadingWaypointIndex();
+            int nextHeading = this.getNextHeadingWaypointIndex();
+
+            double absoluteDistance = this.getDistance(lastHeading, nextHeading);
+            double anglePercent = (absoluteDistance - this.getDistance(nextHeading)) / absoluteDistance;
             if (anglePercent >= 0.001)
                 anglePercent = Math.pow(anglePercent, 0.5d);
 
-            double targetOmegaVelocity = this.omegaController.calculate(
-                    this.robot.getPosition().getRotation().getDegrees(),
-                    (this.getFinalWaypoint().getHeading() - this.getStartWaypoint().getHeading()) * anglePercent + this.getStartWaypoint().getHeading());
+            double targetOmega = (this.getWaypoint(nextHeading).getHeading() - this.getWaypoint(lastHeading).getHeading()) * anglePercent + this.getWaypoint(lastHeading).getHeading();
+
+            double targetOmegaVelocity = this.omegaController.calculate(this.robot.getPosition().getRotation().getDegrees(), targetOmega);
             omegaVelocity += MathUtil.clamp(targetOmegaVelocity - omegaVelocity, -maxOmegaAccel * period, maxOmegaAccel * period);
             omegaVelocity = MathUtil.clamp(omegaVelocity, -maxOmegaVel, maxOmegaVel);
 
@@ -136,26 +141,47 @@ public class PurePursuit {
         }
     }
 
+    public int getNextHeadingWaypointIndex() {
+        for (int i = this.getCurrentWaypointIndex(); i < this.waypoints.size(); i++) {
+            if (!(this.waypoints.get(i) instanceof WaypointAutoHeading))
+                return i;
+        }
+        return -1;
+    }
+
+    public int getLastHeadingWaypointIndex() {
+        int current = this.getCurrentWaypointIndex();
+        for (int i = current - 1; i >= 0; i--) {
+            if (!(this.waypoints.get(i) instanceof WaypointAutoHeading))
+                return i;
+        }
+        return -1;
+    }
+
+    public double getDistance(int waypoint1, int waypoint2) {
+        double distance = 0;
+        for (int i = waypoint1; i < waypoint2; i++) {
+            distance += this.waypoints.get(i).getDistance(this.waypoints.get(i + 1));
+        }
+        return distance;
+    }
+
+    public double getDistance(int waypoint) {
+        int currentWaypoint = this.getCurrentWaypointIndex() + (this.lastDriftPercentage > 0.1 ? 1 : 0);
+        return this.getDistance(currentWaypoint, waypoint) +
+                this.robot.getPosition().getTranslation().getDistance(this.getWaypoint(Math.min(currentWaypoint, this.waypoints.size() - 1)));
+    }
+
     public double getDistanceToCurrentWaypoint() {
         return this.robot.getPosition().getTranslation().getDistance(this.getCurrentWaypoint());
     }
 
     public double getDistanceToFinalWaypoint() {
-        int currentWaypoint = this.getCurrentWaypointIndex() + (this.lastDriftPercentage > 0.1 ? 1 : 0);
-
-        double distance = this.robot.getPosition().getTranslation().getDistance(this.getWaypoint(Math.min(currentWaypoint, this.waypoints.size() - 1)));
-        for (int i = currentWaypoint; i < this.waypoints.size() - 1; i++) {
-            distance += this.waypoints.get(i).getDistance(this.waypoints.get(i + 1));
-        }
-        return distance;
+        return this.getDistance(this.waypoints.size() - 1);
     }
 
     public double getPathDistance() {
-        double distance = 0;
-        for (int i = 0; i < this.waypoints.size() - 1; i++) {
-            distance += this.waypoints.get(i).getDistance(this.waypoints.get(i + 1));
-        }
-        return distance;
+        return this.getDistance(0, this.waypoints.size() - 1);
     }
 
     public double getDriftPercentage() {
