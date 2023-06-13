@@ -38,7 +38,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     private static final int GRAPH_HISTORY = 50;
 
-    private static final double FPS = 20;
+    private static final double FPS = 30;
     private static final double ROBOT_WIDTH = 0.75;
     private static final double BUMPER_WIDTH = 0.08;
     public static final double ROBOT_WITH_BUMPER = BUMPER_WIDTH + ROBOT_WIDTH + BUMPER_WIDTH;

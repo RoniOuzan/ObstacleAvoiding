@@ -44,7 +44,7 @@ public class DoubleSliderTable extends TableType<Double> {
                 new Dimension2d(GUI.SETTINGS_WIDTH - (2 * gap), SLIDER_HEIGHT),
                 new Dimension2d(gap, lastY + gap),
                 this.getName(),
-                this.getDefaultValue(), this.maximum, this.minimum)
+                this.getDefaultValue(), this.minimum, this.maximum)
                 .setBackgroundColor(Settings.BACKGROUND).setColor(GUI.COLOR);
 
         return Collections.singletonList(this.slider);
