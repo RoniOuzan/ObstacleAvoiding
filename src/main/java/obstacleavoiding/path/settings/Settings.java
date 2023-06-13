@@ -24,6 +24,7 @@ public class Settings extends JPanel {
         this.setSize(GUI.SETTINGS_WIDTH, (int) (GUI.FIELD_DIMENSION.getY() * SETTINGS_HEIGHT_PERCENT));
         this.setBackground(BACKGROUND);
         this.setLayout(new GroupLayout(this));
+        this.setFocusable(false);
 
         int gap = (int) (GUI.SETTINGS_WIDTH * GAP_PERCENT) / 2;
 

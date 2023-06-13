@@ -10,7 +10,7 @@ import java.util.UUID;
 public class Waypoint extends Translation2d {
     private double heading;
 
-    private final RobotReference robotReference;
+    private RobotReference robotReference;
 
     public Waypoint(double x, double y, double heading, RobotReference robotReference) {
         Translation2d translation2d = new Translation2d(x, y).minus(robotReference.getReference(Rotation2d.fromDegrees(heading)));
@@ -50,16 +50,20 @@ public class Waypoint extends Translation2d {
         this.heading = heading;
     }
 
-    public Translation2d getOriginalPosition() {
-        return this.plus(this.getRobotReferenceTranslation());
-    }
-
     public RobotReference getRobotReference() {
         return robotReference;
     }
 
+    public void setRobotReference(RobotReference robotReference) {
+        this.robotReference = robotReference;
+    }
+
     public Translation2d getRobotReferenceTranslation() {
         return robotReference.getReference(Rotation2d.fromDegrees(heading));
+    }
+
+    public Translation2d getOriginalPosition() {
+        return this.plus(this.getRobotReferenceTranslation());
     }
 
     public Translation2d getNormalTranslation(Rotation2d angle) {
@@ -79,6 +83,11 @@ public class Waypoint extends Translation2d {
     @Override
     public String toString() {
         return "(" + this.getX() + "," + this.getY() + "," + this.getHeading() + ")";
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return this == obj;
     }
 
     public enum RobotReference {

@@ -16,7 +16,7 @@ public class MultipleOption<T> extends JComboBox<T> implements InputComponent {
         this.setSize(size.getX(), size.getY());
         this.setLocation(location.getX(), location.getY());
         this.setSelectedIndex(getIndexOfArray(defaultOption, options));
-        this.setFocusable(true);
+        this.setFocusable(false);
         this.setEditable(false);
         this.setAutoscrolls(false);
 

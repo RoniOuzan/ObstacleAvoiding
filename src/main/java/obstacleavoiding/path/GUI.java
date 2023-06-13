@@ -118,7 +118,10 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.addGraph("Values", graphValues, 0, 1);
 
         List<TableType<?>> values = new ArrayList<>();
-        values.add(new SelectOptionTable<>("Field", DEFAULT_FIELD, Fields.values()).onChange((c, l) -> this.obstacleAvoiding.setObstacles(c.getField().getObstacles())));
+        values.add(new SelectOptionTable<>("Field", DEFAULT_FIELD, Fields.values()).onChange((c, l) -> {
+            this.obstacleAvoiding.setObstacles(c.getField().getObstacles());
+            this.reset();
+        }));
         values.add(new SelectOptionTable<>("Alliance", DEFAULT_ALLIANCE, Alliance.values()).onChange((c, l) -> {
             robotImage = new ImageIcon(IMAGES_PATH + c.getText() + "Robot.png").getImage();
             invisibleRobotImage = new ImageIcon(IMAGES_PATH + c.getText() + "InvisibleRobot.png").getImage();
@@ -330,9 +333,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     }
 
     @Override
-    public void mouseDragged(MouseEvent e) {
-        Translation2d mouseLocation = this.getMouseTranslation(e);
-
+    public void mouseDragged(MouseEvent e, Translation2d mouseLocation) {
         if (mouseLocation.getX() > this.maxValue)
             return;
 
@@ -423,16 +424,19 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         if (mouseLocation.getX() > this.maxValue)
             return;
 
-        for (int i = this.purePursuit.getWaypoints().size() - 1; i >= 0; i--) {
-            Waypoint waypoint = this.purePursuit.getWaypoint(i);
-            if (this.purePursuit.getWaypoints().get(i).getOriginalPosition().getDistance(mouseLocation) <= convertPixelsToUnits(20)) {
-                if (this.selectedWaypoint == waypoint) {
-                    this.selectedWaypoint = null;
-                } else {
-                    this.selectedWaypoint = waypoint;
-                }
-                break;
+        Waypoint waypoint = this.getWaypointOnMouse(mouseLocation);
+
+        if (waypoint != null) {
+            if (this.selectedWaypoint == waypoint) {
+                this.selectedWaypoint = null;
+            } else {
+                this.selectedWaypoint = waypoint;
             }
+        } else if (this.selectedWaypoint != null) {
+            this.selectedWaypoint = null;
+        } else {
+            this.defaultWaypoints.get(this.defaultWaypoints.size() - 1).set(mouseLocation);
+            this.reset();
         }
     }
 
@@ -443,15 +447,14 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         if (mouseLocation.getX() > this.maxValue)
             return;
 
-        boolean drag = false;
-        for (int i = this.purePursuit.getWaypoints().size() - 1; i >= 0 && !drag; i--) {
-            Waypoint waypoint = this.purePursuit.getWaypoint(i);
-            if (this.purePursuit.getWaypoints().get(i).getOriginalPosition().getDistance(mouseLocation) <= convertPixelsToUnits(20)) {
-                this.draggedWaypoint = waypoint;
-                this.draggedObstacle = null;
-                drag = true;
-            }
+        Waypoint waypoint = this.getWaypointOnMouse(mouseLocation);
+
+        if (waypoint != null) {
+            this.draggedWaypoint = waypoint;
+            this.draggedObstacle = null;
         }
+
+        boolean drag = waypoint != null;
 
         for (int i = this.obstacleAvoiding.getObstacles().size() - 1; i >= 0 && !drag; i--) {
             Obstacle obstacle = this.obstacleAvoiding.getObstacles().get(i);
@@ -461,15 +464,6 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
                     this.draggedObstacle = obstacle;
                     drag = true;
                 }
-            }
-        }
-
-        if (!drag) {
-            if (this.selectedWaypoint == null) {
-                this.defaultWaypoints.get(this.defaultWaypoints.size() - 1).set(mouseLocation);
-                this.reset();
-            } else {
-                this.selectedWaypoint = null;
             }
         }
     }
@@ -482,8 +476,24 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     }
 
     @Override
-    public void mouseWheelMoved(MouseWheelEvent e) {
-        this.maxValue += e.getPreciseWheelRotation();
+    public void mouseWheelMoved(MouseWheelEvent e, Translation2d mouseLocation) {
+        if (this.selectedWaypoint != null) {
+            double heading = MathUtil.inputModulus(this.selectedWaypoint.getHeading() + (e.getPreciseWheelRotation() * 5), -180, 180);
+            this.selectedWaypoint.setHeading(heading);
+            this.waypointSettings.setValue("Heading", this.selectedWaypoint.getHeading() + (e.getPreciseWheelRotation() * 5));
+        } else {
+            this.maxValue += e.getPreciseWheelRotation() / 2;
+        }
+    }
+
+    private Waypoint getWaypointOnMouse(Translation2d mouseLocation) {
+        for (int i = this.purePursuit.getWaypoints().size() - 1; i >= 0; i--) {
+            Waypoint waypoint = this.purePursuit.getWaypoint(i);
+            if (this.purePursuit.getWaypoints().get(i).getOriginalPosition().getDistance(mouseLocation) <= convertPixelsToUnits(20)) {
+                return waypoint;
+            }
+        }
+        return null;
     }
 
     private void drawWaypoint(Translation2d waypoint) {

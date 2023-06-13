@@ -17,6 +17,7 @@ public class Slider extends JSlider implements InputComponent {
         this.setSize(size.getX(), size.getY());
         this.setLocation(location.getX(), location.getY());
         this.setPaintTrack(true);
+        this.setFocusable(false);
         this.setFont(new Font("arial", Font.BOLD, 15));
     }
 

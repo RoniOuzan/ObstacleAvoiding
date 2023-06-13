@@ -19,10 +19,11 @@ public class SelectOptionTable<T> extends TableType<T> {
     private final T[] options;
     private MultipleOption<T> multipleOption;
 
-    private BiConsumer<T, T> onChange;
+    private BiConsumer<T, T> onChange = (c, t) -> {};
 
     private T lastT = null;
 
+    @SafeVarargs
     public SelectOptionTable(String name, T defaultOption, T... options) {
         super(name, defaultOption);
         this.options = options;
@@ -31,6 +32,10 @@ public class SelectOptionTable<T> extends TableType<T> {
     public SelectOptionTable<T> onChange(BiConsumer<T, T> onChange) {
         this.onChange = onChange;
         return this;
+    }
+
+    public boolean isJustChanged() {
+        return lastT != null && !lastT.equals(this.getValue());
     }
 
     @Override
@@ -64,7 +69,7 @@ public class SelectOptionTable<T> extends TableType<T> {
     public void update() {
         T t = this.getValue();
 
-        if (lastT != null && !lastT.equals(t)) {
+        if (this.isJustChanged()) {
             this.onChange.accept(t, lastT);
         }
 

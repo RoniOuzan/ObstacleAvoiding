@@ -402,15 +402,15 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
     public void mouseEntered(MouseEvent e, Translation2d mouseLocation) {}
     public void mouseExited(MouseEvent e, Translation2d mouseLocation) {}
 
-    public void mouseDragged(MouseEvent e) {}
-    public void mouseMoved(MouseEvent e) {}
+    public void mouseDragged(MouseEvent e, Translation2d mouseLocation) {}
+    public void mouseMoved(MouseEvent e, Translation2d mouseLocation) {}
 
     public void keyTyped(KeyEvent e) {}
     public void keyPressed(KeyEvent e) {}
     public void keyReleased(KeyEvent e) {}
     public void keyListen(Set<Integer> keys) {}
 
-    public void mouseWheelMoved(MouseWheelEvent e) {}
+    public void mouseWheelMoved(MouseWheelEvent e, Translation2d mouseLocation) {}
 
     private class MouseHandler implements MouseListener {
         @Override
@@ -442,19 +442,19 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
     private class MouseMotionHandler implements MouseMotionListener {
         @Override
         public void mouseDragged(MouseEvent e) {
-            Frame.this.mouseDragged(e);
+            Frame.this.mouseDragged(e, Frame.this.getMouseTranslation(e));
         }
 
         @Override
         public void mouseMoved(MouseEvent e) {
-            Frame.this.mouseMoved(e);
+            Frame.this.mouseMoved(e, Frame.this.getMouseTranslation(e));
         }
     }
 
     private class MouseWheelHandler implements MouseWheelListener {
         @Override
         public void mouseWheelMoved(MouseWheelEvent e) {
-            Frame.this.mouseWheelMoved(e);
+            Frame.this.mouseWheelMoved(e, Frame.this.getMouseTranslation(e));
         }
     }
 
