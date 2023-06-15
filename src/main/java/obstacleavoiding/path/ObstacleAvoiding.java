@@ -4,8 +4,8 @@ import obstacleavoiding.math.geometry.Rotation2d;
 import obstacleavoiding.math.geometry.Translation2d;
 import obstacleavoiding.path.obstacles.Obstacle;
 import obstacleavoiding.path.util.Bounds;
-import obstacleavoiding.path.util.Waypoint;
-import obstacleavoiding.path.util.WaypointAutoHeading;
+import obstacleavoiding.path.waypoints.Waypoint;
+import obstacleavoiding.path.waypoints.WaypointAutoHeading;
 
 import java.util.*;
 
@@ -60,7 +60,7 @@ public class ObstacleAvoiding {
      * @return the list of waypoints that represents the path that avoided the obstacles.
      */
     public List<Waypoint> generateWaypointsBinary(List<Waypoint> waypoints) {
-        if (waypoints.stream().anyMatch(w -> this.getObstacle(w) != null) ||
+        if (waypoints.stream().map(Waypoint::getReferencedPosition).anyMatch(w -> this.getObstacle(w) != null) ||
                 this.isPathSafe(waypoints))
             return new ArrayList<>(waypoints);
 
@@ -73,15 +73,15 @@ public class ObstacleAvoiding {
             while (trajectory.size() <= MAX_PATH_LENGTH && !isPathSafe(trajectory)) {
                 int size = trajectory.size() - 1;
                 for (int i = 0; i < size; i++) {
-                    Waypoint waypoint1 = trajectory.get(i);
-                    Waypoint waypoint2 = trajectory.get(i + 1);
+                    Translation2d waypoint1 = trajectory.get(i).getReferencedPosition();
+                    Translation2d waypoint2 = trajectory.get(i + 1).getReferencedPosition();
 
                     if (this.isObstacleDistributing(waypoint1, waypoint2)) {
-                        Waypoint middle = new WaypointAutoHeading(waypoint1.interpolate(waypoint2, 0.5), Waypoint.RobotReference.CENTER);
+                        Translation2d middle = waypoint1.interpolate(waypoint2, 0.5);
 
                         Obstacle obstacle = this.getObstacle(middle);
                         if (obstacle != null) {
-                            List<Waypoint> middles = new ArrayList<>();
+                            List<Translation2d> middles = new ArrayList<>();
 
                             for (int j = 0; j < obstacle.getCorners().size(); j++) {
                                 double slopeMiddle = waypoint1.minus(waypoint2).getAngle().plus(Rotation2d.fromDegrees(90)).getTan();
@@ -125,7 +125,7 @@ public class ObstacleAvoiding {
                                 if (!this.bounds.isInOfBounds(newMiddle))
                                     continue;
 
-                                middles.add(new WaypointAutoHeading(newMiddle, Waypoint.RobotReference.CENTER));
+                                middles.add(newMiddle);
                             }
 
                             middles = middles.stream().sorted(Comparator.comparing(middle::getDistance)).toList();
@@ -139,7 +139,7 @@ public class ObstacleAvoiding {
                             }
                         }
 
-                        trajectory.add(i + 1, middle);
+                        trajectory.add(i + 1, new WaypointAutoHeading(middle));
                     }
                 }
             }
@@ -151,7 +151,7 @@ public class ObstacleAvoiding {
             if (this.isFiltering) {
                 for (int i = 0; i < trajectory.size() - 1; i++) {
                     for (int j = getLatestDefaultWaypointIndex(trajectory, waypoints, i); j > i; j--) {
-                        if (!this.isObstacleDistributing(trajectory.get(i), trajectory.get(j))) {
+                        if (!this.isObstacleDistributing(trajectory.get(i).getReferencedPosition(), trajectory.get(j).getReferencedPosition())) {
                             Set<Waypoint> remove = new HashSet<>();
                             for (int k = i + 1; k < j; k++) {
                                 remove.add(trajectory.get(k));
@@ -168,8 +168,6 @@ public class ObstacleAvoiding {
         }
 
         List<Waypoint> trajectory = trajectories.stream().min(Comparator.comparing(ObstacleAvoiding::getPathDistance)).orElse(waypoints);
-
-
 
         printStateFinished("Finished", started);
         return trajectory;
@@ -219,7 +217,7 @@ public class ObstacleAvoiding {
 
     public boolean isPathSafe(List<Waypoint> waypoints) {
         for (int i = 0; i < waypoints.size() - 1; i++) {
-            if (isObstacleDistributing(waypoints.get(i), waypoints.get(i + 1)))
+            if (isObstacleDistributing(waypoints.get(i).getReferencedPosition(), waypoints.get(i + 1).getReferencedPosition()))
                 return false;
         }
         return true;

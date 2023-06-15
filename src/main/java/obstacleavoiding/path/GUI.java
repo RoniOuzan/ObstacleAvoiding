@@ -15,7 +15,8 @@ import obstacleavoiding.path.settings.WaypointSettings;
 import obstacleavoiding.path.settings.tables.*;
 import obstacleavoiding.path.util.Alliance;
 import obstacleavoiding.path.util.Bounds;
-import obstacleavoiding.path.util.Waypoint;
+import obstacleavoiding.path.waypoints.NavigationWaypoint;
+import obstacleavoiding.path.waypoints.Waypoint;
 
 import javax.swing.*;
 import java.awt.*;
@@ -95,7 +96,6 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
         this.defaultWaypoints = new ArrayList<>();
         this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 2, DEFAULT_MAX_Y / 2 + 2, 90, Waypoint.RobotReference.CENTER));
-//        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 1, DEFAULT_MAX_Y / 2 + 1, 90, Waypoint.RobotReference.CENTER));
         this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 - 2, DEFAULT_MAX_Y / 2 - 2, 0, Waypoint.RobotReference.CENTER));
 
         this.purePursuit = new PurePursuit(
@@ -136,8 +136,10 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         values.add(new BooleanTable("Running", true).setValueParser(this.purePursuit::setRunning));
         values.add(new BooleanTable("Extended Obstacles", false));
         values.add(new BooleanTable("Auto Generate", false).onTrue(this::resetPath));
+        values.add(new BooleanTable("Trail", true));
+        values.add(new BooleanTable("Path", true));
         values.add(new BooleanTable("Create Waypoint", false).setAlways(false).onTrue(() -> {
-                    this.defaultWaypoints.add(this.defaultWaypoints.size() - 1, new Waypoint(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2, Waypoint.RobotReference.CENTER));
+                    this.defaultWaypoints.add(this.defaultWaypoints.size() - 1, new NavigationWaypoint(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2, 0, Waypoint.RobotReference.CENTER, 1));
                     this.resetPath();
                 }));
         this.settings = new Settings(values);
@@ -153,23 +155,29 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     public void drawBackground() {
         this.drawImage(this.settings.getValue("Field", DEFAULT_FIELD).getField().getImage(), convertX(0, FIELD_DIMENSION), (int) (convertY(0, FIELD_DIMENSION) - convertUnits(DEFAULT_MAX_Y)),
                 (int) convertUnits(DEFAULT_MAX_VALUE), (int) convertUnits(DEFAULT_MAX_Y));
+    }
+
+    public void drawPath() {
+        if (!this.settings.getValue("Path", true)) return;
 
         for (Waypoint waypoint : this.purePursuit.getWaypoints()) {
             this.drawImage(invisibleRobotImage,
-                    waypoint,
+                    waypoint.getReferencedPosition(),
                     ROBOT_WITH_BUMPER, ROBOT_WITH_BUMPER,
                     -waypoint.getHeading());
 
             if (this.selectedWaypoint == waypoint) {
-                this.drawSelectedWaypoint(waypoint.getOriginalPosition());
+                this.drawSelectedWaypoint(waypoint);
             } else {
-                this.drawWaypoint(waypoint.getOriginalPosition());
+                this.drawWaypoint(waypoint);
             }
         }
-        this.drawConnectedPoints(Color.BLACK, this.purePursuit.getWaypoints());
+        this.drawConnectedPoints(Color.BLACK, this.purePursuit.getWaypoints().parallelStream().map(Waypoint::getReferencedPosition).toList());
     }
 
-    public void displayPath() {
+    public void displayTrail() {
+        if (!this.settings.getValue("Trail", true)) return;
+
         for (Map.Entry<Pose2d, Integer> entry : this.positions.entrySet()) {
             this.drawImage(invisibleRobotImage,
                     entry.getKey().getTranslation(),
@@ -285,12 +293,13 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     @Override
     public void update() {
         this.drawBackground();
+        this.drawPath();
         this.settings.update();
         this.waypointSettings.update(this.selectedWaypoint);
         this.purePursuit.update(this.settings.getValue("MaxVel", 0d), this.settings.getValue("MaxAccel", 0d),
                 this.settings.getValue("MaxOmegaVel", 0d), this.settings.getValue("MaxOmegaAccel", 0d));
         this.updateValues();
-        this.displayPath();
+        this.displayTrail();
         this.displayObstacles();
         this.writeValues();
         this.displayRobot();
@@ -347,7 +356,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         for (int i = this.purePursuit.getWaypoints().size() - 1; i >= 0 && !drag; i--) {
             Waypoint waypoint = this.purePursuit.getWaypoints().get(i);
             if (waypoint == this.draggedWaypoint) {
-                waypoint.set(mouseLocation);
+                waypoint.set(mouseLocation.plus(waypoint.getRobotReferenceTranslation()));
 
                 if (this.settings.getValue("Auto Generate", false)) {
                     this.resetPath();
@@ -442,7 +451,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         } else if (this.selectedWaypoint != null) {
             this.selectedWaypoint = null;
         } else {
-            this.defaultWaypoints.get(this.defaultWaypoints.size() - 1).set(mouseLocation);
+            Waypoint lastWaypoint = this.defaultWaypoints.get(this.defaultWaypoints.size() - 1);
+            lastWaypoint.set(mouseLocation.plus(lastWaypoint.getRobotReferenceTranslation().times(2)));
             this.reset();
         }
     }
@@ -496,7 +506,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private Waypoint getWaypointOnMouse(Translation2d mouseLocation) {
         for (int i = this.purePursuit.getWaypoints().size() - 1; i >= 0; i--) {
             Waypoint waypoint = this.purePursuit.getWaypoint(i);
-            if (this.purePursuit.getWaypoints().get(i).getOriginalPosition().getDistance(mouseLocation) <= convertPixelsToUnits(20)) {
+            if (this.purePursuit.getWaypoints().get(i).getDistance(mouseLocation) <= convertPixelsToUnits(20)) {
                 return waypoint;
             }
         }

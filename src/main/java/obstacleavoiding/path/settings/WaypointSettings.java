@@ -7,7 +7,7 @@ import obstacleavoiding.path.GUI;
 import obstacleavoiding.path.settings.tables.SelectOptionTable;
 import obstacleavoiding.path.settings.tables.DoubleSliderTable;
 import obstacleavoiding.path.settings.tables.TableType;
-import obstacleavoiding.path.util.Waypoint;
+import obstacleavoiding.path.waypoints.Waypoint;
 
 import javax.swing.*;
 import java.awt.*;

@@ -1,11 +1,9 @@
-package obstacleavoiding.path.util;
+package obstacleavoiding.path.waypoints;
 
 import obstacleavoiding.math.geometry.Pose2d;
 import obstacleavoiding.math.geometry.Rotation2d;
 import obstacleavoiding.math.geometry.Translation2d;
 import obstacleavoiding.path.GUI;
-
-import java.util.UUID;
 
 public class Waypoint extends Translation2d {
     private double heading;
@@ -13,9 +11,7 @@ public class Waypoint extends Translation2d {
     private RobotReference robotReference;
 
     public Waypoint(double x, double y, double heading, RobotReference robotReference) {
-        Translation2d translation2d = new Translation2d(x, y).minus(robotReference.getReference(Rotation2d.fromDegrees(heading)));
-        this.m_x = translation2d.getX();
-        this.m_y = translation2d.getY();
+        super(x, y);
         this.heading = heading;
         this.robotReference = robotReference;
     }
@@ -37,8 +33,7 @@ public class Waypoint extends Translation2d {
     }
 
     public void set(Pose2d pose2d) {
-        this.setX(pose2d.getX());
-        this.setY(pose2d.getY());
+        super.set(pose2d.getTranslation());
         this.setHeading(pose2d.getRotation().getDegrees());
     }
 
@@ -59,15 +54,11 @@ public class Waypoint extends Translation2d {
     }
 
     public Translation2d getRobotReferenceTranslation() {
-        return robotReference.getReference(Rotation2d.fromDegrees(heading));
+        return robotReference.getReference(Rotation2d.fromDegrees(this.heading));
     }
 
-    public Translation2d getOriginalPosition() {
-        return this.plus(this.getRobotReferenceTranslation());
-    }
-
-    public Translation2d getNormalTranslation(Rotation2d angle) {
-        return this.minus(this.robotReference.getReference(angle));
+    public Translation2d getReferencedPosition() {
+        return this.minus(this.getRobotReferenceTranslation());
     }
 
     @Override
