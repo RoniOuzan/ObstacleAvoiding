@@ -4,9 +4,11 @@ import static obstacleavoiding.path.settings.Settings.*;
 
 import obstacleavoiding.gui.components.Component;
 import obstacleavoiding.path.GUI;
+import obstacleavoiding.path.Robot;
 import obstacleavoiding.path.settings.tables.SelectOptionTable;
 import obstacleavoiding.path.settings.tables.DoubleSliderTable;
 import obstacleavoiding.path.settings.tables.TableType;
+import obstacleavoiding.path.waypoints.NavigationWaypoint;
 import obstacleavoiding.path.waypoints.Waypoint;
 
 import javax.swing.*;
@@ -17,11 +19,12 @@ import java.util.List;
 public class WaypointSettings extends JPanel {
 
     private final List<TableType<?>> tables;
+    private final List<TableType<?>> navigationTables;
     private final Map<String, TableType<?>> map = new HashMap<>();
 
     private Waypoint lastWaypoint = null;
 
-    public WaypointSettings() {
+    public WaypointSettings(Robot robot) {
         this.setLocation(GUI.FIELD_DIMENSION.getX(), (int) (GUI.FIELD_DIMENSION.getY() * SETTINGS_HEIGHT_PERCENT));
         this.setSize(GUI.SETTINGS_WIDTH, (int) (GUI.FIELD_DIMENSION.getY() * (1 - SETTINGS_HEIGHT_PERCENT)));
         this.setLayout(new GroupLayout(this));
@@ -29,6 +32,9 @@ public class WaypointSettings extends JPanel {
         this.tables = Arrays.asList(
                 new DoubleSliderTable("Heading", 0, -180, 180),
                 new SelectOptionTable<>("RobotReference", Waypoint.RobotReference.CENTER, Waypoint.RobotReference.values())
+        );
+        this.navigationTables = Arrays.asList(
+                new DoubleSliderTable("TargetVel", 1, 0, robot.getConstants().maxVel())
         );
 
         this.setBackground(BACKGROUND);
@@ -43,7 +49,7 @@ public class WaypointSettings extends JPanel {
         g.fillRect(0, 0, this.getWidth(), 8);
     }
 
-    public void addAll() {
+    public void addAll(boolean navigation) {
         int gap = (int) (GUI.SETTINGS_WIDTH * GAP_PERCENT) / 2;
 
         for (int i = 0; i < this.tables.size(); i++) {
@@ -51,6 +57,15 @@ public class WaypointSettings extends JPanel {
 
             this.map.put(table.getName(), table);
             table.getComponents(i == 0 ? 0 : this.tables.get(i - 1).getLastY(), gap).forEach(this::add);
+        }
+
+        if (navigation) {
+            for (int i = 0; i < this.navigationTables.size(); i++) {
+                TableType<?> table = this.navigationTables.get(i);
+
+                this.map.put(table.getName(), table);
+                table.getComponents(i == 0 ? this.tables.get(this.tables.size() - 1).getLastY() : this.navigationTables.get(i - 1).getLastY(), gap).forEach(this::add);
+            }
         }
     }
 
@@ -70,13 +85,13 @@ public class WaypointSettings extends JPanel {
 
         if (waypoint != null && waypoint != this.lastWaypoint) {
             this.removeAll();
-            this.addAll();
+            this.addAll(waypoint instanceof NavigationWaypoint);
 
             this.setValue("Heading", waypoint.getHeading());
-//            this.getTable("Heading").setValueParser(h -> waypoint.setHeading((double) h));
-
             this.setValue("RobotReference", waypoint.getRobotReference());
-//            this.getTable("RobotReference").setValueParser(r -> waypoint.setRobotReference((Waypoint.RobotReference) r));
+            if (waypoint instanceof NavigationWaypoint navigation) {
+                this.setValue("TargetVel", navigation.getTargetVelocity());
+            }
         }
 
         if (waypoint != null) {
@@ -85,6 +100,10 @@ public class WaypointSettings extends JPanel {
 
                 waypoint.setHeading((double) this.getTable("Heading").getValue());
                 waypoint.setRobotReference((Waypoint.RobotReference) this.getTable("RobotReference").getValue());
+
+                if (waypoint instanceof NavigationWaypoint navigation) {
+                    navigation.setTargetVelocity((double) this.getTable("TargetVel").getValue());
+                }
             });
         } else {
             this.removeAll();

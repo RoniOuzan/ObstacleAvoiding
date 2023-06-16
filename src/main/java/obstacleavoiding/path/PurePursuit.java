@@ -79,20 +79,21 @@ public class PurePursuit {
             slowPercentage = Math.pow(slowPercentage, 1);
             double normalDriftPercentage = driftPercentage;
 
-            double driftPercent;
+            double driftLevel;
             if (isNotLastWaypoint) {
-                driftPercent = this.getNextWaypoint().minus(this.getCurrentWaypoint()).getAngle().minus(this.getCurrentWaypoint().minus(this.getPreviousWaypoint()).getAngle()).getDegrees();
-                driftPercent = Math.abs(driftPercent) / 30;
+                driftLevel = this.getNextWaypoint().minus(this.getCurrentWaypoint()).getAngle().minus(this.getCurrentWaypoint().minus(this.getPreviousWaypoint()).getAngle()).getDegrees();
+                driftLevel = Math.abs(driftLevel) / 30;
             } else {
-                driftPercent = 0;
+                driftLevel = 0;
             }
 
             if (this.currentWaypoint instanceof NavigationWaypoint navigation && navigation.getTargetVelocity() < maxVel) {
-                maxVel = (maxVel - navigation.getTargetVelocity()) * (1 - slowPercentage) + navigation.getTargetVelocity();
+                System.out.println((maxVel - navigation.getTargetVelocity()) * (1 - driftPercentage) + navigation.getTargetVelocity() + ", " + driftPercentage + ", " + (maxVel - navigation.getTargetVelocity()) + ", " + navigation.getTargetVelocity());
+                maxVel = (maxVel - navigation.getTargetVelocity()) * (1 - driftPercentage) + navigation.getTargetVelocity();
             }
 
             double stopVelocity = Math.pow(MathUtil.clamp(this.getDistanceToFinalWaypoint() / this.constants.finalSlowDistance, 0, 1), 0.75) * this.robot.getConstants().maxVel();
-            double maxVelocity = Math.min(this.robot.getConstants().maxVel() - Math.min(slowPercentage * driftPercent, 3), stopVelocity);
+            double maxVelocity = Math.min(this.robot.getConstants().maxVel() - Math.min(slowPercentage * driftLevel, 3), stopVelocity);
             targetDriveVelocity = Math.min(maxVelocity, maxVel);
             driveVelocity += MathUtil.clamp(this.driveController.calculate(this.robot.getVelocity().getTranslation().getNorm(), this.targetDriveVelocity), -maxAccel * period, maxAccel * period);
             driveVelocity = MathUtil.clamp(driveVelocity, 0, maxVelocity);

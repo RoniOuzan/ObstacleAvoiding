@@ -92,7 +92,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.robot = new Robot(new Pose2d(new Translation2d(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2), Rotation2d.fromDegrees(0)),
                 new Robot.Constants(4.5, 9, 360, 720, 1 / FPS));
 
-        this.obstacleAvoiding = new ObstacleAvoiding(HALF_ROBOT + 0.05, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), DEFAULT_FIELD.getField().getObstacles());
+        this.obstacleAvoiding = new ObstacleAvoiding(HALF_ROBOT + 0.1, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), DEFAULT_FIELD.getField().getObstacles());
 
         this.defaultWaypoints = new ArrayList<>();
         this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 2, DEFAULT_MAX_Y / 2 + 2, 90, Waypoint.RobotReference.CENTER));
@@ -100,7 +100,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
         this.purePursuit = new PurePursuit(
                 this.robot,
-                new PurePursuit.Constants(1, 4, 3),
+                new PurePursuit.Constants(1, 3, 3),
                 this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints)
         );
 
@@ -145,7 +145,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.settings = new Settings(values);
         this.add(this.settings);
 
-        this.waypointSettings = new WaypointSettings();
+        this.waypointSettings = new WaypointSettings(this.robot);
         this.add(this.waypointSettings);
 
         this.purePursuit.reset();
