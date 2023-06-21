@@ -5,6 +5,7 @@ import obstacleavoiding.math.geometry.Pose2d;
 import obstacleavoiding.math.geometry.Rotation2d;
 import obstacleavoiding.math.geometry.Translation2d;
 import obstacleavoiding.path.pid.PIDController;
+import obstacleavoiding.path.robot.Robot;
 import obstacleavoiding.path.waypoints.NavigationWaypoint;
 import obstacleavoiding.path.waypoints.Waypoint;
 import obstacleavoiding.path.waypoints.WaypointAutoHeading;

@@ -4,6 +4,7 @@ import com.github.strikerx3.jxinput.XInputComponents;
 import com.github.strikerx3.jxinput.XInputDevice;
 import com.github.strikerx3.jxinput.exceptions.XInputNotLoadedException;
 import obstacleavoiding.math.geometry.Dimension2d;
+import obstacleavoiding.math.geometry.Rotation2d;
 import obstacleavoiding.math.geometry.Translation2d;
 
 import javax.swing.*;
@@ -252,6 +253,27 @@ public abstract class Frame extends JFrame implements FieldType, DrawType {
             g.fillRect(convertX(newTranslation1.getX(), this.dimension), convertY(newTranslation1.getY(), this.dimension),
                     convertWidth(newTranslation2.getX() - newTranslation1.getX()), convertHeight(newTranslation2.getY() - newTranslation1.getY()));
         });
+    }
+
+    public void fillAngledRect(double x, double y, double width, double height, double angle, Color color) {
+        Translation2d center = new Translation2d(x + (width / 2), y + (height / 2));
+        Translation2d[] translations = {
+                new Translation2d(x, y),
+                new Translation2d(x + width, y),
+                new Translation2d(x + width, y + height),
+                new Translation2d(x, y + height)
+        };
+        Translation2d corner = new Translation2d(x, y);
+
+        for (int i = 0; i < translations.length; i++) {
+            translations[i] = corner.plus(new Translation2d(translations[i].getDistance(center), translations[i].minus(center).getAngle().plus(Rotation2d.fromDegrees(angle))));
+        }
+
+        this.fillPolygon(color, translations);
+    }
+
+    public void fillAngledRect(Translation2d translation2d, double width, double height, double angle, Color color) {
+        this.fillAngledRect(translation2d.getX(), translation2d.getY(), width, height, angle, color);
     }
 
     public void drawLine(Translation2d translation1, Translation2d translation2, double width, Color color) {

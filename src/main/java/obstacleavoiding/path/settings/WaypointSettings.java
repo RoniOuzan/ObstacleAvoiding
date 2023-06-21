@@ -4,7 +4,7 @@ import static obstacleavoiding.path.settings.Settings.*;
 
 import obstacleavoiding.gui.components.Component;
 import obstacleavoiding.path.GUI;
-import obstacleavoiding.path.Robot;
+import obstacleavoiding.path.robot.Robot;
 import obstacleavoiding.path.settings.tables.SelectOptionTable;
 import obstacleavoiding.path.settings.tables.DoubleSliderTable;
 import obstacleavoiding.path.settings.tables.TableType;

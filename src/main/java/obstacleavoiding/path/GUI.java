@@ -10,6 +10,8 @@ import obstacleavoiding.math.geometry.*;
 import obstacleavoiding.path.fields.Fields;
 import obstacleavoiding.path.obstacles.DraggableObstacle;
 import obstacleavoiding.path.obstacles.Obstacle;
+import obstacleavoiding.path.robot.ModuleState;
+import obstacleavoiding.path.robot.Robot;
 import obstacleavoiding.path.settings.Settings;
 import obstacleavoiding.path.settings.WaypointSettings;
 import obstacleavoiding.path.settings.tables.*;
@@ -44,6 +46,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private static final double BUMPER_WIDTH = 0.08;
     public static final double ROBOT_WITH_BUMPER = BUMPER_WIDTH + ROBOT_WIDTH + BUMPER_WIDTH;
     public static final double HALF_ROBOT = ROBOT_WITH_BUMPER / 2;
+    private static final double TRACK_WIDTH = 0.6;
+    private static final double WHEEL_BASE = 0.6;
 
     private static final double MINI_ROBOT_WITH_BUMPER = ROBOT_WITH_BUMPER;
 
@@ -58,7 +62,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private final ObstacleAvoiding obstacleAvoiding;
     private final List<Waypoint> defaultWaypoints;
     private final PurePursuit purePursuit;
-    private final Robot robot;
+    private final obstacleavoiding.path.robot.Robot robot;
 
     private Image robotImage = new ImageIcon(IMAGES_PATH + DEFAULT_ALLIANCE.getText() + "Robot.png").getImage();
     private Image invisibleRobotImage = new ImageIcon(IMAGES_PATH + DEFAULT_ALLIANCE.getText() + "InvisibleRobot.png").getImage();
@@ -89,8 +93,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         super("Path Follower", FRAME_DIMENSION, FPS);
         this.addDevice(0);
 
-        this.robot = new Robot(new Pose2d(new Translation2d(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2), Rotation2d.fromDegrees(0)),
-                new Robot.Constants(4.5, 9, 360, 720, 1 / FPS));
+        this.robot = new obstacleavoiding.path.robot.Robot(new Pose2d(new Translation2d(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2), Rotation2d.fromDegrees(0)),
+                new Robot.Constants(4.5, 9, 360, 720, 1 / FPS, getModulesLocation()));
 
         this.obstacleAvoiding = new ObstacleAvoiding(HALF_ROBOT + 0.1, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), DEFAULT_FIELD.getField().getObstacles());
 
@@ -191,6 +195,13 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
                 this.robot.getPosition().getTranslation(),
                 ROBOT_WITH_BUMPER, ROBOT_WITH_BUMPER,
                 -this.robot.getPosition().getRotation().getDegrees());
+
+        for (ModuleState module : this.robot.getModules()) {
+            this.fillAngledRect(
+                    this.robot.getPosition().getTranslation().plus(new Translation2d(
+                            module.getLocation().getNorm(), module.getLocation().getAngle().plus(this.robot.getPosition().getRotation()))),
+                    0.18, 0.08, module.getAngle().plus(this.robot.getPosition().getRotation()).getDegrees(), Color.DARK_GRAY.darker());
+        }
     }
 
     public void displayObstacles() {
@@ -521,5 +532,14 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private void drawSelectedWaypoint(Translation2d waypoint) {
         this.fillPoint(waypoint.getX(), waypoint.getY(), convertPixelsToUnits(8), Color.WHITE);
         this.fillPoint(waypoint.getX(), waypoint.getY(), convertPixelsToUnits(6), Color.GREEN);
+    }
+
+    private static Translation2d[] getModulesLocation() {
+        return new Translation2d[]{
+            new Translation2d(WHEEL_BASE / 2, TRACK_WIDTH / 2),
+            new Translation2d(WHEEL_BASE / 2, -TRACK_WIDTH / 2),
+            new Translation2d(-WHEEL_BASE / 2, TRACK_WIDTH / 2),
+            new Translation2d(-WHEEL_BASE / 2, -TRACK_WIDTH / 2)
+        };
     }
 }
