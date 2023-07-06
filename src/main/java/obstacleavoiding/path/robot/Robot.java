@@ -1,5 +1,6 @@
 package obstacleavoiding.path.robot;
 
+import obstacleavoiding.math.MathUtil;
 import obstacleavoiding.math.geometry.Pose2d;
 import obstacleavoiding.math.geometry.Rotation2d;
 import obstacleavoiding.math.geometry.Translation2d;
@@ -10,6 +11,8 @@ import java.util.Arrays;
 public class Robot {
     private final int numModules;
     private final ModuleState[] modules;
+    private final Translation2d centerOfRotation;
+    private final double modulesRadius;
     private final Matrix inverseKinematics;
 
     private Pose2d position;
@@ -32,34 +35,50 @@ public class Robot {
             this.inverseKinematics.setRow(i * 2, 1, 0, -constants.modulesLocation[i].getY());
             this.inverseKinematics.setRow(i * 2 + 1, 0, 1, constants.modulesLocation[i].getX());
         }
+
+        this.centerOfRotation = new Translation2d(
+                Arrays.stream(this.modules).mapToDouble(m -> m.getLocation().getX()).average().orElse(0),
+                Arrays.stream(this.modules).mapToDouble(m -> m.getLocation().getY()).average().orElse(0)
+        );
+        this.modulesRadius = Arrays.stream(this.modules).mapToDouble(m -> m.getLocation().getDistance(this.centerOfRotation)).average().orElse(0);
     }
 
-    public void drive(Pose2d velocity, double period) {
+    public void drive(Pose2d velocity, double period, boolean accelerate) {
         this.lastVelocity = this.velocity;
 
-        double calculatedVelocity = Math.min(velocity.getTranslation().getNorm(), constants.maxVel);
+        this.setModuleStates(velocity, period, accelerate);
+
         velocity = new Pose2d(
-                new Translation2d(calculatedVelocity, velocity.getTranslation().getAngle()),
-                velocity.getRotation());
+                new Translation2d(
+                        Arrays.stream(this.modules).mapToDouble(m -> m.getVector().rotateBy(this.position.getRotation()).getX()).average().orElse(0),
+                        Arrays.stream(this.modules).mapToDouble(m -> m.getVector().rotateBy(this.position.getRotation()).getY()).average().orElse(0)
+                ),
+                Rotation2d.fromRadians(-Arrays.stream(this.modules).mapToDouble(m -> m.getVector().rotateBy(centerOfRotation.minus(m.getLocation()).getAngle().unaryMinus()).getY()).average().orElse(0))
+        );
 
         this.position = new Pose2d(
-                        this.position.getTranslation().plus(velocity.getTranslation().times(period)),
+                this.position.getTranslation().plus(velocity.getTranslation().times(period)),
                 this.position.getRotation().rotateBy(Rotation2d.fromRadians(velocity.getRotation().getRadians() * period)));
         this.velocity = velocity;
-
-        this.setModuleStates(velocity);
     }
 
-    private void setModuleStates(Pose2d velocity) {
+    private void setModuleStates(Pose2d velocity, double period, boolean accelerate) {
         Matrix vector = new Matrix(3, 1);
         vector.setColumn(0, velocity.getTranslation().rotateBy(this.position.getRotation().unaryMinus()).getX(),
                         velocity.getTranslation().rotateBy(this.position.getRotation().unaryMinus()).getY(),
-                        velocity.getRotation().getRadians());
+                        velocity.getRotation().getRadians() / this.modulesRadius);
 
         Matrix chassisSpeedsVector = this.inverseKinematics.multiply(vector);
 
         for (int i = 0; i < numModules; i++) {
-            this.modules[i].set(chassisSpeedsVector.get(i * 2, 0), chassisSpeedsVector.get(i * 2 + 1, 0));
+            Translation2d module = new Translation2d(chassisSpeedsVector.get(i * 2, 0), chassisSpeedsVector.get(i * 2 + 1, 0));
+            if (accelerate && this.modules[i].getVector().getNorm() > 0.01) {
+                this.modules[i].set(MathUtil.clampWithAccel(module.getX(), this.modules[i].getVector().getX(), this.constants.maxAccel, period),
+                        MathUtil.clampWithAccel(module.getY(), this.modules[i].getVector().getY(), this.constants.maxAccel, period),
+                        this.constants.maxVel);
+            } else {
+                this.modules[i].set(module, this.constants.maxVel);
+            }
         }
     }
 

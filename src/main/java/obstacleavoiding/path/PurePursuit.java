@@ -89,8 +89,7 @@ public class PurePursuit {
             }
 
             if (this.currentWaypoint instanceof NavigationWaypoint navigation && navigation.getTargetVelocity() < maxVel) {
-                System.out.println((maxVel - navigation.getTargetVelocity()) * (1 - driftPercentage) + navigation.getTargetVelocity() + ", " + driftPercentage + ", " + (maxVel - navigation.getTargetVelocity()) + ", " + navigation.getTargetVelocity());
-                maxVel = (maxVel - navigation.getTargetVelocity()) * (1 - driftPercentage) + navigation.getTargetVelocity();
+                maxVel = (maxVel - navigation.getTargetVelocity()) * (1 - slowPercentage) + navigation.getTargetVelocity();
             }
 
             double stopVelocity = Math.pow(MathUtil.clamp(this.getDistanceToFinalWaypoint() / this.constants.finalSlowDistance, 0, 1), 0.75) * this.robot.getConstants().maxVel();
@@ -126,7 +125,7 @@ public class PurePursuit {
 
             this.robot.drive(new Pose2d(
                     new Translation2d(driveVelocity, angle.getAngle()),
-                    Rotation2d.fromDegrees(omegaVelocity)), period);
+                    Rotation2d.fromDegrees(omegaVelocity)), period, false);
 
             if (driftPercentage >= 0.9) {
                 if (this.getCurrentWaypointIndex() < this.waypoints.size() - 1) {

@@ -39,17 +39,17 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     public static final Dimension2d FRAME_DIMENSION = FIELD_DIMENSION.plus(new Dimension2d(SETTINGS_WIDTH, 0));
     public static final double DEFAULT_MAX_Y = DEFAULT_MAX_VALUE * ((double) FIELD_DIMENSION.getY() / FIELD_DIMENSION.getX());
 
-    private static final int GRAPH_HISTORY = 50;
+    private static final int GRAPH_HISTORY = 0;
 
     private static final double FPS = 30;
-    private static final double ROBOT_WIDTH = 0.75;
-    private static final double BUMPER_WIDTH = 0.08;
-    public static final double ROBOT_WITH_BUMPER = BUMPER_WIDTH + ROBOT_WIDTH + BUMPER_WIDTH;
-    public static final double HALF_ROBOT = ROBOT_WITH_BUMPER / 2;
+    private static final double ROBOT_WIDTH = 0.9;
+    public static final double HALF_ROBOT = ROBOT_WIDTH / 2;
     private static final double TRACK_WIDTH = 0.6;
     private static final double WHEEL_BASE = 0.6;
+    private static final double WHEEL_WIDTH = 0.05;
+    private static final double WHEEL_DIAMETER = 0.1;
 
-    private static final double MINI_ROBOT_WITH_BUMPER = ROBOT_WITH_BUMPER;
+    private static final double MINI_ROBOT_WIDTH = ROBOT_WIDTH;
 
     private static final Fields DEFAULT_FIELD = Fields.CHARGED_UP;
     private static final Alliance DEFAULT_ALLIANCE = Alliance.NONE;
@@ -62,7 +62,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private final ObstacleAvoiding obstacleAvoiding;
     private final List<Waypoint> defaultWaypoints;
     private final PurePursuit purePursuit;
-    private final obstacleavoiding.path.robot.Robot robot;
+    private final Robot robot;
 
     private Image robotImage = new ImageIcon(IMAGES_PATH + DEFAULT_ALLIANCE.getText() + "Robot.png").getImage();
     private Image invisibleRobotImage = new ImageIcon(IMAGES_PATH + DEFAULT_ALLIANCE.getText() + "InvisibleRobot.png").getImage();
@@ -96,7 +96,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.robot = new obstacleavoiding.path.robot.Robot(new Pose2d(new Translation2d(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2), Rotation2d.fromDegrees(0)),
                 new Robot.Constants(4.5, 9, 360, 720, 1 / FPS, getModulesLocation()));
 
-        this.obstacleAvoiding = new ObstacleAvoiding(HALF_ROBOT + 0.1, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), DEFAULT_FIELD.getField().getObstacles());
+        this.obstacleAvoiding = new ObstacleAvoiding(HALF_ROBOT * 1.2, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), DEFAULT_FIELD.getField().getObstacles());
 
         this.defaultWaypoints = new ArrayList<>();
         this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 2, DEFAULT_MAX_Y / 2 + 2, 90, Waypoint.RobotReference.CENTER));
@@ -104,7 +104,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
         this.purePursuit = new PurePursuit(
                 this.robot,
-                new PurePursuit.Constants(1, 3, 3),
+                new PurePursuit.Constants(1, 1.5, 3),
                 this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints)
         );
 
@@ -131,7 +131,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         }));
         values.add(new DoubleSliderTable("FPS", FPS, 1, 50).setValueParser(this::setFPS));
         values.add(new DoubleSliderTable("MaxVel", 4.5, 0, 4.9));
-        values.add(new DoubleSliderTable("MaxAccel", 8, 0, 10));
+        values.add(new DoubleSliderTable("MaxAccel", 6, 0, 10));
         values.add(new DoubleSliderTable("MaxOmegaVel", 360, 0, 720));
         values.add(new DoubleSliderTable("MaxOmegaAccel", 360, 0, 1080));
         values.add(new IntegerSliderTable("GraphHistory", GRAPH_HISTORY, 0, 200).setValueParser(d -> graphHistory = d));
@@ -167,7 +167,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         for (Waypoint waypoint : this.purePursuit.getWaypoints()) {
             this.drawImage(invisibleRobotImage,
                     waypoint.getReferencedPosition(),
-                    ROBOT_WITH_BUMPER, ROBOT_WITH_BUMPER,
+                    ROBOT_WIDTH, ROBOT_WIDTH,
                     -waypoint.getHeading());
 
             if (this.selectedWaypoint == waypoint) {
@@ -185,7 +185,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         for (Map.Entry<Pose2d, Integer> entry : this.positions.entrySet()) {
             this.drawImage(invisibleRobotImage,
                     entry.getKey().getTranslation(),
-                    MINI_ROBOT_WITH_BUMPER, MINI_ROBOT_WITH_BUMPER,
+                    MINI_ROBOT_WIDTH, MINI_ROBOT_WIDTH,
                     -entry.getKey().getRotation().getDegrees());
         }
     }
@@ -193,14 +193,14 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     public void displayRobot() {
         this.drawImage(robotImage,
                 this.robot.getPosition().getTranslation(),
-                ROBOT_WITH_BUMPER, ROBOT_WITH_BUMPER,
+                ROBOT_WIDTH, ROBOT_WIDTH,
                 -this.robot.getPosition().getRotation().getDegrees());
 
         for (ModuleState module : this.robot.getModules()) {
             this.fillAngledRect(
                     this.robot.getPosition().getTranslation().plus(new Translation2d(
                             module.getLocation().getNorm(), module.getLocation().getAngle().plus(this.robot.getPosition().getRotation()))),
-                    0.18, 0.08, module.getAngle().plus(this.robot.getPosition().getRotation()).getDegrees(), Color.DARK_GRAY.darker());
+                    WHEEL_DIAMETER, WHEEL_WIDTH, module.getAngle().plus(this.robot.getPosition().getRotation()).getDegrees(), Color.DARK_GRAY.darker());
         }
     }
 
@@ -338,22 +338,16 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
                 MathUtil.limitDot(components.getAxes().lx, 3),
                 MathUtil.limitDot(components.getAxes().ly, 3)
         );
-        double rightAxis = -Math.pow(MathUtil.limitDot(components.getAxes().rx, 3), 1) * this.robot.getConstants().maxOmegaVel();
+        double rightAxis = Math.toDegrees(-Math.pow(MathUtil.limitDot(components.getAxes().rx, 3), 1) * this.robot.getConstants().maxVel());
 
         Rotation2d angle = leftAxis.getNorm() < 0.01 ? this.robot.getVelocity().getTranslation().getAngle() : leftAxis.getAngle();
         double magnitude = Math.pow(Math.min(leftAxis.getNorm(), 1), 2) * this.robot.getConstants().maxVel();
 
-        Translation2d accel = new Translation2d(magnitude, angle).minus(this.robot.getVelocity().getTranslation());
-        accel = new Translation2d(Math.min(accel.getNorm(), this.robot.getConstants().maxAccel() * getPeriod()), accel.getAngle());
-
-        double omegaAccel = MathUtil.clamp(rightAxis - this.robot.getVelocity().getRotation().getDegrees(),
-                -this.robot.getConstants().maxOmegaAccel() * getPeriod(), this.robot.getConstants().maxOmegaAccel() * getPeriod());
-
         this.robot.drive(new Pose2d(
-                this.robot.getVelocity().getTranslation().plus(accel),
-                 Rotation2d.fromDegrees(this.robot.getVelocity().getRotation().getDegrees() + omegaAccel)), getPeriod());
+                new Translation2d(magnitude, angle),
+                 Rotation2d.fromDegrees(rightAxis)), getPeriod(), true);
 
-        if (this.robot.isMoving() && this.settings.getValue("Auto Generate", false)) {
+        if (this.settings.getValue("Auto Generate", false) && this.robot.isMoving()) {
             this.resetPath();
         }
     }
@@ -393,7 +387,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     @Override
     public void keyListen(Set<Integer> keys) {
-        double omega = this.robot.getConstants().maxOmegaVel();
+        double omega = this.robot.getConstants().maxVel();
         Pose2d velocity = new Pose2d();
         if (keys.contains(KeyEvent.VK_W))
             velocity = velocity.plus(new Transform2d(new Translation2d(0, 1), new Rotation2d()));
@@ -404,19 +398,19 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         if (keys.contains(KeyEvent.VK_D))
             velocity = velocity.plus(new Transform2d(new Translation2d(1, 0), new Rotation2d()));
         if (keys.contains(KeyEvent.VK_E))
-            velocity = new Pose2d(velocity.getTranslation(), velocity.getRotation().rotateBy(Rotation2d.fromRadians(-omega)));
+            velocity = new Pose2d(velocity.getTranslation(), velocity.getRotation().minus(Rotation2d.fromRadians(omega)));
         if (keys.contains(KeyEvent.VK_Q))
-            velocity = new Pose2d(velocity.getTranslation(), velocity.getRotation().rotateBy(Rotation2d.fromRadians(omega)));
+            velocity = new Pose2d(velocity.getTranslation(), velocity.getRotation().plus(Rotation2d.fromRadians(omega)));
 
-        if (velocity.getTranslation().getNorm() >= 0.01 || velocity.getRotation().getDegrees() > 0.5)
+        if (velocity.getTranslation().getNorm() >= 0.01 || Math.abs(velocity.getRotation().getDegrees()) > 0.5)
             this.isControllerDrive = false;
 
         if (this.purePursuit.isRunning() || this.isControllerDrive || keys.size() == 0)
             return;
 
         this.robot.drive(new Pose2d(
-                velocity.getTranslation().normalized().times(this.robot.getConstants().maxVel() * 0.6),
-                velocity.getRotation()), getPeriod());
+                velocity.getTranslation().normalized().times(this.robot.getConstants().maxVel()),
+                velocity.getRotation()), getPeriod(), false);
     }
 
     @Override

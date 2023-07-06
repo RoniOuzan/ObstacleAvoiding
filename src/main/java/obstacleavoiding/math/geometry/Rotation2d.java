@@ -91,7 +91,7 @@ public class Rotation2d implements Interpolatable<Rotation2d> {
      * @return The sum of the two rotations.
      */
     public Rotation2d plus(Rotation2d other) {
-        return rotateBy(other);
+        return new Rotation2d(this.m_value + other.m_value);
     }
 
     /**
@@ -104,7 +104,7 @@ public class Rotation2d implements Interpolatable<Rotation2d> {
      * @return The difference between the two rotations.
      */
     public Rotation2d minus(Rotation2d other) {
-        return rotateBy(other.unaryMinus());
+        return new Rotation2d(this.m_value - other.m_value);
     }
 
     /**

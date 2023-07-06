@@ -33,6 +33,10 @@ public final class MathUtil {
         return Math.max(low, Math.min(value, high));
     }
 
+    public static double clampWithAccel(double value, double last, double accel, double period) {
+        return last + clamp(value - last, -accel * period, accel * period);
+    }
+
     /**
      * Returns 0.0 if the given value is within the specified range around zero. The remaining range
      * between the deadband and the maximum magnitude is scaled from 0.0 to the maximum magnitude.
