@@ -44,7 +44,7 @@ public class SelectOptionTable<T> extends TableType<T> {
     }
 
     @Override
-    public T getValue() {
+    public T getCurrentValue() {
         return this.multipleOption.getSelectedOption();
     }
 

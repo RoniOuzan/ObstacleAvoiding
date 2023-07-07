@@ -12,7 +12,7 @@ import java.util.Map;
 
 public class Settings extends JPanel {
 
-    public static final double SETTINGS_HEIGHT_PERCENT = 0.8;
+    public static final double SETTINGS_HEIGHT_PERCENT = 0.9;
     public static final double GAP_PERCENT = 0.05;
 
     public static final Color BACKGROUND = Color.DARK_GRAY;
@@ -29,11 +29,13 @@ public class Settings extends JPanel {
         int gap = (int) (GUI.SETTINGS_WIDTH * GAP_PERCENT) / 2;
 
         this.setBackground(BACKGROUND);
-        for (int i = 0; i < values.size(); i++) {
-            TableType<?> table = values.get(i);
-
+        TableType<?> lastTable = null;
+        for (TableType<?> table : values) {
             this.map.put(table.getName(), table);
-            table.getComponents(i == 0 ? 0 : values.get(i - 1).getLastY(), gap).forEach(this::add);
+            if (table.isChangeable()) {
+                table.getComponents(lastTable == null ? 0 : lastTable.getLastY(), gap).forEach(this::add);
+                lastTable = table;
+            }
         }
     }
 
@@ -42,7 +44,7 @@ public class Settings extends JPanel {
     }
 
     public void update() {
-        this.map.values().forEach(t -> {
+        this.map.values().parallelStream().filter(TableType::isChangeable).forEach(t -> {
             t.update();
             t.parse();
         });

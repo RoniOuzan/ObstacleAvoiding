@@ -30,7 +30,7 @@ public class IntegerSliderTable extends TableType<Integer> {
     }
 
     @Override
-    public Integer getValue() {
+    public Integer getCurrentValue() {
         return (int) this.slider.getCurrentValue();
     }
 

@@ -29,7 +29,7 @@ public class DoubleSliderTable extends TableType<Double> {
     }
 
     @Override
-    public Double getValue() {
+    public Double getCurrentValue() {
         return this.slider.getCurrentValue();
     }
 

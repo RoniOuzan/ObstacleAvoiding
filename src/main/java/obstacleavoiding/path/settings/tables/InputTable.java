@@ -27,7 +27,7 @@ public class InputTable<T> extends TableType<T> {
     }
 
     @Override
-    public T getValue() {
+    public T getCurrentValue() {
         return (T) textField.getValue();
     }
 

@@ -26,7 +26,7 @@ public class PurePursuit {
     private final PIDController driveController;
     private final PIDController omegaController;
 
-    private final Constants constants;
+    private Constants constants;
 
     private final Robot robot;
 
@@ -76,8 +76,8 @@ public class PurePursuit {
             double driftPercentage = 1 - (MathUtil.clamp(this.getDistanceToCurrentWaypoint() / this.constants.maxDriftDistance, 0, 1));
             double slowPercentage = 1 - (MathUtil.clamp(this.getDistanceToCurrentWaypoint() / this.constants.maxSlowDistance, 0, 1));
 
-            driftPercentage = Math.pow(driftPercentage, 1.5);
-            slowPercentage = Math.pow(slowPercentage, 1);
+            driftPercentage = Math.pow(driftPercentage, this.constants.driftPercentLinearity);
+            slowPercentage = Math.pow(slowPercentage, this.constants.slowPercentLinearity);
             double normalDriftPercentage = driftPercentage;
 
             double driftLevel;
@@ -92,7 +92,7 @@ public class PurePursuit {
                 maxVel = (maxVel - navigation.getTargetVelocity()) * (1 - slowPercentage) + navigation.getTargetVelocity();
             }
 
-            double stopVelocity = Math.pow(MathUtil.clamp(this.getDistanceToFinalWaypoint() / this.constants.finalSlowDistance, 0, 1), 0.75) * this.robot.getConstants().maxVel();
+            double stopVelocity = (1 - Math.pow(1 - MathUtil.clamp(this.getDistanceToFinalWaypoint() / this.constants.finalSlowDistance, 0, 1), this.constants.finalSlowPercentLinearity)) * this.robot.getConstants().maxVel();
             double maxVelocity = Math.min(this.robot.getConstants().maxVel() - Math.min(slowPercentage * driftLevel, 3), stopVelocity);
             targetDriveVelocity = Math.min(maxVelocity, maxVel);
             driveVelocity += MathUtil.clamp(this.driveController.calculate(this.robot.getVelocity().getTranslation().getNorm(), this.targetDriveVelocity), -maxAccel * period, maxAccel * period);
@@ -115,7 +115,7 @@ public class PurePursuit {
             double absoluteDistance = this.getDistance(lastHeading, nextHeading);
             double anglePercent = (absoluteDistance - this.getDistance(nextHeading)) / absoluteDistance;
             if (anglePercent >= 0.001)
-                anglePercent = Math.pow(anglePercent, 0.5d);
+                anglePercent = Math.pow(anglePercent, this.constants.rotationPercentLinearity);
 
             double targetOmega = (this.waypoints.get(nextHeading).getHeading() - this.waypoints.get(lastHeading).getHeading()) * anglePercent + this.waypoints.get(lastHeading).getHeading();
 
@@ -138,7 +138,8 @@ public class PurePursuit {
                 }
             }
 
-            if (this.driveVelocity <= 0.01 && this.getDistanceToFinalWaypoint() <= 0.03 && Math.abs(this.robot.getPosition().getRotation().getDegrees() - this.getFinalWaypoint().getHeading()) <= 1) {
+            if (this.driveVelocity <= this.constants.velocityTolerance && this.getDistanceToFinalWaypoint() <= this.constants.distanceTolerance &&
+                    Math.abs(this.robot.getPosition().getRotation().getDegrees() - this.getFinalWaypoint().getHeading()) <= this.constants.rotationPercentLinearity) {
                 this.isFinished = true;
             }
 
@@ -263,5 +264,13 @@ public class PurePursuit {
         return constants;
     }
 
-    public record Constants(double maxDriftDistance, double maxSlowDistance, double finalSlowDistance) {}
+    public void setConstantsLinears(double driftPercentLinearity, double slowPercentLinearity, double finalSlowPercentLinearity, double rotationPercentLinearity) {
+        this.constants = new Constants(this.constants.maxDriftDistance, this.constants.maxSlowDistance, this.constants.finalSlowDistance,
+                driftPercentLinearity, slowPercentLinearity, finalSlowPercentLinearity, rotationPercentLinearity,
+                this.constants.distanceTolerance, this.constants.velocityTolerance, this.constants.rotationTolerance);
+    }
+
+    public record Constants(double maxDriftDistance, double maxSlowDistance, double finalSlowDistance,
+                            double driftPercentLinearity, double slowPercentLinearity, double finalSlowPercentLinearity, double rotationPercentLinearity,
+                            double distanceTolerance, double velocityTolerance, double rotationTolerance) {}
 }

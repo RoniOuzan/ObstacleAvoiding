@@ -104,7 +104,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
         this.purePursuit = new PurePursuit(
                 this.robot,
-                new PurePursuit.Constants(1, 1.5, 3),
+                new PurePursuit.Constants(1.5, 2, 3,
+                        1.5, 1, 0.75, 0.5, 0.03, 0.01, 0.7),
                 this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints)
         );
 
@@ -134,12 +135,18 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         values.add(new DoubleSliderTable("MaxAccel", 6, 0, 10));
         values.add(new DoubleSliderTable("MaxOmegaVel", 360, 0, 720));
         values.add(new DoubleSliderTable("MaxOmegaAccel", 360, 0, 1080));
-        values.add(new IntegerSliderTable("GraphHistory", GRAPH_HISTORY, 0, 200).setValueParser(d -> graphHistory = d));
+
+        values.add(new DoubleSliderTable("DriftPercentLinearity", 1.5, 0, 5));
+        values.add(new DoubleSliderTable("SlowPercentLinearity", 1, 0, 5));
+        values.add(new DoubleSliderTable("FinalSlowPercentLinearity", 0.75, 0, 5));
+        values.add(new DoubleSliderTable("RotationPercentLinearity", 0.5, 0, 5));
+
+        values.add(new IntegerSliderTable("GraphHistory", GRAPH_HISTORY, 0, 200).setValueParser(d -> graphHistory = d).unchangeable());
         values.add(new BooleanTable("Filter", true).setValueParser(this.obstacleAvoiding::setFiltering));
         values.add(new BooleanTable("Reset", false).onTrue(this::reset).setAlways(false));
         values.add(new BooleanTable("Running", true).setValueParser(this.purePursuit::setRunning));
-        values.add(new BooleanTable("Extended Obstacles", false));
-        values.add(new BooleanTable("Auto Generate", false).onTrue(this::resetPath));
+        values.add(new BooleanTable("Extended Obstacles", false).unchangeable());
+        values.add(new BooleanTable("Auto Generate", false).onTrue(this::resetPath).unchangeable());
         values.add(new BooleanTable("Trail", true));
         values.add(new BooleanTable("Path", true));
         values.add(new BooleanTable("Create Waypoint", false).setAlways(false).onTrue(() -> {
@@ -307,6 +314,9 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.drawPath();
         this.settings.update();
         this.waypointSettings.update(this.selectedWaypoint);
+        this.purePursuit.setConstantsLinears(
+                this.settings.getValue("DriftPercentLinearity", 0d), this.settings.getValue("SlowPercentLinearity", 0d),
+                this.settings.getValue("FinalSlowPercentLinearity", 0d), this.settings.getValue("RotationPercentLinearity", 0d));
         this.purePursuit.update(this.settings.getValue("MaxVel", 0d), this.settings.getValue("MaxAccel", 0d),
                 this.settings.getValue("MaxOmegaVel", 0d), this.settings.getValue("MaxOmegaAccel", 0d));
         this.updateValues();

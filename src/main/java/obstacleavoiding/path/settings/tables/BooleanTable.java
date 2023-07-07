@@ -67,7 +67,7 @@ public class BooleanTable extends TableType<Boolean> {
     }
 
     @Override
-    public Boolean getValue() {
+    public Boolean getCurrentValue() {
         return this.checklist.isSelected();
     }
 

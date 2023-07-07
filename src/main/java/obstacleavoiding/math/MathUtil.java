@@ -176,7 +176,7 @@ public final class MathUtil {
         return Math.abs(target - value) <= tolerance;
     }
 
-    public static boolean inRage(double value, double max, double min) {
+    public static boolean inRange(double value, double max, double min) {
         return value <= max && value >= min;
     }
 

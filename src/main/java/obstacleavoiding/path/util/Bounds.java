@@ -21,23 +21,7 @@ public class Bounds {
     }
 
     public boolean isInOfBounds(Translation2d translation2d) {
-        return MathUtil.inRage(translation2d.getX(), this.maxX, this.minX) &&
-                MathUtil.inRage(translation2d.getY(), this.maxY, this.minY);
-    }
-
-    public double getMaxX() {
-        return maxX;
-    }
-
-    public double getMinX() {
-        return minX;
-    }
-
-    public double getMaxY() {
-        return maxY;
-    }
-
-    public double getMinY() {
-        return minY;
+        return MathUtil.inRange(translation2d.getX(), this.maxX, this.minX) &&
+                MathUtil.inRange(translation2d.getY(), this.maxY, this.minY);
     }
 }
