@@ -68,8 +68,11 @@ public class PurePursuit {
     }
 
     public void update(double maxVel, double maxAccel, double maxOmegaVel, double maxOmegaAccel) {
+        this.update(maxVel, maxAccel, maxOmegaVel, maxOmegaAccel, (System.nanoTime() - this.lastUpdate) / 1_000_000_000d);
+    }
+
+    public void update(double maxVel, double maxAccel, double maxOmegaVel, double maxOmegaAccel, double period) {
         if (this.isRunning && !this.isFinished) {
-            double period = (System.nanoTime() - this.lastUpdate) / 1_000_000_000d;
             boolean isNotLastWaypoint = this.getCurrentWaypointIndex() < this.waypoints.size() - 1;
 
             Translation2d angle = this.getCurrentWaypoint().minus(this.robot.getPosition().getTranslation()).normalized();
@@ -147,6 +150,18 @@ public class PurePursuit {
             this.lastDriftPercentage = driftPercentage;
             this.lastNormalDriftPercentage = normalDriftPercentage;
         }
+    }
+
+    public List<Pose2d> getEstimatedPath(double maxVel, double maxAccel, double maxOmegaVel, double maxOmegaAccel, double period) {
+        List<Pose2d> poses = new ArrayList<>();
+        Robot robot = new Robot(this.getStartWaypoint().getPose2d(), this.robot.getConstants());
+        PurePursuit purePursuit = new PurePursuit(robot, this.constants, new ArrayList<>(this.waypoints));
+        purePursuit.reset();
+        while (!purePursuit.isFinished()) {
+            purePursuit.update(maxVel, maxAccel, maxOmegaVel, maxOmegaAccel, period);
+            poses.add(robot.getPosition());
+        }
+        return poses;
     }
 
     public int getNextHeadingWaypointIndex() {
@@ -264,9 +279,15 @@ public class PurePursuit {
         return constants;
     }
 
-    public void setConstantsLinears(double driftPercentLinearity, double slowPercentLinearity, double finalSlowPercentLinearity, double rotationPercentLinearity) {
+    public void setLinearConstants(double driftPercentLinearity, double slowPercentLinearity, double finalSlowPercentLinearity, double rotationPercentLinearity) {
         this.constants = new Constants(this.constants.maxDriftDistance, this.constants.maxSlowDistance, this.constants.finalSlowDistance,
                 driftPercentLinearity, slowPercentLinearity, finalSlowPercentLinearity, rotationPercentLinearity,
+                this.constants.distanceTolerance, this.constants.velocityTolerance, this.constants.rotationTolerance);
+    }
+
+    public void setDistanceConstants(double maxDriftDistance, double maxSlowDistance, double finalSlowDistance) {
+        this.constants = new Constants(maxDriftDistance, maxSlowDistance, finalSlowDistance,
+                this.constants.driftPercentLinearity, this.constants.slowPercentLinearity, this.constants.finalSlowPercentLinearity, this.constants.rotationPercentLinearity,
                 this.constants.distanceTolerance, this.constants.velocityTolerance, this.constants.rotationTolerance);
     }
 
