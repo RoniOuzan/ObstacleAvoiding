@@ -65,6 +65,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private final PurePursuit purePursuit;
     private final Robot robot;
 
+    private List<Pose2d> estimatedPath;
+
     private Image robotImage = new ImageIcon(IMAGES_PATH + DEFAULT_ALLIANCE.getText() + "Robot.png").getImage();
     private Image invisibleRobotImage = new ImageIcon(IMAGES_PATH + DEFAULT_ALLIANCE.getText() + "InvisibleRobot.png").getImage();
 
@@ -76,6 +78,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private final List<Double> driveVelocities = new ArrayList<>();
     private final List<Double> targetDriveVelocities = new ArrayList<>();
     private final List<Double> driftPercentageVelocities = new ArrayList<>();
+    private final List<Double> slowPercentageVelocities = new ArrayList<>();
     private final List<Double> omegaVelocities = new ArrayList<>();
     private final List<Double> drivingAngles = new ArrayList<>();
     private final List<Double> robotAngle = new ArrayList<>();
@@ -106,18 +109,21 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.purePursuit = new PurePursuit(
                 this.robot,
                 new PurePursuit.Constants(1.5, 2, 3,
-                        1.5, 1, 0.75, 0.5, 0.03, 0.01, 0.7),
+                        1.5, 1, 0.75, 0.5,
+                        30, 1.5,
+                        0.03, 0.01, 0.7),
                 this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints)
         );
 
         Map<Supplier<List<Double>>, Color> graphValues = new HashMap<>();
         graphValues.put(() -> driftPercentageVelocities, new Color(0, 0, 255));
+        graphValues.put(() -> driftPercentageVelocities, COLOR);
         graphValues.put(() -> currentWaypoint, new Color(0, 255, 0));
         graphValues.put(() -> driveVelocities.stream().map(s -> s / this.robot.getConstants().maxVel()).toList(), new Color(255, 0, 0));
         graphValues.put(() -> targetDriveVelocities.stream().map(s -> s / this.robot.getConstants().maxVel()).toList(), new Color(100, 0, 0));
-        graphValues.put(() -> omegaVelocities.stream().map(s -> (s + 180) / this.robot.getConstants().maxOmegaVel()).toList(), new Color(255, 255, 0));
-        graphValues.put(() -> drivingAngles.stream().map(s -> MathUtil.inputModulus(s / 360 + 0.5, 0, 1)).toList(), new Color(0, 255, 255));
-        graphValues.put(() -> robotAngle.stream().map(s -> MathUtil.inputModulus(s / 360 + 0.5, 0, 1)).toList(), new Color(135, 206, 235));
+//        graphValues.put(() -> omegaVelocities.stream().map(s -> (s + 180) / this.robot.getConstants().maxOmegaVel()).toList(), new Color(255, 255, 0));
+//        graphValues.put(() -> drivingAngles.stream().map(s -> MathUtil.inputModulus(s / 360 + 0.5, 0, 1)).toList(), new Color(0, 255, 255));
+//        graphValues.put(() -> robotAngle.stream().map(s -> MathUtil.inputModulus(s / 360 + 0.5, 0, 1)).toList(), new Color(135, 206, 235));
         graphValues.put(() -> distance.stream().map(d -> d / this.purePursuit.getPathDistance()).toList(), new Color(244, 123, 156));
 
         this.addGraph("Values", graphValues, 0, 1);
@@ -126,12 +132,12 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         values.add(new SelectOptionTable<>("Field", DEFAULT_FIELD, Fields.values()).onChange((c, l) -> {
             this.obstacleAvoiding.setObstacles(c.getField().getObstacles());
             this.reset();
-        }));
+        }).unchangeable());
         values.add(new SelectOptionTable<>("Alliance", DEFAULT_ALLIANCE, Alliance.values()).onChange((c, l) -> {
             robotImage = new ImageIcon(IMAGES_PATH + c.getText() + "Robot.png").getImage();
             invisibleRobotImage = new ImageIcon(IMAGES_PATH + c.getText() + "InvisibleRobot.png").getImage();
-        }));
-        values.add(new DoubleSliderTable("FPS", FPS, 1, 50).setValueParser(this::setFPS));
+        }).unchangeable());
+        values.add(new DoubleSliderTable("FPS", FPS, 1, 50).setValueParser(this::setFPS).unchangeable());
         values.add(new DoubleSliderTable("MaxVel", 4.5, 0, 4.9));
         values.add(new DoubleSliderTable("MaxAccel", 6, 0, 10));
         values.add(new DoubleSliderTable("MaxOmegaVel", 360, 0, 720));
@@ -140,13 +146,16 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         values.add(new DoubleSliderTable("MaxDriftDistance", 1.5, 0, 5));
         values.add(new DoubleSliderTable("DriftPercentLinearity", 1.5, 0, 5));
 
-        values.add(new DoubleSliderTable("MaxSlowDistance", 2, 0, 5));
-        values.add(new DoubleSliderTable("SlowPercentLinearity", 1, 0, 5));
+        values.add(new DoubleSliderTable("MaxSlowDistance", 2.5, 0, 5));
+        values.add(new DoubleSliderTable("SlowPercentLinearity", 1.5, 0, 5));
 
         values.add(new DoubleSliderTable("FinalSlowDistance", 3, 0, 5));
-        values.add(new DoubleSliderTable("FinalSlowPercentLinearity", 0.75, 0, 5));
+        values.add(new DoubleSliderTable("FinalSlowLinearity", 1.5, 0, 5));
 
         values.add(new DoubleSliderTable("RotationPercentLinearity", 0.5, 0, 5));
+
+        values.add(new DoubleSliderTable("DriftAngleDivider", 25, 1, 90));
+        values.add(new DoubleSliderTable("MinimumDriftVelocity", 1, 0, 4.5));
 
         values.add(new IntegerSliderTable("GraphHistory", GRAPH_HISTORY, 0, 200).setValueParser(d -> graphHistory = d).unchangeable());
         values.add(new BooleanTable("Filter", true).setValueParser(this.obstacleAvoiding::setFiltering).unchangeable());
@@ -194,9 +203,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.drawConnectedPoints(Color.BLACK, this.purePursuit.getWaypoints().parallelStream().map(Waypoint::getReferencedPosition).toList());
 
         if (this.settings.getValue("EstimatedPath", false)) {
-            List<Pose2d> path = this.purePursuit.getEstimatedPath(this.settings.getValue("MaxVel", 0d), this.settings.getValue("MaxAccel", 0d),
-                    this.settings.getValue("MaxOmegaVel", 0d), this.settings.getValue("MaxOmegaAccel", 0d), 1 / this.settings.getValue("FPS", 1d));
-            for (Pose2d pose : path) {
+            for (Pose2d pose : this.estimatedPath) {
 //                this.drawImage(robotImage,
 //                        pose.getTranslation(),
 //                        ESTIMATED_PATH_SIZE, ESTIMATED_PATH_SIZE,
@@ -277,6 +284,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.driveVelocities.add(this.robot.getVelocity().getTranslation().getNorm());
             this.targetDriveVelocities.add(this.purePursuit.getTargetDriveVelocity());
             this.driftPercentageVelocities.add(this.purePursuit.getDriftPercentage());
+            this.slowPercentageVelocities.add(this.purePursuit.getSlowPercentage());
             this.omegaVelocities.add(this.robot.getVelocity().getRotation().getDegrees());
             this.drivingAngles.add(this.robot.getVelocity().getTranslation().getAngle().getDegrees());
             this.robotAngle.add(this.robot.getPosition().getRotation().bound(0, 360).getDegrees());
@@ -288,6 +296,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             limitList(this.driveVelocities);
             limitList(this.targetDriveVelocities);
             limitList(this.driftPercentageVelocities);
+            limitList(this.slowPercentageVelocities);
             limitList(this.omegaVelocities);
             limitList(this.drivingAngles);
             limitList(this.robotAngle);
@@ -305,6 +314,9 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.defaultWaypoints.set(0, new Waypoint(this.robot.getPosition().getTranslation(), this.robot.getPosition().getRotation().getDegrees(), Waypoint.RobotReference.CENTER));
         this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
         this.purePursuit.setRunning(true);
+
+        this.estimatedPath = this.purePursuit.getEstimatedPath(this.settings.getValue("MaxVel", 0d), this.settings.getValue("MaxAccel", 0d),
+                this.settings.getValue("MaxOmegaVel", 0d), this.settings.getValue("MaxOmegaAccel", 0d), 1 / this.settings.getValue("FPS", 1d));
     }
 
     public void reset() {
@@ -319,6 +331,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.driveVelocities.clear();
             this.targetDriveVelocities.clear();
             this.driftPercentageVelocities.clear();
+            this.slowPercentageVelocities.clear();
             this.omegaVelocities.clear();
             this.drivingAngles.clear();
             this.robotAngle.clear();
@@ -332,9 +345,10 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     public void update() {
         this.purePursuit.setLinearConstants(
                 this.settings.getValue("DriftPercentLinearity", 0d), this.settings.getValue("SlowPercentLinearity", 0d),
-                this.settings.getValue("FinalSlowPercentLinearity", 0d), this.settings.getValue("RotationPercentLinearity", 0d));
+                this.settings.getValue("FinalSlowLinearity", 0d), this.settings.getValue("RotationPercentLinearity", 0d));
         this.purePursuit.setDistanceConstants(this.settings.getValue("MaxDriftDistance", 0d),
                 this.settings.getValue("MaxSlowDistance", 0d), this.settings.getValue("FinalSlowDistance", 0d));
+        this.purePursuit.setDriftVelocityConstants(this.settings.getValue("DriftAngleDivider", 0d), this.settings.getValue("MinimumDriftVelocity", 0d));
         this.drawBackground();
         this.displayPath();
         this.settings.update();
