@@ -1,21 +1,24 @@
 package obstacleavoiding.path.settings.tables;
 
 import obstacleavoiding.gui.components.Component;
+import obstacleavoiding.path.util.ValuesMode;
 
 import java.util.List;
 import java.util.function.Consumer;
 
 public abstract class TableType<T> {
     private final String name;
-    private final T defaultValue;
+    private T defaultValue;
+    private final ValuesMode mode;
 
     private boolean changeable = true;
 
     private Consumer<T> valueParser = t -> {};
 
-    public TableType(String name, T defaultValue) {
+    public TableType(String name, ValuesMode mode, T defaultValue) {
         this.name = name;
         this.defaultValue = defaultValue;
+        this.mode = mode;
     }
 
     public TableType<T> setValueParser(Consumer<T> valueParser) {
@@ -32,6 +35,10 @@ public abstract class TableType<T> {
         return this;
     }
 
+    public void setChangeable(boolean changeable) {
+        this.changeable = changeable;
+    }
+
     public void parse() {
         this.valueParser.accept(this.getValue());
     }
@@ -44,6 +51,10 @@ public abstract class TableType<T> {
         return defaultValue;
     }
 
+    public ValuesMode getMode() {
+        return mode;
+    }
+
     public abstract int getLastY();
 
     public T getValue() {
@@ -54,7 +65,15 @@ public abstract class TableType<T> {
     }
 
     public abstract T getCurrentValue();
-    public abstract void setValue(Object value);
+
+    public void setValue(Object value) {
+        if (this.changeable) {
+            this.setCurrentValue(value);
+        }
+        this.defaultValue = (T) value;
+    }
+
+    public abstract void setCurrentValue(Object value);
 
     public abstract List<Component> getComponents(int lastY, int gap);
 

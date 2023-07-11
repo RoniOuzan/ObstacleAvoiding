@@ -42,6 +42,10 @@ public class PurePursuit {
     private boolean isFinished = false;
     private boolean isRunning = true;
 
+    private double period = 0;
+
+    private Pose2d lastPose = new Pose2d();
+    private Pose2d last2Pose = new Pose2d();
     private long lastUpdate;
 
     public PurePursuit(Robot robot, Constants constants, List<Waypoint> waypoints) {
@@ -51,7 +55,7 @@ public class PurePursuit {
 
         this.driveController = new PIDController(0.3, 0, 0);
         this.omegaController = new PIDController(3, 0, 0);
-        this.omegaController.enableContinuousInput(-180, 180);
+        this.omegaController.enableContinuousInput(0, 2 * Math.PI);
     }
 
     public PurePursuit(Robot robot, Constants constants, Waypoint... waypoints) {
@@ -73,6 +77,7 @@ public class PurePursuit {
     }
 
     public void update(double maxVel, double maxAccel, double maxOmegaVel, double maxOmegaAccel, double period) {
+        this.period = period;
         if (this.isRunning && !this.isFinished) {
             boolean isNotLastWaypoint = this.getCurrentWaypointIndex() < this.waypoints.size() - 1;
 
@@ -142,41 +147,43 @@ public class PurePursuit {
                 anglePercent = Math.pow(anglePercent, this.constants.rotationPercentLinearity);
 
             // Calculating the target angle of the robot at the current path position by interpolating the last and next heading waypoint.
-            double targetAngle = this.waypoints.get(lastHeading).getHeading() +
-                    ((this.waypoints.get(nextHeading).getHeading() - this.waypoints.get(lastHeading).getHeading()) * anglePercent);
+            double targetAngle = this.waypoints.get(lastHeading).getHeading().getRadians() +
+                    (anglePercent * MathUtil.inputModulus(this.waypoints.get(nextHeading).getHeading().getRadians() - this.waypoints.get(lastHeading).getHeading().getRadians(), -Math.PI, Math.PI));
 
             // Calculating the omega velocity with normal pid.
-            double targetOmegaVelocity = this.omegaController.calculate(this.robot.getPosition().getRotation().getDegrees(), targetAngle);
+            double targetOmegaVelocity = this.omegaController.calculate(this.robot.getPosition().getRotation().getRadians(), targetAngle);
             // Limiting the velocity with the given acceleration and velocity.
             omegaVelocity += MathUtil.clamp(targetOmegaVelocity - omegaVelocity, -maxOmegaAccel * period, maxOmegaAccel * period);
             omegaVelocity = MathUtil.clamp(omegaVelocity, -maxOmegaVel, maxOmegaVel);
 
+            this.lastUpdate = System.nanoTime();
+            this.last2Pose = this.lastPose;
+            this.lastPose = this.robot.getPosition();
+
             // Sends the velocity to the robot.
             this.robot.drive(new Pose2d(
                     new Translation2d(driveVelocity, angle.getAngle()),
-                    Rotation2d.fromDegrees(omegaVelocity)), period, false);
+                    Rotation2d.fromRadians(omegaVelocity)), period, false);
 
             // Checking if the drift percentage is close to the end to change to the next waypoint.
             if (driftPercentage >= 0.95) {
                 if (this.getCurrentWaypointIndex() < this.waypoints.size() - 1) {
                     this.currentWaypoint = this.waypoints.get(this.getCurrentWaypointIndex() + 1);
 
-                    this.lastUpdate = System.nanoTime();
                     this.lastDriftPercentage = 0;
                     this.lastNormalDriftPercentage = 0;
                     return;
                 }
             }
 
-            if (this.driveVelocity <= this.constants.velocityTolerance && this.getDistanceToFinalWaypoint() <= this.constants.distanceTolerance &&
-                    Math.abs(this.robot.getPosition().getRotation().getDegrees() - this.getFinalWaypoint().getHeading()) <= this.constants.rotationPercentLinearity) {
-                this.isFinished = true;
-            }
-
             // Update values for the next run.
-            this.lastUpdate = System.nanoTime();
             this.lastDriftPercentage = driftPercentage;
             this.lastNormalDriftPercentage = normalDriftPercentage;
+
+            if (this.driveVelocity <= this.constants.velocityTolerance && this.getDistanceToFinalWaypoint() <= this.constants.distanceTolerance &&
+                    Math.abs(this.robot.getPosition().getRotation().getDegrees() - this.getFinalWaypoint().getHeading().getDegrees()) <= this.constants.rotationPercentLinearity) {
+                this.isFinished = true;
+            }
         }
     }
 
@@ -207,6 +214,23 @@ public class PurePursuit {
                 return i;
         }
         return -1;
+    }
+
+    public double getCurvatureRadius() {
+        double d1x = (this.robot.getPosition().getX() - this.lastPose.getX()) / period;
+        double d1y = (this.robot.getPosition().getY() - this.lastPose.getY()) / period;
+        double d2x = (d1x - ((this.lastPose.getX() - this.last2Pose.getX()) / period)) / period;
+        double d2y = (d1y - ((this.lastPose.getY() - this.last2Pose.getY()) / period)) / period;
+
+        double radius = Math.pow((d1x * d1x) + (d1y * d1y), 1.5) / ((d1x * d2y) - (d1y * d2x));
+
+        if (radius == Double.POSITIVE_INFINITY || Double.isNaN(radius))
+            return 0;
+        return radius;
+    }
+
+    public Rotation2d getAngle() {
+        return new Rotation2d(this.robot.getPosition().getX() - this.lastPose.getX(), this.robot.getPosition().getY() - this.lastPose.getY());
     }
 
     public double getDistance(int waypoint1, int waypoint2) {

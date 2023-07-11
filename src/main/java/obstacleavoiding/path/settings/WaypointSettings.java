@@ -3,11 +3,13 @@ package obstacleavoiding.path.settings;
 import static obstacleavoiding.path.settings.Settings.*;
 
 import obstacleavoiding.gui.components.Component;
+import obstacleavoiding.math.geometry.Rotation2d;
 import obstacleavoiding.path.GUI;
 import obstacleavoiding.path.robot.Robot;
 import obstacleavoiding.path.settings.tables.SelectOptionTable;
 import obstacleavoiding.path.settings.tables.DoubleSliderTable;
 import obstacleavoiding.path.settings.tables.TableType;
+import obstacleavoiding.path.util.ValuesMode;
 import obstacleavoiding.path.waypoints.NavigationWaypoint;
 import obstacleavoiding.path.waypoints.Waypoint;
 
@@ -30,11 +32,11 @@ public class WaypointSettings extends JPanel {
         this.setLayout(new GroupLayout(this));
 
         this.tables = Arrays.asList(
-                new DoubleSliderTable("Heading", 0, -180, 180),
-                new SelectOptionTable<>("RobotReference", Waypoint.RobotReference.CENTER, Waypoint.RobotReference.values())
+                new DoubleSliderTable("Heading", ValuesMode.ALL, 0, -180, 180),
+                new SelectOptionTable<>("RobotReference", ValuesMode.ALL, Waypoint.RobotReferencePoint.CENTER, Waypoint.RobotReferencePoint.values())
         );
         this.navigationTables = Arrays.asList(
-                new DoubleSliderTable("TargetVel", 1, 0, robot.getConstants().maxVel())
+                new DoubleSliderTable("TargetVel", ValuesMode.ALL, 1, 0, robot.getConstants().maxVel())
         );
 
         this.setBackground(BACKGROUND);
@@ -87,7 +89,7 @@ public class WaypointSettings extends JPanel {
             this.removeAll();
             this.addAll(waypoint instanceof NavigationWaypoint);
 
-            this.setValue("Heading", waypoint.getHeading());
+            this.setValue("Heading", waypoint.getHeading().getDegrees());
             this.setValue("RobotReference", waypoint.getRobotReference());
             if (waypoint instanceof NavigationWaypoint navigation) {
                 this.setValue("TargetVel", navigation.getTargetVelocity());
@@ -98,8 +100,8 @@ public class WaypointSettings extends JPanel {
             this.map.values().forEach(t -> {
                 t.update();
 
-                waypoint.setHeading((double) this.getTable("Heading").getValue());
-                waypoint.setRobotReference((Waypoint.RobotReference) this.getTable("RobotReference").getValue());
+                waypoint.setHeading(Rotation2d.fromDegrees((double) this.getTable("Heading").getValue()));
+                waypoint.setRobotReference((Waypoint.RobotReferencePoint) this.getTable("RobotReference").getValue());
 
                 if (waypoint instanceof NavigationWaypoint navigation) {
                     navigation.setTargetVelocity((double) this.getTable("TargetVel").getValue());
@@ -117,6 +119,6 @@ public class WaypointSettings extends JPanel {
     }
 
     public void setValue(String name, Object value) {
-        this.map.get(name).setValue(value);
+        this.map.get(name).setCurrentValue(value);
     }
 }

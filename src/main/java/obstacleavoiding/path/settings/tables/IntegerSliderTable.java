@@ -6,6 +6,7 @@ import obstacleavoiding.gui.components.input.IntegerSlider;
 import obstacleavoiding.math.geometry.Dimension2d;
 import obstacleavoiding.path.GUI;
 import obstacleavoiding.path.settings.Settings;
+import obstacleavoiding.path.util.ValuesMode;
 
 import java.util.Collections;
 import java.util.List;
@@ -18,8 +19,8 @@ public class IntegerSliderTable extends TableType<Integer> {
 
     private IntegerSlider slider;
 
-    public IntegerSliderTable(String name, int defaultValue, int minimum, int maximum) {
-        super(name, defaultValue);
+    public IntegerSliderTable(String name, ValuesMode mode, int defaultValue, int minimum, int maximum) {
+        super(name, mode, defaultValue);
         this.minimum = minimum;
         this.maximum = maximum;
     }
@@ -35,7 +36,7 @@ public class IntegerSliderTable extends TableType<Integer> {
     }
 
     @Override
-    public void setValue(Object value) {
+    public void setCurrentValue(Object value) {
         this.slider.setCurrentValue((Integer) value);
     }
 

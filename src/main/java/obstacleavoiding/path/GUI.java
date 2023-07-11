@@ -17,6 +17,7 @@ import obstacleavoiding.path.settings.WaypointSettings;
 import obstacleavoiding.path.settings.tables.*;
 import obstacleavoiding.path.util.Alliance;
 import obstacleavoiding.path.util.Bounds;
+import obstacleavoiding.path.util.ValuesMode;
 import obstacleavoiding.path.waypoints.NavigationWaypoint;
 import obstacleavoiding.path.waypoints.Waypoint;
 
@@ -42,7 +43,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private static final int GRAPH_HISTORY = 0;
 
     private static final double FPS = 30;
-    private static final double ROBOT_WIDTH = 0.9;
+    public static final double ROBOT_WIDTH = 0.91;
     public static final double HALF_ROBOT = ROBOT_WIDTH / 2;
     private static final double TRACK_WIDTH = 0.6;
     private static final double WHEEL_BASE = 0.6;
@@ -100,18 +101,18 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.robot = new obstacleavoiding.path.robot.Robot(new Pose2d(new Translation2d(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2), Rotation2d.fromDegrees(0)),
                 new Robot.Constants(4.5, 9, 360, 720, 1 / FPS, getModulesLocation()));
 
-        this.obstacleAvoiding = new ObstacleAvoiding(HALF_ROBOT * 1.2, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), DEFAULT_FIELD.getField().getObstacles());
+        this.obstacleAvoiding = new ObstacleAvoiding(HALF_ROBOT + 0.01, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), DEFAULT_FIELD.getField().getObstacles());
 
         this.defaultWaypoints = new ArrayList<>();
-        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 2, DEFAULT_MAX_Y / 2 + 2, 90, Waypoint.RobotReference.CENTER));
-        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 - 2, DEFAULT_MAX_Y / 2 - 2, 0, Waypoint.RobotReference.CENTER));
+        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 2, DEFAULT_MAX_Y / 2 + 2, Rotation2d.fromDegrees(90), Waypoint.RobotReferencePoint.CENTER));
+        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 - 2, DEFAULT_MAX_Y / 2 - 2, Rotation2d.fromDegrees(0), Waypoint.RobotReferencePoint.CENTER));
 
         this.purePursuit = new PurePursuit(
                 this.robot,
                 new PurePursuit.Constants(1.5, 2, 3,
                         1.5, 1, 0.75, 0.5,
                         30, 1.5,
-                        0.03, 0.01, 0.7),
+                        0.03, 0.1, 0.7),
                 this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints)
         );
 
@@ -121,53 +122,53 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         graphValues.put(() -> currentWaypoint, new Color(0, 255, 0));
         graphValues.put(() -> driveVelocities.stream().map(s -> s / this.robot.getConstants().maxVel()).toList(), new Color(255, 0, 0));
         graphValues.put(() -> targetDriveVelocities.stream().map(s -> s / this.robot.getConstants().maxVel()).toList(), new Color(100, 0, 0));
-//        graphValues.put(() -> omegaVelocities.stream().map(s -> (s + 180) / this.robot.getConstants().maxOmegaVel()).toList(), new Color(255, 255, 0));
-//        graphValues.put(() -> drivingAngles.stream().map(s -> MathUtil.inputModulus(s / 360 + 0.5, 0, 1)).toList(), new Color(0, 255, 255));
-//        graphValues.put(() -> robotAngle.stream().map(s -> MathUtil.inputModulus(s / 360 + 0.5, 0, 1)).toList(), new Color(135, 206, 235));
+        graphValues.put(() -> omegaVelocities.stream().map(s -> (s + 180) / this.robot.getConstants().maxOmegaVel()).toList(), new Color(255, 255, 0));
+        graphValues.put(() -> drivingAngles.stream().map(s -> MathUtil.inputModulus(s / 360 + 0.5, 0, 1)).toList(), new Color(0, 255, 255));
+        graphValues.put(() -> robotAngle.stream().map(s -> MathUtil.inputModulus(s / 360 + 0.5, 0, 1)).toList(), new Color(135, 206, 235));
         graphValues.put(() -> distance.stream().map(d -> d / this.purePursuit.getPathDistance()).toList(), new Color(244, 123, 156));
 
         this.addGraph("Values", graphValues, 0, 1);
 
         List<TableType<?>> values = new ArrayList<>();
-        values.add(new SelectOptionTable<>("Field", DEFAULT_FIELD, Fields.values()).onChange((c, l) -> {
+        values.add(new SelectOptionTable<>("Field", ValuesMode.SHOWCASE, DEFAULT_FIELD, Fields.values()).onChange((c, l) -> {
             this.obstacleAvoiding.setObstacles(c.getField().getObstacles());
             this.reset();
-        }).unchangeable());
-        values.add(new SelectOptionTable<>("Alliance", DEFAULT_ALLIANCE, Alliance.values()).onChange((c, l) -> {
+        }));
+        values.add(new SelectOptionTable<>("Alliance", ValuesMode.SHOWCASE, DEFAULT_ALLIANCE, Alliance.values()).onChange((c, l) -> {
             robotImage = new ImageIcon(IMAGES_PATH + c.getText() + "Robot.png").getImage();
             invisibleRobotImage = new ImageIcon(IMAGES_PATH + c.getText() + "InvisibleRobot.png").getImage();
-        }).unchangeable());
-        values.add(new DoubleSliderTable("FPS", FPS, 1, 50).setValueParser(this::setFPS).unchangeable());
-        values.add(new DoubleSliderTable("MaxVel", 4.5, 0, 4.9));
-        values.add(new DoubleSliderTable("MaxAccel", 6, 0, 10));
-        values.add(new DoubleSliderTable("MaxOmegaVel", 360, 0, 720));
-        values.add(new DoubleSliderTable("MaxOmegaAccel", 360, 0, 1080));
+        }));
+        values.add(new DoubleSliderTable("FPS", ValuesMode.SHOWCASE, FPS, 1, 50).setValueParser(this::setFPS));
+        values.add(new DoubleSliderTable("MaxVel", ValuesMode.ALL, 4.5, 0, 4.9));
+        values.add(new DoubleSliderTable("MaxAccel", ValuesMode.ALL, 6, 0, 10));
+        values.add(new DoubleSliderTable("MaxOmegaVel", ValuesMode.ALL, 360, 0, 720));
+        values.add(new DoubleSliderTable("MaxOmegaAccel", ValuesMode.ALL, 360, 0, 1080));
 
-        values.add(new DoubleSliderTable("MaxDriftDistance", 1.5, 0, 5));
-        values.add(new DoubleSliderTable("DriftPercentLinearity", 1.5, 0, 5));
+        values.add(new DoubleSliderTable("MaxDriftDistance", ValuesMode.CALIBRATION, 1.5, 0, 5));
+        values.add(new DoubleSliderTable("DriftPercentLinearity", ValuesMode.CALIBRATION, 1.5, 0, 5));
 
-        values.add(new DoubleSliderTable("MaxSlowDistance", 2.5, 0, 5));
-        values.add(new DoubleSliderTable("SlowPercentLinearity", 1.5, 0, 5));
+        values.add(new DoubleSliderTable("MaxSlowDistance", ValuesMode.CALIBRATION, 2.5, 0, 5));
+        values.add(new DoubleSliderTable("SlowPercentLinearity", ValuesMode.CALIBRATION, 1, 0, 5));
 
-        values.add(new DoubleSliderTable("FinalSlowDistance", 3, 0, 5));
-        values.add(new DoubleSliderTable("FinalSlowLinearity", 1.5, 0, 5));
+        values.add(new DoubleSliderTable("FinalSlowDistance", ValuesMode.CALIBRATION, 3, 0, 5));
+        values.add(new DoubleSliderTable("FinalSlowLinearity", ValuesMode.CALIBRATION, 1.5, 0, 5));
 
-        values.add(new DoubleSliderTable("RotationPercentLinearity", 0.5, 0, 5));
+        values.add(new DoubleSliderTable("RotationPercentLinearity", ValuesMode.CALIBRATION, 0.5, 0, 5));
 
-        values.add(new DoubleSliderTable("DriftAngleDivider", 25, 1, 90));
-        values.add(new DoubleSliderTable("MinimumDriftVelocity", 1, 0, 4.5));
+        values.add(new DoubleSliderTable("DriftAngleDivider", ValuesMode.CALIBRATION, 20, 1, 90));
+        values.add(new DoubleSliderTable("MinimumDriftVelocity", ValuesMode.CALIBRATION, 2, 0, 4.5));
 
-        values.add(new IntegerSliderTable("GraphHistory", GRAPH_HISTORY, 0, 200).setValueParser(d -> graphHistory = d).unchangeable());
-        values.add(new BooleanTable("Filter", true).setValueParser(this.obstacleAvoiding::setFiltering).unchangeable());
-        values.add(new BooleanTable("Reset", false).onTrue(this::reset).setAlways(false));
-        values.add(new BooleanTable("Running", true).setValueParser(this.purePursuit::setRunning));
-        values.add(new BooleanTable("Extended Obstacles", false).unchangeable());
-        values.add(new BooleanTable("Auto Generate", false).onTrue(this::resetPath).unchangeable());
-        values.add(new BooleanTable("Trail", true).unchangeable());
-        values.add(new BooleanTable("Path", true).unchangeable());
-        values.add(new BooleanTable("EstimatedPath", false));
-        values.add(new BooleanTable("Create Waypoint", false).setAlways(false).onTrue(() -> {
-                    this.defaultWaypoints.add(this.defaultWaypoints.size() - 1, new NavigationWaypoint(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2, 0, Waypoint.RobotReference.CENTER, 1));
+        values.add(new IntegerSliderTable("GraphHistory", ValuesMode.SHOWCASE, GRAPH_HISTORY, 0, 200).setValueParser(d -> graphHistory = d));
+        values.add(new BooleanTable("Filter", ValuesMode.SHOWCASE, true).setValueParser(this.obstacleAvoiding::setFiltering));
+        values.add(new BooleanTable("Reset", ValuesMode.ALL, false).onTrue(this::reset).setAlways(false));
+        values.add(new BooleanTable("Running", ValuesMode.ALL, true).setValueParser(this.purePursuit::setRunning));
+        values.add(new BooleanTable("Extended Obstacles", ValuesMode.SHOWCASE, false));
+        values.add(new BooleanTable("Auto Generate", ValuesMode.SHOWCASE, false).onTrue(this::resetPath));
+        values.add(new BooleanTable("Trail", ValuesMode.SHOWCASE, true));
+        values.add(new BooleanTable("Path", ValuesMode.SHOWCASE, true));
+        values.add(new BooleanTable("EstimatedPath", ValuesMode.ALL, false));
+        values.add(new BooleanTable("Create Waypoint", ValuesMode.ALL, false).setAlways(false).onTrue(() -> {
+                    this.defaultWaypoints.add(this.defaultWaypoints.size() - 1, new NavigationWaypoint(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2, new Rotation2d(), Waypoint.RobotReferencePoint.CENTER, 1));
                     this.resetPath();
                 }));
         this.settings = new Settings(values);
@@ -192,12 +193,12 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.drawImage(invisibleRobotImage,
                     waypoint.getReferencedPosition(),
                     ROBOT_WIDTH, ROBOT_WIDTH,
-                    -waypoint.getHeading());
+                    -waypoint.getHeading().getDegrees());
 
             if (this.selectedWaypoint == waypoint) {
-                this.drawSelectedWaypoint(waypoint);
+                this.drawSelectedWaypoint(waypoint.getTranslation2d());
             } else {
-                this.drawWaypoint(waypoint);
+                this.drawWaypoint(waypoint.getTranslation2d());
             }
         }
         this.drawConnectedPoints(Color.BLACK, this.purePursuit.getWaypoints().parallelStream().map(Waypoint::getReferencedPosition).toList());
@@ -211,6 +212,13 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
                 this.fillPoint(pose.getTranslation(), convertPixelsToUnits(3), COLOR);
             }
         }
+
+//        double curvatureRadius = this.purePursuit.getCurvatureRadius();
+//        Translation2d curvature = this.robot.getPosition().getTranslation()
+//                .plus(new Translation2d(
+//                        curvatureRadius,
+//                        this.purePursuit.getAngle().plus(Rotation2d.fromDegrees(90))));
+//        this.drawPoint(curvature.getX(), curvature.getY(), Math.abs(curvatureRadius), Color.BLUE);
     }
 
     public void displayTrail() {
@@ -311,7 +319,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     public void resetPath() {
         this.purePursuit.setRunning(false);
-        this.defaultWaypoints.set(0, new Waypoint(this.robot.getPosition().getTranslation(), this.robot.getPosition().getRotation().getDegrees(), Waypoint.RobotReference.CENTER));
+        this.defaultWaypoints.set(0, new Waypoint(this.robot.getPosition().getTranslation(), this.robot.getPosition().getRotation(), Waypoint.RobotReferencePoint.CENTER));
         this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
         this.purePursuit.setRunning(true);
 
@@ -354,7 +362,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.settings.update();
         this.waypointSettings.update(this.selectedWaypoint);
         this.purePursuit.update(this.settings.getValue("MaxVel", 0d), this.settings.getValue("MaxAccel", 0d),
-                this.settings.getValue("MaxOmegaVel", 0d), this.settings.getValue("MaxOmegaAccel", 0d));
+                Math.toRadians(this.settings.getValue("MaxOmegaVel", 0d)), Math.toRadians(this.settings.getValue("MaxOmegaAccel", 0d)));
         this.updateValues();
         this.displayTrail();
         this.displayObstacles();
@@ -407,7 +415,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         for (int i = this.purePursuit.getWaypoints().size() - 1; i >= 0 && !drag; i--) {
             Waypoint waypoint = this.purePursuit.getWaypoints().get(i);
             if (waypoint == this.draggedWaypoint) {
-                waypoint.set(mouseLocation.plus(waypoint.getRobotReferenceTranslation()));
+                waypoint.set(mouseLocation);
 
                 if (this.settings.getValue("Auto Generate", false)) {
                     this.resetPath();
@@ -503,7 +511,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.selectedWaypoint = null;
         } else {
             Waypoint lastWaypoint = this.defaultWaypoints.get(this.defaultWaypoints.size() - 1);
-            lastWaypoint.set(mouseLocation.plus(lastWaypoint.getRobotReferenceTranslation().times(2)));
+            lastWaypoint.set(mouseLocation);
             this.reset();
         }
     }
@@ -546,9 +554,9 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     @Override
     public void mouseWheelMoved(MouseWheelEvent e, Translation2d mouseLocation) {
         if (this.selectedWaypoint != null) {
-            double heading = MathUtil.inputModulus(this.selectedWaypoint.getHeading() + (e.getPreciseWheelRotation() * 5), -180, 180);
+            Rotation2d heading = Rotation2d.fromDegrees(this.selectedWaypoint.getHeading().getDegrees() + (e.getPreciseWheelRotation() * 5));
             this.selectedWaypoint.setHeading(heading);
-            this.waypointSettings.setValue("Heading", this.selectedWaypoint.getHeading() + (e.getPreciseWheelRotation() * 5));
+            this.waypointSettings.setValue("Heading", this.selectedWaypoint.getHeading().getDegrees() + (e.getPreciseWheelRotation() * 5));
         } else {
             this.maxValue += e.getPreciseWheelRotation() / 2;
         }
@@ -557,7 +565,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private Waypoint getWaypointOnMouse(Translation2d mouseLocation) {
         for (int i = this.purePursuit.getWaypoints().size() - 1; i >= 0; i--) {
             Waypoint waypoint = this.purePursuit.getWaypoint(i);
-            if (this.purePursuit.getWaypoints().get(i).getDistance(mouseLocation) <= convertPixelsToUnits(20)) {
+            if (this.purePursuit.getWaypoints().get(i).getTranslation2d().getDistance(mouseLocation) <= convertPixelsToUnits(20)) {
                 return waypoint;
             }
         }

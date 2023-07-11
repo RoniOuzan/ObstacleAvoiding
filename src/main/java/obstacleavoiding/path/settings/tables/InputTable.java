@@ -5,6 +5,7 @@ import obstacleavoiding.gui.components.input.TextField;
 import obstacleavoiding.gui.components.output.Text;
 import obstacleavoiding.math.geometry.Dimension2d;
 import obstacleavoiding.path.GUI;
+import obstacleavoiding.path.util.ValuesMode;
 
 import java.awt.*;
 import java.util.Arrays;
@@ -17,8 +18,8 @@ public class InputTable<T> extends TableType<T> {
 
     private TextField<?> textField;
 
-    public InputTable(String name, T defaultValue) {
-        super(name, defaultValue);
+    public InputTable(String name, ValuesMode mode, T defaultValue) {
+        super(name, mode, defaultValue);
     }
 
     @Override
@@ -32,7 +33,7 @@ public class InputTable<T> extends TableType<T> {
     }
 
     @Override
-    public void setValue(Object value) {
+    public void setCurrentValue(Object value) {
         this.textField.setValue(value);
     }
 

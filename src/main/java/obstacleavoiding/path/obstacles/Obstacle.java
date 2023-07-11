@@ -119,9 +119,8 @@ public class Obstacle {
 
     public boolean isPointAt(Translation2d translation2d) {
         int numPoints = this.getCorners().size();
-        int i, j;
         boolean isInside = false;
-        for (i = 0, j = numPoints - 1; i < numPoints; j = i++) {
+        for (int i = 0, j = numPoints - 1; i < numPoints; j = i++) {
             Translation2d cornerI = this.getCorners().get(i);
             Translation2d cornerJ = this.getCorners().get(j);
             if ((cornerI.getY() > translation2d.getY()) != (cornerJ.getY() > translation2d.getY()) &&

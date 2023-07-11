@@ -51,7 +51,7 @@ public class Graph extends JPanel {
         for (int i = 0; i < numberYDivisions + 1; i++) {
             int x0 = padding + labelPadding;
             int x1 = pointWidth + padding + labelPadding;
-            int y0 = getHeight() - ((i * (getHeight() - padding * 2 - labelPadding)) / numberYDivisions + padding + labelPadding);
+            int y0 = getHeight() - ((i * (getHeight() - (padding << 1) - labelPadding)) / numberYDivisions + padding + labelPadding);
             if (scores.size() > 0) {
                 g2.setColor(gridColor);
                 g2.drawLine(padding + labelPadding + 1 + pointWidth, y0, getWidth() - padding, y0);
@@ -67,7 +67,7 @@ public class Graph extends JPanel {
         // and for x-axis
         for (int i = 0; i < scores.size(); i++) {
             if (scores.size() > 1) {
-                int x0 = i * (getWidth() - padding * 2 - labelPadding) / (scores.size() - 1) + padding + labelPadding;
+                int x0 = i * (getWidth() - (padding << 1) - labelPadding) / (scores.size() - 1) + padding + labelPadding;
                 int y0 = getHeight() - padding - labelPadding;
                 int y1 = y0 - pointWidth;
                 if ((i % ((int) ((scores.size() / 20.0)) + 1)) == 0) {

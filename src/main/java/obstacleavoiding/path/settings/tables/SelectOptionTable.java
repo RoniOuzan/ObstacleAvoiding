@@ -5,6 +5,7 @@ import obstacleavoiding.gui.components.input.MultipleOption;
 import obstacleavoiding.math.geometry.Dimension2d;
 import obstacleavoiding.path.GUI;
 import obstacleavoiding.path.settings.Settings;
+import obstacleavoiding.path.util.ValuesMode;
 
 import java.awt.*;
 import java.util.Arrays;
@@ -24,8 +25,8 @@ public class SelectOptionTable<T> extends TableType<T> {
     private T lastT = null;
 
     @SafeVarargs
-    public SelectOptionTable(String name, T defaultOption, T... options) {
-        super(name, defaultOption);
+    public SelectOptionTable(String name, ValuesMode mode, T defaultOption, T... options) {
+        super(name, mode, defaultOption);
         this.options = options;
     }
 
@@ -49,7 +50,7 @@ public class SelectOptionTable<T> extends TableType<T> {
     }
 
     @Override
-    public void setValue(Object value) {
+    public void setCurrentValue(Object value) {
         this.multipleOption.setSelectedOption((T) value);
     }
 
@@ -61,6 +62,7 @@ public class SelectOptionTable<T> extends TableType<T> {
                 this.getDefaultValue(),
                 this.options)
                 .setBackgroundColor(Settings.BACKGROUND).setTextColor(Color.WHITE);
+        this.multipleOption.setName(this.getName());
 
         return Arrays.asList(this.multipleOption);
     }

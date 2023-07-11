@@ -5,6 +5,7 @@ import obstacleavoiding.gui.components.input.Checklist;
 import obstacleavoiding.math.geometry.Dimension2d;
 import obstacleavoiding.path.GUI;
 import obstacleavoiding.path.settings.Settings;
+import obstacleavoiding.path.util.ValuesMode;
 
 import java.awt.*;
 import java.util.Arrays;
@@ -26,8 +27,8 @@ public class BooleanTable extends TableType<Boolean> {
 
     private Boolean alwaysState = null;
 
-    public BooleanTable(String name, boolean defaultValue) {
-        super(name, defaultValue);
+    public BooleanTable(String name, ValuesMode mode, boolean defaultValue) {
+        super(name, mode, defaultValue);
         this.lastState = defaultValue;
     }
 
@@ -72,7 +73,7 @@ public class BooleanTable extends TableType<Boolean> {
     }
 
     @Override
-    public void setValue(Object value) {
+    public void setCurrentValue(Object value) {
         this.checklist.setSelected((Boolean) value);
     }
 
@@ -111,7 +112,7 @@ public class BooleanTable extends TableType<Boolean> {
         }
 
         if (this.alwaysState != null) {
-            this.setValue(this.alwaysState);
+            this.setCurrentValue(this.alwaysState);
             currentState = this.alwaysState;
         }
 

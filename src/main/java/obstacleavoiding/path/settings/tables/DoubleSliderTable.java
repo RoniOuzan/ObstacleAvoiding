@@ -5,6 +5,7 @@ import obstacleavoiding.gui.components.input.DoubleSlider;
 import obstacleavoiding.math.geometry.Dimension2d;
 import obstacleavoiding.path.GUI;
 import obstacleavoiding.path.settings.Settings;
+import obstacleavoiding.path.util.ValuesMode;
 
 import java.util.Collections;
 import java.util.List;
@@ -17,8 +18,8 @@ public class DoubleSliderTable extends TableType<Double> {
 
     private DoubleSlider slider;
 
-    public DoubleSliderTable(String name, double defaultValue, double minimum, double maximum) {
-        super(name, defaultValue);
+    public DoubleSliderTable(String name, ValuesMode mode, double defaultValue, double minimum, double maximum) {
+        super(name, mode, defaultValue);
         this.minimum = minimum;
         this.maximum = maximum;
     }
@@ -34,7 +35,7 @@ public class DoubleSliderTable extends TableType<Double> {
     }
 
     @Override
-    public void setValue(Object value) {
+    public void setCurrentValue(Object value) {
         this.slider.setCurrentValue((Double) value);
     }
 

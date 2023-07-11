@@ -8,6 +8,7 @@ import obstacleavoiding.path.waypoints.Waypoint;
 import obstacleavoiding.path.waypoints.WaypointAutoHeading;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * This class creates a path that not crashing given obstacles with a given distance from the obstacles
@@ -20,6 +21,7 @@ public class ObstacleAvoiding {
     private static final int MAX_PATH_LENGTH = 30;
 
     private List<Obstacle> obstacles;
+    private List<Obstacle> extendedObstacles;
     private final double distanceThreshold;
 
     private final Bounds bounds;
@@ -37,6 +39,7 @@ public class ObstacleAvoiding {
         this.distanceThreshold = distanceThreshold;
         this.bounds = bounds;
         this.obstacles = obstacles;
+        this.extendedObstacles = obstacles.parallelStream().map(o -> o.getExtendedObstacle(this.distanceThreshold)).collect(Collectors.toList());
     }
 
     /**
@@ -64,110 +67,99 @@ public class ObstacleAvoiding {
                 this.isPathSafe(waypoints))
             return new ArrayList<>(waypoints);
 
-        long started = System.currentTimeMillis();
-        List<List<Waypoint>> trajectories = new ArrayList<>();
-        for (int b = 0; b < 4; b++) {
-            printStateFinished("Started " + b, started);
-            List<Waypoint> trajectory = new ArrayList<>(waypoints);
-            boolean split = false;
-            while (trajectory.size() <= MAX_PATH_LENGTH && !isPathSafe(trajectory)) {
-                int size = trajectory.size() - 1;
-                for (int i = 0; i < size; i++) {
-                    Translation2d waypoint1 = trajectory.get(i).getReferencedPosition();
-                    Translation2d waypoint2 = trajectory.get(i + 1).getReferencedPosition();
+        long started = System.nanoTime();
+        printStateFinished("Started ", started);
+        List<Waypoint> trajectory = new ArrayList<>(waypoints);
 
-                    if (this.isObstacleDistributing(waypoint1, waypoint2)) {
-                        Translation2d middle = waypoint1.interpolate(waypoint2, 0.5);
+        Translation2d waypoint1, waypoint2, middle, corner1, corner2;
+        Obstacle obstacle;
 
-                        Obstacle obstacle = this.getObstacle(middle);
-                        if (obstacle != null) {
-                            List<Translation2d> middles = new ArrayList<>();
+        while (trajectory.size() <= MAX_PATH_LENGTH && !isPathSafe(trajectory)) {
+            int size = trajectory.size() - 1;
+            for (int i = 0; i < size; i++) {
+                waypoint1 = trajectory.get(i).getReferencedPosition();
+                waypoint2 = trajectory.get(i + 1).getReferencedPosition();
 
-                            for (int j = 0; j < obstacle.getCorners().size(); j++) {
-                                double slopeMiddle = waypoint1.minus(waypoint2).getAngle().plus(Rotation2d.fromDegrees(90)).getTan();
+                if (this.isObstacleDistributing(waypoint1, waypoint2)) {
+                    middle = waypoint1.interpolate(waypoint2, 0.5);
 
-                                Translation2d corner1 = obstacle.getCorners().get(j);
-                                Translation2d corner2 = obstacle.getCorners().get((j + 1) % obstacle.getCorners().size());
+                    obstacle = this.getObstacle(middle);
+                    if (obstacle != null) {
+                        List<Translation2d> middles = new ArrayList<>();
 
-                                double x;
-                                if (corner1.getX() != corner2.getX()) {
-                                    double slopePol = corner1.minus(corner2).getAngle().getTan(); // the slope of 2 corners of the polygon
-                                    x = ((slopeMiddle * middle.getX()) - middle.getY() - (slopePol * corner1.getX()) + corner1.getY()) / (slopeMiddle - slopePol); // an equation that finds the x of the 2 functions intersection
-                                } else {
-                                    x = corner1.getX();
-                                }
-                                double y = (slopeMiddle * x) - (slopeMiddle * middle.getX()) + middle.getY();
+                        for (int j = 0; j < obstacle.getCorners().size(); j++) {
+                            double slopeMiddle = waypoint1.minus(waypoint2).getAngle().plus(Rotation2d.fromDegrees(90)).getTan();
 
-                                Translation2d newMiddle = new Translation2d(x, y);
-                                Rotation2d angleFromMiddle = newMiddle.minus(middle).getAngle();
-                                newMiddle = newMiddle.plus(new Translation2d(isCloseToCorner(newMiddle, obstacle, 0.3) ? 0.4 : 0.25, angleFromMiddle));
+                            corner1 = obstacle.getCorners().get(j);
+                            corner2 = obstacle.getCorners().get((j + 1) % obstacle.getCorners().size());
 
-                                int escapeTimes = 0;
+                            double x;
+                            if (corner1.getX() != corner2.getX()) {
+                                double slopePol = corner1.minus(corner2).getAngle().getTan(); // the slope of 2 corners of the polygon
+                                x = ((slopeMiddle * middle.getX()) - middle.getY() - (slopePol * corner1.getX()) + corner1.getY()) / (slopeMiddle - slopePol); // an equation that finds the x of the 2 functions intersection
+                            } else {
+                                x = corner1.getX();
+                            }
+                            double y = (slopeMiddle * x) - (slopeMiddle * middle.getX()) + middle.getY();
+
+                            Translation2d newMiddle = new Translation2d(x, y);
+                            Rotation2d angleFromMiddle = newMiddle.minus(middle).getAngle();
+                            newMiddle = newMiddle.plus(new Translation2d(isCloseToCorner(newMiddle, obstacle, 0.3) ? 0.4 : 0.25, angleFromMiddle));
+
+                            int escapeTimes = 0;
+                            while (this.getObstacle(newMiddle) != null) {
+                                newMiddle = newMiddle.plus(new Translation2d(0.1, angleFromMiddle));
+                                escapeTimes++;
+
+                                if (escapeTimes >= 20) break;
+                            }
+
+                            if (this.getObstacle(newMiddle) != null || !this.bounds.isInOfBounds(newMiddle)) {
+                                escapeTimes = 0;
+                                newMiddle = newMiddle.minus(new Translation2d(2, angleFromMiddle));
                                 while (this.getObstacle(newMiddle) != null) {
-                                    newMiddle = newMiddle.plus(new Translation2d(0.1, angleFromMiddle));
+                                    newMiddle = newMiddle.minus(new Translation2d(0.1, angleFromMiddle));
                                     escapeTimes++;
 
-                                    if (escapeTimes >= 20) break;
+                                    if (escapeTimes >= 10) break;
                                 }
-
-                                if (this.getObstacle(newMiddle) != null || !this.bounds.isInOfBounds(newMiddle)) {
-                                    escapeTimes = 0;
-                                    newMiddle = newMiddle.minus(new Translation2d(2, angleFromMiddle));
-                                    while (this.getObstacle(newMiddle) != null) {
-                                        newMiddle = newMiddle.minus(new Translation2d(0.1, angleFromMiddle));
-                                        escapeTimes++;
-
-                                        if (escapeTimes >= 10) break;
-                                    }
-                                    if (escapeTimes == 10) continue;
-                                }
-
-                                if (!this.bounds.isInOfBounds(newMiddle))
-                                    continue;
-
-                                middles.add(newMiddle);
+                                if (escapeTimes == 10) continue;
                             }
 
-                            middles = middles.stream().sorted(Comparator.comparing(middle::getDistance)).toList();
-                            if (!split && trajectory.size() < 5) {
-                                if (b < middles.size())
-                                    middle = middles.get(b);
+                            if (!this.bounds.isInOfBounds(newMiddle))
+                                continue;
 
-                                split = true;
-                            } else if (middles.size() > 0) {
-                                middle = middles.get(0);
-                            }
+                            middles.add(newMiddle);
                         }
 
-                        trajectory.add(i + 1, new WaypointAutoHeading(middle));
+                        middle = middles.stream().sorted(Comparator.comparing(middle::getDistance)).toList().get(0);
                     }
+
+                    trajectory.add(i + 1, new WaypointAutoHeading(middle));
                 }
             }
-
-            printStateFinished("Filter " + b + ", " + trajectory.size() + ", " + getDistributingObstacles(trajectory), started);
-            if (trajectory.size() > MAX_PATH_LENGTH)
-                continue;
-
-            if (this.isFiltering) {
-                for (int i = 0; i < trajectory.size() - 1; i++) {
-                    for (int j = getLatestDefaultWaypointIndex(trajectory, waypoints, i); j > i; j--) {
-                        if (!this.isObstacleDistributing(trajectory.get(i).getReferencedPosition(), trajectory.get(j).getReferencedPosition())) {
-                            Set<Waypoint> remove = new HashSet<>();
-                            for (int k = i + 1; k < j; k++) {
-                                remove.add(trajectory.get(k));
-                            }
-                            trajectory.removeAll(remove);
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (this.isPathSafe(trajectory))
-                trajectories.add(trajectory);
         }
 
-        List<Waypoint> trajectory = trajectories.stream().min(Comparator.comparing(ObstacleAvoiding::getPathDistance)).orElse(waypoints);
+        printStateFinished("Filter " + ", " + trajectory.size() + ", " + getDistributingObstacles(trajectory), started);
+
+        if (this.isFiltering) {
+            for (int i = 0; i < trajectory.size() - 1; i++) {
+                for (int j = getLatestDefaultWaypointIndex(trajectory, waypoints, i); j > i; j--) {
+                    if (!this.isObstacleDistributing(trajectory.get(i).getReferencedPosition(), trajectory.get(j).getReferencedPosition())) {
+                        Set<Waypoint> remove = new HashSet<>();
+                        for (int k = i + 1; k < j; k++) {
+                            remove.add(trajectory.get(k));
+                        }
+                        trajectory.removeAll(remove);
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!this.isPathSafe(trajectory)) {
+            return new ArrayList<>(waypoints);
+        }
 
         printStateFinished("Finished", started);
         return trajectory;
@@ -182,7 +174,7 @@ public class ObstacleAvoiding {
     }
 
     private void printStateFinished(String text, long started) {
-        System.out.println(text + ": " + (System.currentTimeMillis() - started) / 1_000d);
+        System.out.println(text + ": " + (System.nanoTime() - started) / 1_000_000_000d);
     }
 
     private boolean isCloseToCorner(Translation2d translation2d, Obstacle obstacle, double threshold) {
@@ -210,7 +202,7 @@ public class ObstacleAvoiding {
     public List<Obstacle> getDistributingObstacles(List<Waypoint> waypoints) {
         List<Obstacle> obstacles = new ArrayList<>();
         for (int i = 0; i < waypoints.size() - 1; i++) {
-            obstacles.addAll(getDistributingObstacle(waypoints.get(i), waypoints.get(i + 1)));
+            obstacles.addAll(getDistributingObstacle(waypoints.get(i).getReferencedPosition(), waypoints.get(i + 1).getReferencedPosition()));
         }
         return obstacles;
     }
@@ -232,11 +224,11 @@ public class ObstacleAvoiding {
      *         if none found it will return an empty path.
      */
     public List<Obstacle> getDistributingObstacle(Translation2d initialPose, Translation2d finalPose) {
-        return this.obstacles.parallelStream().map(o -> o.getExtendedObstacle(this.distanceThreshold)).filter(o -> o.isLineInside(initialPose, finalPose)).toList();
+        return this.extendedObstacles.parallelStream().filter(o -> o.isLineInside(initialPose, finalPose)).toList();
     }
 
     public boolean isObstacleDistributing(Translation2d initialPose, Translation2d finalPose) {
-        return this.obstacles.parallelStream().map(o -> o.getExtendedObstacle(this.distanceThreshold)).anyMatch(o -> o.isLineInside(initialPose, finalPose));
+        return this.extendedObstacles.parallelStream().anyMatch(o -> o.isLineInside(initialPose, finalPose));
     }
 
     /**
@@ -247,7 +239,7 @@ public class ObstacleAvoiding {
      *         if none found, it will return null.
      */
     public Obstacle getObstacle(Translation2d translation2d) {
-        return this.obstacles.parallelStream().map(o -> o.getExtendedObstacle(this.distanceThreshold)).filter(o -> o.isPointAt(translation2d)).findFirst().orElse(null);
+        return this.extendedObstacles.parallelStream().filter(o -> o.isPointAt(translation2d)).findFirst().orElse(null);
     }
 
     /**
@@ -282,6 +274,7 @@ public class ObstacleAvoiding {
 
     public void setObstacles(List<Obstacle> obstacles) {
         this.obstacles = obstacles;
+        this.extendedObstacles = obstacles.parallelStream().map(o -> o.getExtendedObstacle(this.distanceThreshold)).collect(Collectors.toList());
     }
 
     /**
