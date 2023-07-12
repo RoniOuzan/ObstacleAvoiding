@@ -6,6 +6,7 @@ import obstacleavoiding.math.geometry.Rotation2d;
 import obstacleavoiding.math.geometry.Translation2d;
 import obstacleavoiding.path.pid.PIDController;
 import obstacleavoiding.path.robot.Robot;
+import obstacleavoiding.path.robot.RobotState;
 import obstacleavoiding.path.waypoints.NavigationWaypoint;
 import obstacleavoiding.path.waypoints.Waypoint;
 import obstacleavoiding.path.waypoints.WaypointAutoHeading;
@@ -187,14 +188,15 @@ public class PurePursuit {
         }
     }
 
-    public List<Pose2d> getEstimatedPath(double maxVel, double maxAccel, double maxOmegaVel, double maxOmegaAccel, double period) {
-        List<Pose2d> poses = new ArrayList<>();
+    public List<RobotState> getEstimatedPath(double maxVel, double maxAccel, double maxOmegaVel, double maxOmegaAccel, double period) {
+        List<RobotState> poses = new ArrayList<>();
         Robot robot = new Robot(this.getStartWaypoint().getPose2d(), this.robot.getConstants());
         PurePursuit purePursuit = new PurePursuit(robot, this.constants, new ArrayList<>(this.waypoints));
         purePursuit.reset();
         while (!purePursuit.isFinished()) {
             purePursuit.update(maxVel, maxAccel, maxOmegaVel, maxOmegaAccel, period);
-            poses.add(robot.getPosition());
+            poses.add(new RobotState(robot.getPosition(), purePursuit.lastDriftPercentage, purePursuit.slowPercentage,
+                    MathUtil.clamp(purePursuit.getDistanceToFinalWaypoint() / purePursuit.constants.finalSlowDistance, 0, 1)));
         }
         return poses;
     }

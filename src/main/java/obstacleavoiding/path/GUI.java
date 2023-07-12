@@ -12,6 +12,7 @@ import obstacleavoiding.path.obstacles.DraggableObstacle;
 import obstacleavoiding.path.obstacles.Obstacle;
 import obstacleavoiding.path.robot.ModuleState;
 import obstacleavoiding.path.robot.Robot;
+import obstacleavoiding.path.robot.RobotState;
 import obstacleavoiding.path.settings.Settings;
 import obstacleavoiding.path.settings.WaypointSettings;
 import obstacleavoiding.path.settings.tables.*;
@@ -66,7 +67,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private final PurePursuit purePursuit;
     private final Robot robot;
 
-    private List<Pose2d> estimatedPath;
+    private List<RobotState> estimatedPath;
 
     private Image robotImage = new ImageIcon(IMAGES_PATH + DEFAULT_ALLIANCE.getText() + "Robot.png").getImage();
     private Image invisibleRobotImage = new ImageIcon(IMAGES_PATH + DEFAULT_ALLIANCE.getText() + "InvisibleRobot.png").getImage();
@@ -204,12 +205,12 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.drawConnectedPoints(Color.BLACK, this.purePursuit.getWaypoints().parallelStream().map(Waypoint::getReferencedPosition).toList());
 
         if (this.settings.getValue("EstimatedPath", false)) {
-            for (Pose2d pose : this.estimatedPath) {
+            for (RobotState state : this.estimatedPath) {
 //                this.drawImage(robotImage,
-//                        pose.getTranslation(),
+//                        state.pose().getTranslation(),
 //                        ESTIMATED_PATH_SIZE, ESTIMATED_PATH_SIZE,
 //                        -pose.getRotation().getDegrees());
-                this.fillPoint(pose.getTranslation(), convertPixelsToUnits(3), COLOR);
+                this.fillPoint(state.pose().getTranslation(), convertPixelsToUnits(3), COLOR);
             }
         }
 
@@ -509,10 +510,19 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             }
         } else if (this.selectedWaypoint != null) {
             this.selectedWaypoint = null;
-        } else {
+        } else if (!this.settings.getValue("EstimatedPath", false)) {
             Waypoint lastWaypoint = this.defaultWaypoints.get(this.defaultWaypoints.size() - 1);
             lastWaypoint.set(mouseLocation);
             this.reset();
+        }
+
+        if (this.settings.getValue("EstimatedPath", false)) {
+            for (RobotState state : this.estimatedPath) {
+                if (state.pose().getTranslation().getDistance(mouseLocation) <= convertPixelsToUnits(10)) {
+                    System.out.println(state);
+                    break;
+                }
+            }
         }
     }
 
