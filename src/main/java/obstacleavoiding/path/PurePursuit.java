@@ -14,6 +14,8 @@ import obstacleavoiding.path.waypoints.WaypointAutoHeading;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Class the controls the movement of the robot in a path of obstacles.
@@ -49,6 +51,8 @@ public class PurePursuit {
     private Pose2d last2Pose = new Pose2d();
     private long lastUpdate;
 
+    private List<Translation2d> path = new ArrayList<>(Arrays.asList(new Translation2d(), new Translation2d()));
+
     public PurePursuit(Robot robot, Constants constants, List<Waypoint> waypoints) {
         this.robot = robot;
         this.constants = constants;
@@ -71,6 +75,11 @@ public class PurePursuit {
         this.lastDriftPercentage = 0;
 
         this.isFinished = false;
+    }
+
+    public void reset(double maxVel, double maxAccel, double maxOmegaVel, double maxOmegaAccel, double period) {
+        this.reset();
+        this.path = this.getEstimatedPath(maxVel, maxAccel, maxOmegaVel, maxOmegaAccel, period).stream().map(s -> s.pose().getTranslation()).collect(Collectors.toList());
     }
 
     public void update(double maxVel, double maxAccel, double maxOmegaVel, double maxOmegaAccel) {
@@ -113,7 +122,9 @@ public class PurePursuit {
             stopVelocity = this.robot.getConstants().maxVel() * (1 - Math.pow(stopVelocity, this.constants.finalSlowPercentLinearity));
 
             // Calculating the drift velocity to make the turn as fast as possible with the given constants.
-            double maxVelocity = this.robot.getConstants().maxVel() - Math.min(slowPercentage * driftLevel, this.robot.getConstants().maxVel() - this.constants.minimumDriftVelocity);
+//            double maxVelocity = this.robot.getConstants().maxVel() - Math.min(slowPercentage * driftLevel, this.robot.getConstants().maxVel() - this.constants.minimumDriftVelocity);
+            double maxVelocity = getCurvatureRadius();
+            System.out.println(getCurvatureRadius());
 
             // Choosing the lowest velocity for being able to stop, turn and not going over the maxVel.
             targetDriveVelocity = Math.min(Math.min(maxVelocity, stopVelocity), maxVel);
@@ -201,6 +212,16 @@ public class PurePursuit {
         return poses;
     }
 
+    public Translation2d getPathPoint(double percent) {
+        percent = Math.max(percent, 0);
+        if (percent > 0.99)
+            return this.path.get(this.path.size() - 1);
+        percent = percent * (this.path.size() - 1);
+        if (percent % 1 < 0.01)
+            return this.path.get((int) percent);
+        return this.path.get((int) percent).interpolate(this.path.get((int) percent + 1), percent % 1);
+    }
+
     public int getNextHeadingWaypointIndex() {
         for (int i = this.getCurrentWaypointIndex(); i < this.waypoints.size(); i++) {
             if (!(this.waypoints.get(i) instanceof WaypointAutoHeading))
@@ -219,6 +240,33 @@ public class PurePursuit {
     }
 
     public double getCurvatureRadius() {
+        if (this.path.size() < 2)
+            return 0;
+
+        double lowestDis = Double.MAX_VALUE;
+        double index = -1;
+        for (int i = 0; i < this.path.size(); i++) {
+            Translation2d pose = this.path.get(i);
+            if (pose.getDistance(this.robot.getPosition().getTranslation()) < lowestDis) {
+                lowestDis = pose.getDistance(this.robot.getPosition().getTranslation());
+                index = i;
+            }
+        }
+
+        if (index < 0)
+            return 0;
+
+        double percent = index / (this.path.size() - 1);
+
+        double d1x = this.getXDerivative(percent);
+        double d1y = this.getYDerivative(percent);
+        double d2x = this.getXSecondDerivative(percent);
+        double d2y = this.getYSecondDerivative(percent);
+
+        return Math.pow((d1x * d1x) + (d1y * d1y), 1.5) / ((d1x * d2y) - (d1y * d2x));
+    }
+
+    public double getCurvatureRadius2() {
         double d1x = (this.robot.getPosition().getX() - this.lastPose.getX()) / period;
         double d1y = (this.robot.getPosition().getY() - this.lastPose.getY()) / period;
         double d2x = (d1x - ((this.lastPose.getX() - this.last2Pose.getX()) / period)) / period;
@@ -229,6 +277,27 @@ public class PurePursuit {
         if (radius == Double.POSITIVE_INFINITY || Double.isNaN(radius))
             return 0;
         return radius;
+    }
+
+    public double getXDerivative(double t) {
+        return this.calculateDerivative(t, p -> this.getPathPoint(p).getX());
+    }
+
+    public double getYDerivative(double t) {
+        return this.calculateDerivative(t, p -> this.getPathPoint(p).getY());
+    }
+
+    public double getXSecondDerivative(double t) {
+        return this.calculateDerivative(t, this::getXDerivative);
+    }
+
+    public double getYSecondDerivative(double t) {
+        return this.calculateDerivative(t, this::getYDerivative);
+    }
+
+    protected double calculateDerivative(double x, Function<Double, Double> function) {
+        double dx = 0.001;
+        return (function.apply(x + dx) - function.apply(x - dx)) / (2 * dx);
     }
 
     public Rotation2d getAngle() {

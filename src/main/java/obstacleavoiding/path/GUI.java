@@ -99,7 +99,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         super("Path Follower", FRAME_DIMENSION, FPS);
         this.addDevice(0);
 
-        this.robot = new obstacleavoiding.path.robot.Robot(new Pose2d(new Translation2d(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2), Rotation2d.fromDegrees(0)),
+        this.robot = new Robot(new Pose2d(new Translation2d(DEFAULT_MAX_VALUE / 2, DEFAULT_MAX_Y / 2), Rotation2d.fromDegrees(0)),
                 new Robot.Constants(4.5, 9, 360, 720, 1 / FPS, getModulesLocation()));
 
         this.obstacleAvoiding = new ObstacleAvoiding(HALF_ROBOT + 0.01, new Bounds(DEFAULT_MAX_VALUE, DEFAULT_MAX_Y), DEFAULT_FIELD.getField().getObstacles());
@@ -178,7 +178,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.waypointSettings = new WaypointSettings(this.robot);
         this.add(this.waypointSettings);
 
-        this.purePursuit.reset();
+        this.purePursuit.reset(this.settings.getValue("MaxVel", 0d), this.settings.getValue("MaxAccel", 0d),
+                Math.toRadians(this.settings.getValue("MaxOmegaVel", 0d)), Math.toRadians(this.settings.getValue("MaxOmegaAccel", 0d)), 1 / FPS);
         this.start();
     }
 
@@ -214,12 +215,19 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             }
         }
 
-//        double curvatureRadius = this.purePursuit.getCurvatureRadius();
-//        Translation2d curvature = this.robot.getPosition().getTranslation()
-//                .plus(new Translation2d(
-//                        curvatureRadius,
-//                        this.purePursuit.getAngle().plus(Rotation2d.fromDegrees(90))));
-//        this.drawPoint(curvature.getX(), curvature.getY(), Math.abs(curvatureRadius), Color.BLUE);
+        double curvatureRadius = this.purePursuit.getCurvatureRadius();
+        Translation2d curvature = this.robot.getPosition().getTranslation()
+                .plus(new Translation2d(
+                        curvatureRadius,
+                        this.purePursuit.getAngle().plus(Rotation2d.fromDegrees(90))));
+        this.drawPoint(curvature.getX(), curvature.getY(), Math.abs(curvatureRadius), Color.BLUE);
+
+        double curvatureRadius2 = this.purePursuit.getCurvatureRadius2();
+        Translation2d curvature2 = this.robot.getPosition().getTranslation()
+                .plus(new Translation2d(
+                        curvatureRadius2,
+                        this.purePursuit.getAngle().plus(Rotation2d.fromDegrees(90))));
+        this.drawPoint(curvature2.getX(), curvature2.getY(), Math.abs(curvatureRadius2), Color.GREEN);
     }
 
     public void displayTrail() {
@@ -331,7 +339,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     public void reset() {
         this.resetPath();
 
-        this.purePursuit.reset();
+        this.purePursuit.reset(this.settings.getValue("MaxVel", 0d), this.settings.getValue("MaxAccel", 0d),
+                Math.toRadians(this.settings.getValue("MaxOmegaVel", 0d)), Math.toRadians(this.settings.getValue("MaxOmegaAccel", 0d)), 1 / FPS);
 
         this.positions.clear();
 
