@@ -161,8 +161,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
         values.add(new IntegerSliderTable("GraphHistory", ValuesMode.SHOWCASE, GRAPH_HISTORY, 0, 200).setValueParser(d -> graphHistory = d));
         values.add(new BooleanTable("Filter", ValuesMode.SHOWCASE, true).setValueParser(this.obstacleAvoiding::setFiltering));
-        values.add(new BooleanTable("Reset", ValuesMode.ALL, false).onTrue(this::reset).setAlways(false));
-        values.add(new BooleanTable("Running", ValuesMode.ALL, true).setValueParser(this.purePursuit::setRunning));
+        values.add(new BooleanTable("Reset", ValuesMode.SHOWCASE, false).onTrue(this::reset).setAlways(false));
+        values.add(new BooleanTable("Running", ValuesMode.SHOWCASE, true).setValueParser(this.purePursuit::setRunning));
         values.add(new BooleanTable("Extended Obstacles", ValuesMode.SHOWCASE, false));
         values.add(new BooleanTable("Auto Generate", ValuesMode.SHOWCASE, false).onTrue(this::resetPath));
         values.add(new BooleanTable("Trail", ValuesMode.SHOWCASE, true));
@@ -257,7 +257,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         }
         if (this.settings.getValue("Extended Obstacles", false)) {
             this.obstacleAvoiding.getObstacles().stream().map(o -> o.getExtendedObstacle(this.obstacleAvoiding.getDistanceThreshold()))
-                    .forEach(o -> this.fillPolygon(new Color(0, 0, 0, 30), o.getCorners()
+                    .forEach(o -> this.fillPolygon(new Color(0, 0, 0, 100), o.getCorners()
                             .parallelStream().map(c -> new Translation2d(Math.min(c.getX(), DEFAULT_MAX_VALUE), Math.min(c.getY(), DEFAULT_MAX_Y))).toList()));
         }
     }

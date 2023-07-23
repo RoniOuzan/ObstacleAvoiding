@@ -54,7 +54,7 @@ public class PurePursuit {
         this.constants = constants;
         this.waypoints = waypoints;
 
-        this.driveController = new PIDController(0.3, 0, 0);
+        this.driveController = new PIDController(1, 0, 0);
         this.omegaController = new PIDController(3, 0, 0);
         this.omegaController.enableContinuousInput(0, 2 * Math.PI);
     }
@@ -85,8 +85,11 @@ public class PurePursuit {
             // The angle from the robot to the current waypoint.
             Translation2d angle = this.getCurrentWaypoint().minus(this.robot.getPosition().getTranslation()).normalized();
 
+            double maxDriftDistance =
+                    this.constants.maxDriftDistance * MathUtil.clamp(getPreviousWaypoint().getDistance(getCurrentWaypoint()) / (2 * this.constants.maxDriftDistance), 0, 1);
+
             // Calculating the drift percentage and slow percentage based on the distance to the current waypoint.
-            double driftPercentage = 1 - (MathUtil.clamp(this.getDistanceToCurrentWaypoint() / this.constants.maxDriftDistance, 0, 1));
+            double driftPercentage = 1 - (MathUtil.clamp(this.getDistanceToCurrentWaypoint() / maxDriftDistance, 0, 1));
             slowPercentage = 1 - (MathUtil.clamp(this.getDistanceToCurrentWaypoint() / this.constants.maxSlowDistance, 0, 1));
 
             // Calculating the exponential value of the values. The exponent value is determined by the given constants.
@@ -167,14 +170,12 @@ public class PurePursuit {
                     Rotation2d.fromRadians(omegaVelocity)), period, false);
 
             // Checking if the drift percentage is close to the end to change to the next waypoint.
-            if (driftPercentage >= 0.95) {
-                if (this.getCurrentWaypointIndex() < this.waypoints.size() - 1) {
-                    this.currentWaypoint = this.waypoints.get(this.getCurrentWaypointIndex() + 1);
+            if (this.getCurrentWaypointIndex() < this.waypoints.size() - 1 && driftPercentage >= 0.95) {
+                this.currentWaypoint = this.waypoints.get(this.getCurrentWaypointIndex() + 1);
 
-                    this.lastDriftPercentage = 0;
-                    this.lastNormalDriftPercentage = 0;
-                    return;
-                }
+                this.lastDriftPercentage = 0;
+                this.lastNormalDriftPercentage = 0;
+                return;
             }
 
             // Update values for the next run.
