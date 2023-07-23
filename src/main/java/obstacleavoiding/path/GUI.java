@@ -109,6 +109,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 - 2, DEFAULT_MAX_Y / 2 - 2, Rotation2d.fromDegrees(0), Waypoint.RobotReferencePoint.CENTER));
 
         this.purePursuit = new PurePursuit(
+                this.obstacleAvoiding,
                 this.robot,
                 new PurePursuit.Constants(1.5, 2, 3,
                         1.5, 1, 0.75, 0.5,
@@ -140,29 +141,30 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             invisibleRobotImage = new ImageIcon(IMAGES_PATH + c.getText() + "InvisibleRobot.png").getImage();
         }));
         values.add(new DoubleSliderTable("FPS", ValuesMode.SHOWCASE, FPS, 1, 50).setValueParser(this::setFPS));
-        values.add(new DoubleSliderTable("MaxVel", ValuesMode.ALL, 4.5, 0, 4.9));
-        values.add(new DoubleSliderTable("MaxAccel", ValuesMode.ALL, 6, 0, 10));
-        values.add(new DoubleSliderTable("MaxOmegaVel", ValuesMode.ALL, 360, 0, 720));
-        values.add(new DoubleSliderTable("MaxOmegaAccel", ValuesMode.ALL, 360, 0, 1080));
+        values.add(new DoubleSliderTable("MaxVel", ValuesMode.ALL, 4.5, 0, 5).onChange((l, c) -> this.estimatePath()));
+        values.add(new DoubleSliderTable("MaxAccel", ValuesMode.ALL, 12, 0, 20).onChange((l, c) -> this.estimatePath()));
+        values.add(new DoubleSliderTable("MaxOmegaVel", ValuesMode.ALL, 360, 0, 720).onChange((l, c) -> this.estimatePath()));
+        values.add(new DoubleSliderTable("MaxOmegaAccel", ValuesMode.ALL, 360, 0, 1080).onChange((l, c) -> this.estimatePath()));
 
-        values.add(new DoubleSliderTable("MaxDriftDistance", ValuesMode.CALIBRATION, 1.5, 0, 5));
-        values.add(new DoubleSliderTable("DriftPercentLinearity", ValuesMode.CALIBRATION, 1.5, 0, 5));
+        values.add(new DoubleSliderTable("MaxDriftDistance", ValuesMode.CALIBRATION, 1, 0, 5).onChange((l, c) -> this.estimatePath()));
+        values.add(new DoubleSliderTable("DriftPercentLinearity", ValuesMode.CALIBRATION, 2, 0, 5).onChange((l, c) -> this.estimatePath()));
 
-        values.add(new DoubleSliderTable("MaxSlowDistance", ValuesMode.CALIBRATION, 2.5, 0, 5));
-        values.add(new DoubleSliderTable("SlowPercentLinearity", ValuesMode.CALIBRATION, 1, 0, 5));
+        values.add(new DoubleSliderTable("MaxSlowDistance", ValuesMode.CALIBRATION, 1, 0, 5).onChange((l, c) -> this.estimatePath()));
+        values.add(new DoubleSliderTable("SlowPercentLinearity", ValuesMode.CALIBRATION, 1, 0, 5).onChange((l, c) -> this.estimatePath()));
 
-        values.add(new DoubleSliderTable("FinalSlowDistance", ValuesMode.CALIBRATION, 3, 0, 5));
-        values.add(new DoubleSliderTable("FinalSlowLinearity", ValuesMode.CALIBRATION, 1.5, 0, 5));
+        values.add(new DoubleSliderTable("FinalSlowDistance", ValuesMode.CALIBRATION, 3, 0, 5).onChange((l, c) -> this.estimatePath()));
+        values.add(new DoubleSliderTable("FinalSlowLinearity", ValuesMode.CALIBRATION, 1, 0, 5).onChange((l, c) -> this.estimatePath()));
+        // FinalSlowLinearity = 1.5
 
-        values.add(new DoubleSliderTable("RotationPercentLinearity", ValuesMode.CALIBRATION, 0.5, 0, 5));
+        values.add(new DoubleSliderTable("RotationPercentLinearity", ValuesMode.CALIBRATION, 0.5, 0, 5).onChange((l, c) -> this.estimatePath()));
 
-        values.add(new DoubleSliderTable("DriftAngleDivider", ValuesMode.CALIBRATION, 20, 1, 90));
-        values.add(new DoubleSliderTable("MinimumDriftVelocity", ValuesMode.CALIBRATION, 2, 0, 4.5));
+        values.add(new DoubleSliderTable("DriftAngleDivider", ValuesMode.CALIBRATION, 20, 1, 90).onChange((l, c) -> this.estimatePath()));
+        values.add(new DoubleSliderTable("MinimumDriftVelocity", ValuesMode.CALIBRATION, 2, 0, 4.5).onChange((l, c) -> this.estimatePath()));
 
         values.add(new IntegerSliderTable("GraphHistory", ValuesMode.SHOWCASE, GRAPH_HISTORY, 0, 200).setValueParser(d -> graphHistory = d));
         values.add(new BooleanTable("Filter", ValuesMode.SHOWCASE, true).setValueParser(this.obstacleAvoiding::setFiltering));
-        values.add(new BooleanTable("Reset", ValuesMode.SHOWCASE, false).onTrue(this::reset).setAlways(false));
-        values.add(new BooleanTable("Running", ValuesMode.SHOWCASE, true).setValueParser(this.purePursuit::setRunning));
+        values.add(new BooleanTable("Reset", ValuesMode.ALL, false).onTrue(this::reset).setAlways(false));
+        values.add(new BooleanTable("Running", ValuesMode.ALL, true).setValueParser(this.purePursuit::setRunning));
         values.add(new BooleanTable("Extended Obstacles", ValuesMode.SHOWCASE, false));
         values.add(new BooleanTable("Auto Generate", ValuesMode.SHOWCASE, false).onTrue(this::resetPath));
         values.add(new BooleanTable("Trail", ValuesMode.SHOWCASE, true));
@@ -214,12 +216,12 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             }
         }
 
-//        double curvatureRadius = this.purePursuit.getCurvatureRadius();
-//        Translation2d curvature = this.robot.getPosition().getTranslation()
-//                .plus(new Translation2d(
-//                        curvatureRadius,
-//                        this.purePursuit.getAngle().plus(Rotation2d.fromDegrees(90))));
-//        this.drawPoint(curvature.getX(), curvature.getY(), Math.abs(curvatureRadius), Color.BLUE);
+        double curvatureRadius = this.purePursuit.getCurvatureRadius();
+        Translation2d curvature = this.robot.getPosition().getTranslation()
+                .plus(new Translation2d(
+                        curvatureRadius,
+                        this.purePursuit.getAngle().plus(Rotation2d.fromDegrees(90))));
+        this.drawPoint(curvature.getX(), curvature.getY(), Math.abs(curvatureRadius), Color.BLUE);
     }
 
     public void displayTrail() {
@@ -319,11 +321,13 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     }
 
     public void resetPath() {
-        this.purePursuit.setRunning(false);
         this.defaultWaypoints.set(0, new Waypoint(this.robot.getPosition().getTranslation(), this.robot.getPosition().getRotation(), Waypoint.RobotReferencePoint.CENTER));
         this.purePursuit.setWaypoints(this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints));
-        this.purePursuit.setRunning(true);
 
+        this.estimatePath();
+    }
+
+    public void estimatePath() {
         this.estimatedPath = this.purePursuit.getEstimatedPath(this.settings.getValue("MaxVel", 0d), this.settings.getValue("MaxAccel", 0d),
                 this.settings.getValue("MaxOmegaVel", 0d), this.settings.getValue("MaxOmegaAccel", 0d), 1 / this.settings.getValue("FPS", 1d));
     }
@@ -475,13 +479,13 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         } else if (e.getKeyCode() == KeyEvent.VK_T) {
             this.settings.setValue("Running", !this.purePursuit.isRunning());
         } else if (e.getKeyCode() == KeyEvent.VK_G) {
-            this.settings.setValue("Extended Obstacles", !(boolean) this.settings.getValue("Extended Obstacles", false));
+            this.settings.setValue("Extended Obstacles", !this.settings.getValue("Extended Obstacles", false));
         } else if (e.getKeyCode() == KeyEvent.VK_Y) {
-            this.settings.setValue("Auto Generate", !(boolean) this.settings.getValue("Auto Generate", false));
+            this.settings.setValue("Auto Generate", !this.settings.getValue("Auto Generate", false));
         } else if (e.getKeyCode() == KeyEvent.VK_F) {
             this.settings.setValue("Filter", !this.obstacleAvoiding.isFiltering());
-        } else if (e.getKeyCode() == KeyEvent.VK_P) {
-            System.out.println(this.obstacleAvoiding.getDistributingObstacles(this.purePursuit.getWaypoints()));
+        } else if (e.getKeyCode() == KeyEvent.VK_C) {
+            this.settings.setValue("EstimatedPath", !this.settings.getValue("EstimatedPath", false));
         }
 
         if (this.selectedWaypoint != null) {

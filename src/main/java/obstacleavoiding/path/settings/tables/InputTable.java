@@ -5,6 +5,7 @@ import obstacleavoiding.gui.components.input.TextField;
 import obstacleavoiding.gui.components.output.Text;
 import obstacleavoiding.math.geometry.Dimension2d;
 import obstacleavoiding.path.GUI;
+import obstacleavoiding.path.settings.Settings;
 import obstacleavoiding.path.util.ValuesMode;
 
 import java.awt.*;
@@ -28,21 +29,24 @@ public class InputTable<T> extends TableType<T> {
     }
 
     @Override
-    public T getCurrentValue() {
+    public T getValue() {
         return (T) textField.getValue();
     }
 
     @Override
-    public void setCurrentValue(Object value) {
+    public void setValue(Object value) {
         this.textField.setValue(value);
     }
 
     @Override
-    public List<Component> getComponents(int i, int gap) {
-        int y = gap + (i * gap) + (i * TEXT_HEIGHT);
-        Text text = new Text(new Dimension2d((int) (GUI.SETTINGS_WIDTH * TEXT_WIDTH_PERCENT), TEXT_HEIGHT), new Dimension2d(gap, y), this.getName() + ":")
+    public List<Component> getComponents() {
+        Text text = new Text(new Dimension2d((int) (GUI.SETTINGS_WIDTH * TEXT_WIDTH_PERCENT), TEXT_HEIGHT),
+                new Dimension2d(Settings.GAP, Settings.GAP),
+                this.getName() + ":")
                 .setTextSize((int) (TEXT_HEIGHT * 0.5)).setTextColor(Color.WHITE);
-        this.textField = new TextField<>(new Dimension2d((int) (GUI.SETTINGS_WIDTH * TEXT_FIELD_WIDTH_PERCENT), TEXT_HEIGHT), new Dimension2d(gap + (int) (GUI.SETTINGS_WIDTH * TEXT_FIELD_WIDTH_PERCENT), y), this.getDefaultValue());
+        this.textField = new TextField<>(new Dimension2d((int) (GUI.SETTINGS_WIDTH * TEXT_FIELD_WIDTH_PERCENT), TEXT_HEIGHT),
+                new Dimension2d(Settings.GAP, Settings.GAP),
+                this.getDefaultValue());
 
         return Arrays.asList(this.textField, text);
     }

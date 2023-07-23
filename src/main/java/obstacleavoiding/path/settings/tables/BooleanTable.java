@@ -8,7 +8,7 @@ import obstacleavoiding.path.settings.Settings;
 import obstacleavoiding.path.util.ValuesMode;
 
 import java.awt.*;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class BooleanTable extends TableType<Boolean> {
@@ -68,25 +68,25 @@ public class BooleanTable extends TableType<Boolean> {
     }
 
     @Override
-    public Boolean getCurrentValue() {
+    public Boolean getValue() {
         return this.checklist.isSelected();
     }
 
     @Override
-    public void setCurrentValue(Object value) {
+    public void setValue(Object value) {
         this.checklist.setSelected((Boolean) value);
     }
 
     @Override
-    public List<Component> getComponents(int lastY, int gap) {
+    public List<Component> getComponents() {
         this.checklist = new Checklist(
-                new Dimension2d(GUI.SETTINGS_WIDTH - (2 * gap), HEIGHT),
-                new Dimension2d(gap, lastY + gap),
+                new Dimension2d(GUI.SETTINGS_WIDTH - (2 * Settings.GAP), HEIGHT),
+                new Dimension2d(Settings.GAP, Settings.GAP),
                 this.getName(),
                 this.getDefaultValue()
         ).setTextSize((int) (HEIGHT * 0.8)).setTextColor(Color.WHITE).setBackgroundColor(Settings.BACKGROUND);
 
-        return Arrays.asList(this.checklist);
+        return Collections.singletonList(this.checklist);
     }
 
     @Override
@@ -112,7 +112,7 @@ public class BooleanTable extends TableType<Boolean> {
         }
 
         if (this.alwaysState != null) {
-            this.setCurrentValue(this.alwaysState);
+            this.setValue(this.alwaysState);
             currentState = this.alwaysState;
         }
 

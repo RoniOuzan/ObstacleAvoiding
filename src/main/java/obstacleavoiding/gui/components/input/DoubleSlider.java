@@ -1,6 +1,7 @@
 package obstacleavoiding.gui.components.input;
 
 import obstacleavoiding.math.geometry.Dimension2d;
+import obstacleavoiding.path.settings.Settings;
 
 import java.awt.*;
 
@@ -26,5 +27,10 @@ public class DoubleSlider extends Slider {
     @Override
     public DoubleSlider setColor(Color color) {
         return (DoubleSlider) super.setColor(color);
+    }
+
+    @Override
+    public void setLocation(int lastY) {
+        this.setLocation(Settings.GAP, Settings.GAP + lastY);
     }
 }

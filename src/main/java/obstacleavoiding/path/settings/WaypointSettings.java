@@ -58,7 +58,12 @@ public class WaypointSettings extends JPanel {
             TableType<?> table = this.tables.get(i);
 
             this.map.put(table.getName(), table);
-            table.getComponents(i == 0 ? 0 : this.tables.get(i - 1).getLastY(), gap).forEach(this::add);
+            int finalI = i;
+            table.getComponents().forEach(c -> {
+                c.setLocation(finalI == 0 ? 0 : this.tables.get(finalI - 1).getLastY());
+                ((java.awt.Component) c).setName(table.getName());
+                this.add(c);
+            });
         }
 
         if (navigation) {
@@ -66,7 +71,12 @@ public class WaypointSettings extends JPanel {
                 TableType<?> table = this.navigationTables.get(i);
 
                 this.map.put(table.getName(), table);
-                table.getComponents(i == 0 ? this.tables.get(this.tables.size() - 1).getLastY() : this.navigationTables.get(i - 1).getLastY(), gap).forEach(this::add);
+                int finalI = i;
+                table.getComponents().forEach(c -> {
+                    c.setLocation(finalI == 0 ? this.tables.get(this.tables.size() - 1).getLastY() : this.navigationTables.get(finalI - 1).getLastY());
+                    ((java.awt.Component) c).setName(table.getName());
+                    this.add(c);
+                });
             }
         }
     }
@@ -119,6 +129,6 @@ public class WaypointSettings extends JPanel {
     }
 
     public void setValue(String name, Object value) {
-        this.map.get(name).setCurrentValue(value);
+        this.map.get(name).setValue(value);
     }
 }

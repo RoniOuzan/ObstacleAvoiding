@@ -57,25 +57,11 @@ public abstract class TableType<T> {
 
     public abstract int getLastY();
 
-    public T getValue() {
-        if (this.changeable) {
-            return this.getCurrentValue();
-        }
-        return this.defaultValue;
-    }
+    public abstract T getValue();
 
-    public abstract T getCurrentValue();
+    public abstract void setValue(Object value);
 
-    public void setValue(Object value) {
-        if (this.changeable) {
-            this.setCurrentValue(value);
-        }
-        this.defaultValue = (T) value;
-    }
-
-    public abstract void setCurrentValue(Object value);
-
-    public abstract List<Component> getComponents(int lastY, int gap);
+    public abstract List<Component> getComponents();
 
     public void update() {}
 }

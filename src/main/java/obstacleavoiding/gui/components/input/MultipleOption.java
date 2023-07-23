@@ -1,6 +1,7 @@
 package obstacleavoiding.gui.components.input;
 
 import obstacleavoiding.math.geometry.Dimension2d;
+import obstacleavoiding.path.settings.Settings;
 
 import javax.swing.*;
 import javax.swing.plaf.basic.BasicComboBoxUI;
@@ -39,6 +40,11 @@ public class MultipleOption<T> extends JComboBox<T> implements InputComponent {
     public MultipleOption<T> setTextColor(Color color) {
         this.setForeground(color);
         return this;
+    }
+
+    @Override
+    public void setLocation(int lastY) {
+        this.setLocation(Settings.GAP, Settings.GAP + lastY);
     }
 
     private static int getIndexOfArray(Object value, Object[] values) {

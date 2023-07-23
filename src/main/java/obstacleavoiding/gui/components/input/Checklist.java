@@ -1,6 +1,7 @@
 package obstacleavoiding.gui.components.input;
 
 import obstacleavoiding.math.geometry.Dimension2d;
+import obstacleavoiding.path.settings.Settings;
 
 import javax.swing.*;
 import java.awt.*;
@@ -26,5 +27,10 @@ public class Checklist extends JCheckBox implements InputComponent {
     public Checklist setTextColor(Color color) {
         this.setForeground(color);
         return this;
+    }
+
+    @Override
+    public void setLocation(int lastY) {
+        this.setLocation(Settings.GAP, Settings.GAP + lastY);
     }
 }

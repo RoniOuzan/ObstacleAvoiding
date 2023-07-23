@@ -1,6 +1,7 @@
 package obstacleavoiding.gui.components.input;
 
 import obstacleavoiding.math.geometry.Dimension2d;
+import obstacleavoiding.path.settings.Settings;
 
 import javax.swing.*;
 
@@ -15,5 +16,10 @@ public class TextField<T> extends JFormattedTextField implements InputComponent 
     @Override
     public T getValue() {
         return (T) super.getValue();
+    }
+
+    @Override
+    public void setLocation(int lastY) {
+        this.setLocation(Settings.GAP, Settings.GAP + lastY);
     }
 }

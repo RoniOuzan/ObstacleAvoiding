@@ -5,6 +5,7 @@ import obstacleavoiding.path.GUI;
 import obstacleavoiding.path.settings.tables.SelectOptionTable;
 import obstacleavoiding.path.settings.tables.TableType;
 import obstacleavoiding.path.util.ValuesMode;
+import obstacleavoiding.util.Entry;
 
 import javax.swing.*;
 import java.awt.*;
@@ -16,11 +17,12 @@ public class Settings extends JPanel {
 
     public static final double SETTINGS_HEIGHT_PERCENT = 0.89;
     public static final double GAP_PERCENT = 0.05;
+    public static final int GAP = (int) (GUI.SETTINGS_WIDTH * GAP_PERCENT) / 2;
 
     public static final Color BACKGROUND = Color.DARK_GRAY;
 
     private final List<TableType<?>> values;
-    private final Map<String, TableType<?>> map = new HashMap<>();
+    private final Map<String, Entry<TableType<?>, List<Component>>> map = new HashMap<>();
 
     private ValuesMode mode = ValuesMode.ALL;
 
@@ -40,39 +42,38 @@ public class Settings extends JPanel {
                         table.setChangeable(table.getMode() == ValuesMode.ALL || c == ValuesMode.ALL || table.getMode() == c);
                     }
                 }));
-        int gap = (int) (GUI.SETTINGS_WIDTH * GAP_PERCENT) / 2;
         TableType<?> lastTable = null;
         for (TableType<?> table : values) {
-            this.map.put(table.getName(), table);
+            List<Component> components = table.getComponents();
+            this.map.put(table.getName(), new Entry<>(table, components));
             if (table.isChangeable()) {
-                table.getComponents(lastTable == null ? 0 : lastTable.getLastY(), gap).forEach(c -> {
+                TableType<?> finalLastTable = lastTable;
+
+                components.forEach(c -> {
+                    c.setLocation(finalLastTable == null ? 0 : finalLastTable.getLastY());
                     ((java.awt.Component) c).setName(table.getName());
                     this.add(c);
                 });
+
                 lastTable = table;
             }
+
         }
     }
 
     private void refresh() {
-        int gap = (int) (GUI.SETTINGS_WIDTH * GAP_PERCENT) / 2;
-        TableType<?> lastTable = this.values.get(0);
-        for (java.awt.Component component : this.getComponents()) {
-             if (!"Mode".equals(component.getName())) {
-                 this.remove(component);
-                 this.map.remove(component.getName());
-             }
-        }
+        this.removeAll();
 
+        TableType<?> lastTable = null;
         for (TableType<?> table : values) {
-            if (table.getName().equals("Mode")) continue;
-
-            this.map.put(table.getName(), table);
             if (table.isChangeable()) {
-                table.getComponents(lastTable == null ? 0 : lastTable.getLastY(), gap).forEach(c -> {
+                TableType<?> finalLastTable = lastTable;
+                this.map.get(table.getName()).b().forEach(c -> {
+                    c.setLocation(finalLastTable == null ? 0 : finalLastTable.getLastY());
                     ((java.awt.Component) c).setName(table.getName());
                     this.add(c);
                 });
+
                 lastTable = table;
             }
         }
@@ -83,7 +84,7 @@ public class Settings extends JPanel {
     }
 
     public void update() {
-        this.map.values().parallelStream().filter(t -> t.isChangeable() || t.getName().equals("Mode")).forEach(t -> {
+        this.map.values().parallelStream().map(Entry::a).filter(t -> t.isChangeable() || t.getName().equals("Mode")).forEach(t -> {
             t.update();
             t.parse();
         });
@@ -97,13 +98,13 @@ public class Settings extends JPanel {
     }
 
     public <T> T getValue(String name, T defaultValue) {
-        TableType<T> table = (TableType<T>) this.map.get(name);
+        TableType<T> table = (TableType<T>) this.map.get(name).a();
         if (table != null)
             return table.getValue();
         return defaultValue;
     }
 
     public void setValue(String name, Object value) {
-        this.map.get(name).setValue(value);
+        this.map.get(name).a().setValue(value);
     }
 }

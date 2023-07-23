@@ -45,20 +45,20 @@ public class SelectOptionTable<T> extends TableType<T> {
     }
 
     @Override
-    public T getCurrentValue() {
+    public T getValue() {
         return this.multipleOption.getSelectedOption();
     }
 
     @Override
-    public void setCurrentValue(Object value) {
+    public void setValue(Object value) {
         this.multipleOption.setSelectedOption((T) value);
     }
 
     @Override
-    public List<Component> getComponents(int lastY, int gap) {
+    public List<Component> getComponents() {
         this.multipleOption = new MultipleOption<>(
-                new Dimension2d(GUI.SETTINGS_WIDTH - (2 * gap), HEIGHT),
-                new Dimension2d(gap, lastY + gap),
+                new Dimension2d(GUI.SETTINGS_WIDTH - (2 * Settings.GAP), HEIGHT),
+                new Dimension2d(Settings.GAP, Settings.GAP),
                 this.getDefaultValue(),
                 this.options)
                 .setBackgroundColor(Settings.BACKGROUND).setTextColor(Color.WHITE);

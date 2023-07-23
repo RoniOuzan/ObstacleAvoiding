@@ -22,6 +22,11 @@ import java.util.List;
  * from the final waypoint, the curvature of the path
  */
 public class PurePursuit {
+
+    private static final double FF = 0;
+
+    private final ObstacleAvoiding obstacleAvoiding;
+
     private List<Waypoint> waypoints;
 
     private final PIDController driveController;
@@ -49,7 +54,8 @@ public class PurePursuit {
     private Pose2d last2Pose = new Pose2d();
     private long lastUpdate;
 
-    public PurePursuit(Robot robot, Constants constants, List<Waypoint> waypoints) {
+    public PurePursuit(ObstacleAvoiding obstacleAvoiding, Robot robot, Constants constants, List<Waypoint> waypoints) {
+        this.obstacleAvoiding = obstacleAvoiding;
         this.robot = robot;
         this.constants = constants;
         this.waypoints = waypoints;
@@ -59,8 +65,8 @@ public class PurePursuit {
         this.omegaController.enableContinuousInput(0, 2 * Math.PI);
     }
 
-    public PurePursuit(Robot robot, Constants constants, Waypoint... waypoints) {
-        this(robot, constants, new ArrayList<>(Arrays.asList(waypoints)));
+    public PurePursuit(ObstacleAvoiding obstacleAvoiding, Robot robot, Constants constants, Waypoint... waypoints) {
+        this(obstacleAvoiding, robot, constants, new ArrayList<>(Arrays.asList(waypoints)));
     }
 
     public void reset() {
@@ -83,52 +89,19 @@ public class PurePursuit {
             boolean isNotLastWaypoint = this.getCurrentWaypointIndex() < this.waypoints.size() - 1;
 
             // The angle from the robot to the current waypoint.
-            Translation2d angle = this.getCurrentWaypoint().minus(this.robot.getPosition().getTranslation()).normalized();
+            Translation2d angle = normalize(this.getCurrentWaypoint().minus(this.robot.getPosition().getTranslation()));
 
             double maxDriftDistance =
                     this.constants.maxDriftDistance * MathUtil.clamp(getPreviousWaypoint().getDistance(getCurrentWaypoint()) / (2 * this.constants.maxDriftDistance), 0, 1);
 
-            // Calculating the drift percentage and slow percentage based on the distance to the current waypoint.
             double driftPercentage = 1 - (MathUtil.clamp(this.getDistanceToCurrentWaypoint() / maxDriftDistance, 0, 1));
-            slowPercentage = 1 - (MathUtil.clamp(this.getDistanceToCurrentWaypoint() / this.constants.maxSlowDistance, 0, 1));
-
-            // Calculating the exponential value of the values. The exponent value is determined by the given constants.
             driftPercentage = Math.pow(driftPercentage, this.constants.driftPercentLinearity);
-            slowPercentage = Math.pow(slowPercentage, this.constants.slowPercentLinearity);
             double normalDriftPercentage = driftPercentage;
-
-            // Calculating the drift level of the robot based on its current, previous, and next waypoints.
-            // driftLevel is the amount to slow down at a turn.
-            double driftLevel = 0;
-            if (isNotLastWaypoint) {
-                driftLevel = this.getNextWaypoint().minus(this.getCurrentWaypoint()).getAngle().minus(this.getCurrentWaypoint().minus(this.getPreviousWaypoint()).getAngle()).getDegrees();
-                driftLevel = Math.abs(MathUtil.inputModulus(driftLevel, -180, 180)) / this.constants.driftAngleDivider;
-            }
-
-            // Checking if the target waypoint is NavigationWaypoint to aim for the target velocity of the waypoint.
-            if (this.currentWaypoint instanceof NavigationWaypoint navigation && navigation.getTargetVelocity() < maxVel) {
-                // Changed the maxVel to interpolation of the given maxVel and target max vel of the waypoint.
-                maxVel = (maxVel - navigation.getTargetVelocity()) * (1 - slowPercentage) + navigation.getTargetVelocity();
-            }
-
-            // Calculating the needed velocity to stop the robot exactly at the target.
-            double stopVelocity = 1 - MathUtil.clamp(this.getDistanceToFinalWaypoint() / this.constants.finalSlowDistance, 0, 1);
-            stopVelocity = this.robot.getConstants().maxVel() * (1 - Math.pow(stopVelocity, this.constants.finalSlowPercentLinearity));
-
-            // Calculating the drift velocity to make the turn as fast as possible with the given constants.
-            double maxVelocity = this.robot.getConstants().maxVel() - Math.min(slowPercentage * driftLevel, this.robot.getConstants().maxVel() - this.constants.minimumDriftVelocity);
-
-            // Choosing the lowest velocity for being able to stop, turn and not going over the maxVel.
-            targetDriveVelocity = Math.min(Math.min(maxVelocity, stopVelocity), maxVel);
-
-            // Calculating the velocity of the robot with acceleration limits
-            driveVelocity += MathUtil.clamp(this.driveController.calculate(this.robot.getVelocity().getTranslation().getNorm(), this.targetDriveVelocity), -maxAccel * period, maxAccel * period);
-            driveVelocity = MathUtil.clamp(driveVelocity, 0, targetDriveVelocity);
 
             // Calculating the needed drive angle at turn with the driftPercent.
             if (isNotLastWaypoint) {
                 // Calculating the angle from the robot to the next waypoint.
-                Translation2d angleFromNext = this.getNextWaypoint().minus(this.robot.getPosition().getTranslation()).normalized();
+                Translation2d angleFromNext = normalize(this.getNextWaypoint().minus(this.robot.getPosition().getTranslation()));
 
                 // Changing the driftPercent when getting further from the current waypoint to change the current waypoint to the next.
                 if (driftPercentage > 0 && this.lastDriftPercentage > driftPercentage) {
@@ -141,44 +114,85 @@ public class PurePursuit {
                     angle = angle.times(1 - driftPercentage).plus(angleFromNext.times(driftPercentage));
             }
 
-            int lastHeading = this.getLastHeadingWaypointIndex();
-            int nextHeading = this.getNextHeadingWaypointIndex();
+            slowPercentage = 1 - (MathUtil.clamp(this.getDistanceToCurrentWaypoint() / this.constants.maxSlowDistance, 0, 1));
+            slowPercentage = Math.pow(slowPercentage, this.constants.slowPercentLinearity);
+            slowPercentage = Math.sin(slowPercentage * Math.PI);
+
+            // Calculating the drift level of the robot based on its current, previous, and next waypoints.
+            // driftLevel is the amount to slow down at a turn.
+            double driftLevel = 0;
+            if (isNotLastWaypoint) {
+                // Calculating the angle at the current turn
+                driftLevel = this.getNextWaypoint().minus(this.getCurrentWaypoint()).getAngle().minus(this.getCurrentWaypoint().minus(this.getPreviousWaypoint()).getAngle()).getDegrees();
+                // Dividing the driftLevel by the given constants
+                driftLevel = Math.abs(MathUtil.inputModulus(driftLevel, -180, 180)) / this.constants.driftAngleDivider;
+            }
+
+            // Checking if the target waypoint is NavigationWaypoint to aim for the target velocity of the waypoint.
+            if (this.currentWaypoint instanceof NavigationWaypoint navigation && ((NavigationWaypoint) this.currentWaypoint).getTargetVelocity() < maxVel) {
+                // Changed the maxVel to interpolation of the given maxVel and target max vel of the waypoint.
+                maxVel = (maxVel - navigation.getTargetVelocity()) * (1 - slowPercentage) + navigation.getTargetVelocity();
+            }
+
+            // Calculating the drift velocity to make the turn as fast as possible with the given constants.
+            double driftVelocity = this.robot.getConstants().maxVel() - Math.min(slowPercentage * driftLevel, this.robot.getConstants().maxVel() - this.constants.minimumDriftVelocity);
+
+            double finalSlowDistance = Math.pow(maxVel, 2) / (2 * maxAccel);
+            double stopVelocity = this.robot.getConstants().maxVel() * MathUtil.clamp(this.getDistanceToFinalWaypoint() / finalSlowDistance, 0, 1);
+
+            // Choosing the lowest velocity for being able to stop, turn and not going over the maxVel.
+            targetDriveVelocity = Math.min(Math.min(driftVelocity, stopVelocity), maxVel);
+
+            // Calculating the velocity of the robot with acceleration limits
+            driveVelocity += MathUtil.clamp(this.driveController.calculate(this.robot.getVelocity().getTranslation().getNorm(), this.targetDriveVelocity), -maxAccel * period, maxAccel * period);
+            driveVelocity = MathUtil.clamp(driveVelocity, 0, this.targetDriveVelocity);
+
+            int lastHeadingWaypoint = this.getLastHeadingWaypointIndex();
+            int nextHeadingWaypoint = this.getNextHeadingWaypointIndex();
 
             // Calculating the percentage of the path.
-            double absoluteDistance = this.getDistance(lastHeading, nextHeading);
-            double anglePercent = (absoluteDistance - this.getDistance(nextHeading)) / absoluteDistance;
-            if (anglePercent >= 0.001)
+            double absoluteDistance = this.getDistance(lastHeadingWaypoint, nextHeadingWaypoint);
+            double anglePercent = 1 - (this.getDistance(nextHeadingWaypoint) / absoluteDistance);
+            if (anglePercent >= 0.01) {
                 anglePercent = Math.pow(anglePercent, this.constants.rotationPercentLinearity);
+            }
 
             // Calculating the target angle of the robot at the current path position by interpolating the last and next heading waypoint.
-            double targetAngle = this.waypoints.get(lastHeading).getHeading().getRadians() +
-                    (anglePercent * MathUtil.inputModulus(this.waypoints.get(nextHeading).getHeading().getRadians() - this.waypoints.get(lastHeading).getHeading().getRadians(), -Math.PI, Math.PI));
+            double targetAngle = this.waypoints.get(lastHeadingWaypoint).getHeading().getRadians() +
+                    (anglePercent * MathUtil.angleModulus(this.waypoints.get(nextHeadingWaypoint).getHeading().minus(this.waypoints.get(lastHeadingWaypoint).getHeading()).getRadians()));
+            targetAngle = MathUtil.angleModulus(targetAngle);
 
             // Calculating the omega velocity with normal pid.
             double targetOmegaVelocity = this.omegaController.calculate(this.robot.getPosition().getRotation().getRadians(), targetAngle);
             // Limiting the velocity with the given acceleration and velocity.
-            omegaVelocity += MathUtil.clamp(targetOmegaVelocity - omegaVelocity, -maxOmegaAccel * period, maxOmegaAccel * period);
-            omegaVelocity = MathUtil.clamp(omegaVelocity, -maxOmegaVel, maxOmegaVel);
+            omegaVelocity += MathUtil.clamp(MathUtil.angleModulus(targetOmegaVelocity - omegaVelocity), -maxOmegaAccel * period, maxOmegaAccel * period);
+            omegaVelocity = MathUtil.clamp(MathUtil.angleModulus(omegaVelocity), -maxOmegaVel, maxOmegaVel);
 
             this.lastUpdate = System.nanoTime();
             this.last2Pose = this.lastPose;
             this.lastPose = this.robot.getPosition();
 
+            double velocity = driveVelocity + FF;
             // Sends the velocity to the robot.
             this.robot.drive(new Pose2d(
-                    new Translation2d(driveVelocity, angle.getAngle()),
+                    new Translation2d(velocity, angle.getAngle()),
                     Rotation2d.fromRadians(omegaVelocity)), period, false);
 
             // Checking if the drift percentage is close to the end to change to the next waypoint.
-            if (this.getCurrentWaypointIndex() < this.waypoints.size() - 1 && driftPercentage >= 0.95) {
+            if (this.getCurrentWaypointIndex() < this.waypoints.size() - 1 &&
+                    (driftPercentage >= 0.9 ||
+                            (!this.obstacleAvoiding.isObstacleDistributing(this.robot.getPosition().getTranslation(), this.getNextWaypoint())) &&
+                                    MathUtil.inputModulus(angle.getAngle().minus(this.robot.getPosition().getTranslation().minus(this.getCurrentWaypoint()).getAngle()).getDegrees(), 0, 360) <= 10)) {
                 this.currentWaypoint = this.waypoints.get(this.getCurrentWaypointIndex() + 1);
 
+                this.lastUpdate = System.nanoTime();
                 this.lastDriftPercentage = 0;
                 this.lastNormalDriftPercentage = 0;
                 return;
             }
 
             // Update values for the next run.
+            this.lastUpdate = System.nanoTime();
             this.lastDriftPercentage = driftPercentage;
             this.lastNormalDriftPercentage = normalDriftPercentage;
 
@@ -192,13 +206,13 @@ public class PurePursuit {
     public List<RobotState> getEstimatedPath(double maxVel, double maxAccel, double maxOmegaVel, double maxOmegaAccel, double period) {
         List<RobotState> poses = new ArrayList<>();
         Robot robot = new Robot(this.getStartWaypoint().getPose2d(), this.robot.getConstants());
-        PurePursuit purePursuit = new PurePursuit(robot, this.constants, new ArrayList<>(this.waypoints));
+        PurePursuit purePursuit = new PurePursuit(this.obstacleAvoiding, robot, this.constants, new ArrayList<>(this.waypoints));
         purePursuit.reset();
-        while (!purePursuit.isFinished()) {
-            purePursuit.update(maxVel, maxAccel, maxOmegaVel, maxOmegaAccel, period);
-            poses.add(new RobotState(robot.getPosition(), purePursuit.lastDriftPercentage, purePursuit.slowPercentage,
-                    MathUtil.clamp(purePursuit.getDistanceToFinalWaypoint() / purePursuit.constants.finalSlowDistance, 0, 1)));
-        }
+//        while (!purePursuit.isFinished()) {
+//            purePursuit.update(maxVel, maxAccel, maxOmegaVel, maxOmegaAccel, period);
+//            poses.add(new RobotState(robot.getPosition(), purePursuit.lastDriftPercentage, purePursuit.slowPercentage,
+//                    MathUtil.clamp(purePursuit.getDistanceToFinalWaypoint() / purePursuit.constants.finalSlowDistance, 0, 1)));
+//        }
         return poses;
     }
 
@@ -217,6 +231,10 @@ public class PurePursuit {
                 return i;
         }
         return -1;
+    }
+
+    private Translation2d normalize(Translation2d translation2d) {
+        return translation2d.div(translation2d.getNorm() == 0 ? 1 : translation2d.getNorm());
     }
 
     public double getCurvatureRadius() {
