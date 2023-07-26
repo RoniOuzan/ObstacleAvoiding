@@ -203,7 +203,7 @@ public class Translation2d implements Interpolatable<Translation2d> {
 
     @Override
     public String toString() {
-        return String.format("Translation2d(X: %.2f, Y: %.2f)", m_x, m_y);
+        return String.format("Translation2d(X: %.4f, Y: %.4f)", m_x, m_y);
     }
 
     /**
