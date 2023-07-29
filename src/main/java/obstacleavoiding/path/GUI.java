@@ -44,15 +44,14 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private static final int GRAPH_HISTORY = 0;
 
     private static final double FPS = 30;
-    public static final double ROBOT_WIDTH = 0.91;
-    public static final double HALF_ROBOT = ROBOT_WIDTH / 2;
+    public static final double ROBOT_SIZE = 0.91;
+    public static final double HALF_ROBOT = ROBOT_SIZE / 2;
     private static final double TRACK_WIDTH = 0.6;
     private static final double WHEEL_BASE = 0.6;
     private static final double WHEEL_WIDTH = 0.05;
     private static final double WHEEL_DIAMETER = 0.1;
 
-    private static final double MINI_ROBOT_SIZE = ROBOT_WIDTH;
-    private static final double ESTIMATED_PATH_SIZE = ROBOT_WIDTH / 12;
+    private static final double MINI_ROBOT_SIZE = ROBOT_SIZE;
 
     private static final Fields DEFAULT_FIELD = Fields.CHARGED_UP;
     private static final Alliance DEFAULT_ALLIANCE = Alliance.NONE;
@@ -114,16 +113,16 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
                 this.obstacleAvoiding,
                 this.robot,
                 new PurePursuit.Constants(
-                        1, 2, 2.5,
-                        1.5, 2.5, 1.5, 0.5,
-                        6, 15, 2.5,
+                        1, 1.5,
+                        1.5, 1.5,
+                        1.5, 0.5,
+                        6, 2.5,
                         0.03, 0.1, 0.7),
                 this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints)
         );
 
         Map<Supplier<List<Double>>, Color> graphValues = new HashMap<>();
         graphValues.put(() -> driftPercentageVelocities, new Color(0, 0, 255));
-        graphValues.put(() -> driftPercentageVelocities, COLOR);
         graphValues.put(() -> currentWaypoint, new Color(0, 255, 0));
         graphValues.put(() -> driveVelocities.stream().map(s -> s / this.robot.getConstants().maxVel()).toList(), new Color(255, 0, 0));
         graphValues.put(() -> targetDriveVelocities.stream().map(s -> s / this.robot.getConstants().maxVel()).toList(), new Color(100, 0, 0));
@@ -156,13 +155,11 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         values.add(new DoubleSliderTable("MaxSlowDistance", ValuesMode.CALIBRATION, this.purePursuit.getConstants().maxSlowDistance(), 0, 5).onChange((l, c) -> this.estimatePath()));
         values.add(new DoubleSliderTable("SlowPercentLinearity", ValuesMode.CALIBRATION, this.purePursuit.getConstants().slowPercentLinearity(), 0, 5).onChange((l, c) -> this.estimatePath()));
 
-        values.add(new DoubleSliderTable("FinalSlowDistance", ValuesMode.CALIBRATION, this.purePursuit.getConstants().finalSlowDistance(), 0, 5).onChange((l, c) -> this.estimatePath()).unchangeable());
-        values.add(new DoubleSliderTable("FinalSlowLinearity", ValuesMode.CALIBRATION, this.purePursuit.getConstants().finalSlowPercentLinearity(), 0, 5).onChange((l, c) -> this.estimatePath()).unchangeable());
+        values.add(new DoubleSliderTable("FinalSlowLinearity", ValuesMode.CALIBRATION, this.purePursuit.getConstants().finalSlowPercentLinearity(), 0, 5).onChange((l, c) -> this.estimatePath()));
 
         values.add(new DoubleSliderTable("RotationPercentLinearity", ValuesMode.CALIBRATION, this.purePursuit.getConstants().rotationPercentLinearity(), 0, 5).onChange((l, c) -> this.estimatePath()));
 
         values.add(new DoubleSliderTable("Deceleration", ValuesMode.CALIBRATION, this.purePursuit.getConstants().deceleration(), 0, 20).onChange((l, c) -> this.estimatePath()));
-        values.add(new DoubleSliderTable("DriftAngleDivider", ValuesMode.CALIBRATION, this.purePursuit.getConstants().driftAngleDivider(), 1, 90).onChange((l, c) -> this.estimatePath()));
         values.add(new DoubleSliderTable("MinimumDriftVelocity", ValuesMode.CALIBRATION, this.purePursuit.getConstants().minimumDriftVelocity(), 0, 4.5).onChange((l, c) -> this.estimatePath()));
 
         values.add(new IntegerSliderTable("GraphHistory", ValuesMode.SHOWCASE, GRAPH_HISTORY, 0, 200).setValueParser(d -> graphHistory = d));
@@ -199,7 +196,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         for (Waypoint waypoint : this.purePursuit.getWaypoints()) {
             this.drawImage(invisibleRobotImage,
                     waypoint.getReferencedPosition(),
-                    ROBOT_WIDTH, ROBOT_WIDTH,
+                    ROBOT_SIZE, ROBOT_SIZE,
                     -waypoint.getHeading().getDegrees());
 
             if (this.selectedWaypoint == waypoint) {
@@ -216,7 +213,10 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 //                        state.pose().getTranslation(),
 //                        ESTIMATED_PATH_SIZE, ESTIMATED_PATH_SIZE,
 //                        -pose.getRotation().getDegrees());
-                this.fillPoint(state.pose().getTranslation(), convertPixelsToUnits(3), COLOR);
+                this.fillPoint(state.pose().getTranslation(), convertPixelsToUnits(3),
+                        new Color((float) (state.velocity() / this.robot.getConstants().maxVel()),
+                                0,
+                                0f));
             }
         }
 
@@ -242,7 +242,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     public void displayRobot() {
         this.drawImage(robotImage,
                 this.robot.getPosition().getTranslation(),
-                ROBOT_WIDTH, ROBOT_WIDTH,
+                ROBOT_SIZE, ROBOT_SIZE,
                 -this.robot.getPosition().getRotation().getDegrees());
 
         for (ModuleState module : this.robot.getModules()) {
@@ -364,9 +364,10 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     @Override
     public void update() {
         this.purePursuit.setConstants(new PurePursuit.Constants(
-                this.settings.getValue("MaxDriftDistance", 0d), this.settings.getValue("MaxSlowDistance", 0d), this.settings.getValue("FinalSlowDistance", 0d),
-                this.settings.getValue("DriftPercentLinearity", 0d), this.settings.getValue("SlowPercentLinearity", 0d), this.settings.getValue("FinalSlowLinearity", 0d), this.settings.getValue("RotationPercentLinearity", 0d),
-                this.settings.getValue("Deceleration", 0d), this.settings.getValue("DriftAngleDivider", 0d), this.settings.getValue("MinimumDriftVelocity", 0d),
+                this.settings.getValue("MaxDriftDistance", 0d), this.settings.getValue("MaxSlowDistance", 0d),
+                this.settings.getValue("DriftPercentLinearity", 0d), this.settings.getValue("SlowPercentLinearity", 0d),
+                this.settings.getValue("FinalSlowLinearity", 0d), this.settings.getValue("RotationPercentLinearity", 0d),
+                this.settings.getValue("Deceleration", 0d), this.settings.getValue("MinimumDriftVelocity", 0d),
                 this.purePursuit.getConstants().distanceTolerance(), this.purePursuit.getConstants().velocityTolerance(), this.purePursuit.getConstants().rotationTolerance()
         ));
         this.drawBackground();
