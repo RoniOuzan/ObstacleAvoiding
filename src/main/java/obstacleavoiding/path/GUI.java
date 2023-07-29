@@ -116,7 +116,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
                         1, 1.5,
                         1.5, 1.5,
                         1.5, 0.5,
-                        6, 2.5,
+                        6, 0,
                         0.03, 0.1, 0.7),
                 this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints)
         );

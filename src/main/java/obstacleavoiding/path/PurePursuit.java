@@ -5,7 +5,6 @@ import obstacleavoiding.math.MathUtil;
 import obstacleavoiding.math.geometry.Pose2d;
 import obstacleavoiding.math.geometry.Rotation2d;
 import obstacleavoiding.math.geometry.Translation2d;
-import obstacleavoiding.math.util.KalmanFilter;
 import obstacleavoiding.path.pid.PIDController;
 import obstacleavoiding.path.robot.Robot;
 import obstacleavoiding.path.robot.RobotState;
@@ -43,7 +42,9 @@ public class PurePursuit {
     private double omegaVelocity;
 
     private Translation2d angle;
-    private double lastNormalDriftPercentage;
+    private double originalDriftPercentage;
+    private double driftPercentage;
+    private double lastOriginalDriftPercentage;
     private double lastDriftPercentage;
     private double slowPercentage;
     private double anglePercent;
@@ -90,125 +91,104 @@ public class PurePursuit {
     public void update(double maxVel, double maxAccel, double maxOmegaVel, double maxOmegaAccel, double period) {
         this.period = period;
         double MAX_VELOCITY = this.robot.getConstants().maxVel();
-        if (this.isRunning && !this.isFinished) {
-            boolean isNotLastWaypoint = this.getCurrentWaypointIndex() < this.waypoints.size() - 1;
 
-            // The angle from the robot to the current waypoint.
-            angle = normalize(this.getCurrentWaypoint().minus(this.robot.getPosition().getTranslation()));
+        if (!this.isRunning || this.isFinished)
+            return;
 
-            double maxDriftDistance = this.constants.maxDriftDistance *
-                    MathUtil.clamp(getPreviousWaypoint().getDistance(getCurrentWaypoint()) / (2 * this.constants.maxDriftDistance), 0, 1);
+        int currentIndex = this.getCurrentWaypointIndex();
+        boolean isNotLastWaypoint = currentIndex < this.waypoints.size() - 1;
+
+        this.lastDriftPercentage = driftPercentage;
+        this.lastOriginalDriftPercentage = originalDriftPercentage;
+
+        angle = normalize(this.getCurrentWaypoint().minus(this.robot.getPosition().getTranslation()));
+
+        double maxDriftDistance = this.constants.maxDriftDistance;
+        if (currentIndex > 1) {
+            maxDriftDistance *= MathUtil.clamp(getPreviousWaypoint().getDistance(getCurrentWaypoint()) / (2 * this.constants.maxDriftDistance), 0, 1);
             maxDriftDistance = Math.max(maxDriftDistance, 0.5);
+        }
+        driftPercentage = 1 - (MathUtil.clamp(this.getDistanceToCurrentWaypoint() / maxDriftDistance, 0, 1));
+        driftPercentage = Math.pow(driftPercentage, this.constants.driftPercentLinearity);
+        originalDriftPercentage = driftPercentage;
 
-            double driftPercentage = 1 - (MathUtil.clamp(this.getDistanceToCurrentWaypoint() / maxDriftDistance, 0, 1));
-            driftPercentage = Math.pow(driftPercentage, this.constants.driftPercentLinearity);
-            double normalDriftPercentage = driftPercentage;
+        if (isNotLastWaypoint) {
+            Translation2d angleFromNext = normalize(this.getNextWaypoint().minus(this.robot.getPosition().getTranslation()));
 
-            // Calculating the needed drive angle at turn with the driftPercent.
-            if (isNotLastWaypoint) {
-                // Calculating the angle from the robot to the next waypoint.
-                Translation2d angleFromNext = normalize(this.getNextWaypoint().minus(this.robot.getPosition().getTranslation()));
-
-                // Changing the driftPercent when getting further from the current waypoint to change the current waypoint to the next.
-                if (driftPercentage > 0 && this.lastDriftPercentage > driftPercentage) {
-                    driftPercentage = this.lastDriftPercentage + Math.abs(this.lastNormalDriftPercentage - driftPercentage);
-                    driftPercentage = Math.min(driftPercentage, 1);
-                }
-
-                // Calculating the angle with driftPercentage by interpolating the angle from the robot to the current waypoint and to the next waypoint.
-                if (!(this.currentWaypoint instanceof NavigationWaypoint))
-                    angle = angle.times(1 - driftPercentage).plus(angleFromNext.times(driftPercentage));
+            if (driftPercentage > 0 && this.lastDriftPercentage > driftPercentage) {
+                driftPercentage = this.lastDriftPercentage + Math.abs(this.lastOriginalDriftPercentage - driftPercentage);
+                driftPercentage = Math.min(driftPercentage, 1);
             }
 
-            slowPercentage = 1 - (MathUtil.clamp(this.getDistanceToCurrentWaypoint() / this.constants.maxSlowDistance, 0, 1));
-            slowPercentage = Math.pow(slowPercentage, this.constants.slowPercentLinearity);
-//            slowPercentage = Math.sin(slowPercentage * Math.PI);
-
-            // Checking if the target waypoint is NavigationWaypoint to aim for the target velocity of the waypoint.
-            if (this.currentWaypoint instanceof NavigationWaypoint && ((NavigationWaypoint) this.currentWaypoint).getTargetVelocity() < maxVel) {
-                NavigationWaypoint navigation = (NavigationWaypoint) this.currentWaypoint;
-                // Changed the maxVel to interpolation of the given maxVel and target max vel of the waypoint.
-                maxVel = (maxVel - navigation.getTargetVelocity()) * (1 - slowPercentage) + navigation.getTargetVelocity();
+            if (!(this.currentWaypoint instanceof NavigationWaypoint)) {
+                angle = angle.times(1 - driftPercentage).plus(angleFromNext.times(driftPercentage));
             }
+        }
 
-            // Calculating the drift level of the robot based on its current, previous, and next waypoints.
-            // driftVelocity is the amount to slow down at a turn.
-            double driftVelocity = maxVel;
-            if (isNotLastWaypoint) {
-                driftVelocity = this.getNextWaypoint().minus(this.getCurrentWaypoint()).getAngle().minus(this.getCurrentWaypoint().minus(this.getPreviousWaypoint()).getAngle()).getDegrees();
-                driftVelocity = Math.abs(BumbleUtil.bound180Degrees(driftVelocity));
+        slowPercentage = 1 - (MathUtil.clamp(this.getDistanceToCurrentWaypoint() / this.constants.maxSlowDistance, 0, 1));
+        slowPercentage = Math.pow(slowPercentage, this.constants.slowPercentLinearity);
 
-                driftVelocity *= slowPercentage;
-                driftVelocity = Math.pow((180 - driftVelocity) / 180, 2);
-                driftVelocity *= this.robot.getConstants().maxVel() - this.constants.minimumDriftVelocity;
-                driftVelocity += this.constants.minimumDriftVelocity;
-            }
+        double driftVelocity = maxVel;
+        if (isNotLastWaypoint) {
+            driftVelocity = this.getNextWaypoint().minus(this.getCurrentWaypoint()).getAngle().minus(this.getCurrentWaypoint().minus(this.getPreviousWaypoint()).getAngle()).getDegrees();
+            driftVelocity = Math.abs(BumbleUtil.bound180Degrees(driftVelocity));
 
-            double finalSlowDistance = Math.pow(MAX_VELOCITY, 2) / (2 * this.constants.deceleration);
-            // double finalSlowDistance = this.constants.maxFinalSlowDistance;
-            // double stopVelocity = MAX_VELOCITY * MathUtil.clamp(this.getDistanceToFinalWaypoint() / finalSlowDistance, 0, 1);
-            double stopVelocity = MathUtil.clamp(this.getDistanceToFinalWaypoint() / finalSlowDistance, 0, 1);
-            stopVelocity = Math.pow(stopVelocity, 1 / this.constants.finalSlowPercentLinearity);
-            stopVelocity *= MAX_VELOCITY;
+            driftVelocity *= slowPercentage;
+            driftVelocity = Math.pow((180 - driftVelocity) / 180, 2);
+            driftVelocity *= this.robot.getConstants().maxVel() - this.constants.minimumDriftVelocity;
+            driftVelocity += this.constants.minimumDriftVelocity;
+        }
 
-            // Choosing the lowest velocity for being able to stop, turn and not going over the maxVel.
-            targetDriveVelocity = Math.min(Math.min(driftVelocity, stopVelocity), maxVel);
+        double finalSlowDistance = Math.pow(MAX_VELOCITY, 2) / (2 * this.constants.deceleration);
+        double stopVelocity = MathUtil.clamp(this.getDistanceToFinalWaypoint() / finalSlowDistance, 0, 1);
+        stopVelocity = Math.pow(stopVelocity, 1 / this.constants.finalSlowPercentLinearity);
+        stopVelocity *= MAX_VELOCITY;
 
-            // Calculating the velocity of the robot with acceleration limits
-            driveVelocity += MathUtil.clamp(this.driveController.calculate(this.getCurrentDrivetrainVelocity(), this.targetDriveVelocity), -maxAccel * period, maxAccel * period);
-            driveVelocity = MathUtil.clamp(driveVelocity, 0, this.targetDriveVelocity);
+        targetDriveVelocity = Math.min(Math.min(driftVelocity, stopVelocity), maxVel);
 
-            int lastHeadingWaypoint = this.getLastHeadingWaypointIndex();
-            int nextHeadingWaypoint = this.getNextHeadingWaypointIndex();
+        driveVelocity += MathUtil.clamp(this.driveController.calculate(this.getCurrentDrivetrainVelocity(), this.targetDriveVelocity), -maxAccel * period, maxAccel * period);
+        driveVelocity = MathUtil.clamp(driveVelocity, 0, this.targetDriveVelocity);
 
-            // Calculating the percentage of the path.
-            // double absoluteDistance = this.getDistance(lastHeadingWaypoint, nextHeadingWaypoint);
-            // anglePercent = 1 - (this.getDistance(nextHeadingWaypoint) / absoluteDistance);
-            // if (anglePercent >= 0.01) {
-            // anglePercent = Math.pow(anglePercent, this.constants.rotationPercentLinearity);
-            // }
-            anglePercent = 1;
+        int lastHeadingWaypoint = this.getLastHeadingWaypointIndex();
+        int nextHeadingWaypoint = this.getNextHeadingWaypointIndex();
 
-            // Calculating the target angle of the robot at the current path position by interpolating the last and next heading waypoint.
-            double targetAngle = this.waypoints.get(lastHeadingWaypoint).getHeading().getRadians() +
-                    (anglePercent * BumbleUtil.boundPIRadians(this.waypoints.get(nextHeadingWaypoint).getHeading().minus(this.waypoints.get(lastHeadingWaypoint).getHeading()).getRadians()));
-            targetAngle = BumbleUtil.boundPIRadians(targetAngle);
+        // double absoluteDistance = this.getDistance(lastHeadingWaypoint, nextHeadingWaypoint);
+        // anglePercent = 1 - (this.getDistance(nextHeadingWaypoint) / absoluteDistance);
+        // if (anglePercent >= 0.01) {
+        // anglePercent = Math.pow(anglePercent, this.constants.rotationPercentLinearity);
+        // }
+        anglePercent = 1;
 
-            // Calculating the omega velocity with normal pid.
-            double targetOmegaVelocity = this.omegaController.calculate(BumbleUtil.boundPIRadians(this.robot.getPosition().getRotation().getRadians()), targetAngle);
-            // Limiting the velocity with the given acceleration and velocity.
-            omegaVelocity += MathUtil.clamp(BumbleUtil.boundPIRadians(targetOmegaVelocity - omegaVelocity), -maxOmegaAccel * period, maxOmegaAccel * period);
-            omegaVelocity = MathUtil.clamp(BumbleUtil.boundPIRadians(omegaVelocity), -maxOmegaVel, maxOmegaVel);
+        double targetAngle = this.waypoints.get(lastHeadingWaypoint).getHeading().getRadians() +
+                (anglePercent * BumbleUtil.boundPIRadians(this.waypoints.get(nextHeadingWaypoint).getHeading().minus(this.waypoints.get(lastHeadingWaypoint).getHeading()).getRadians()));
+        targetAngle = BumbleUtil.boundPIRadians(targetAngle);
 
-            this.last2Pose = this.lastPose;
-            this.lastPose = this.robot.getPosition();
+        double targetOmegaVelocity = this.omegaController.calculate(BumbleUtil.boundPIRadians(this.robot.getPosition().getRotation().getRadians()), targetAngle);
+        omegaVelocity += MathUtil.clamp(BumbleUtil.boundPIRadians(targetOmegaVelocity - omegaVelocity), -maxOmegaAccel * period, maxOmegaAccel * period);
+        omegaVelocity = MathUtil.clamp(BumbleUtil.boundPIRadians(omegaVelocity), -maxOmegaVel, maxOmegaVel);
 
-            double velocity = driveVelocity + FF;
-            // Sends the velocity to the robot.
-            this.robot.drive(new Pose2d(
-                    new Translation2d(velocity, angle.getAngle()),
-                    Rotation2d.fromRadians(omegaVelocity)), period, false);
+        this.last2Pose = this.lastPose;
+        this.lastPose = this.robot.getPosition();
 
-            // Checking if the drift percentage is close to the end to change to the next waypoint.
-            if (this.getCurrentWaypointIndex() < this.waypoints.size() - 1 &&
-                    (driftPercentage >= 0.9 || this.isAbleToContinueNextWaypoint())) {
-                this.currentWaypoint = this.waypoints.get(this.getCurrentWaypointIndex() + 1);
+        double velocity = driveVelocity + FF;
+        this.robot.drive(new Pose2d(
+                new Translation2d(velocity, angle.getAngle()),
+                Rotation2d.fromRadians(omegaVelocity)), period, false);
 
-                this.lastUpdate = System.nanoTime();
-                this.lastDriftPercentage = 0;
-                this.lastNormalDriftPercentage = 0;
-                return;
-            }
+        if (this.getCurrentWaypointIndex() < this.waypoints.size() - 1 &&
+                (driftPercentage >= 0.9 || this.isAbleToContinueNextWaypoint())) {
+            this.currentWaypoint = this.waypoints.get(this.getCurrentWaypointIndex() + 1);
 
-            // Update values for the next run.
             this.lastUpdate = System.nanoTime();
-            this.lastDriftPercentage = driftPercentage;
-            this.lastNormalDriftPercentage = normalDriftPercentage;
+            this.driftPercentage = 0;
+            return;
+        }
 
-            if (this.driveVelocity <= this.constants.velocityTolerance && this.getDistanceToFinalWaypoint() <= this.constants.distanceTolerance &&
-                    Math.abs(this.robot.getPosition().getRotation().getDegrees() - this.getFinalWaypoint().getHeading().getDegrees()) <= this.constants.rotationPercentLinearity) {
-                this.isFinished = true;
-            }
+        this.lastUpdate = System.nanoTime();
+
+        if (this.driveVelocity <= this.constants.velocityTolerance && this.getDistanceToFinalWaypoint() <= this.constants.distanceTolerance &&
+                Math.abs(this.robot.getPosition().getRotation().getDegrees() - this.getFinalWaypoint().getHeading().getDegrees()) <= this.constants.rotationPercentLinearity) {
+            this.isFinished = true;
         }
     }
 
@@ -301,7 +281,7 @@ public class PurePursuit {
     }
 
     public double getDriftPercentage() {
-        return lastDriftPercentage;
+        return driftPercentage;
     }
 
     public double getSlowPercentage() {
