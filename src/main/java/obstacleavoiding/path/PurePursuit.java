@@ -37,11 +37,11 @@ public class PurePursuit {
 
     private final Robot robot;
 
+    private Translation2d angle;
     private double targetDriveVelocity;
     private double driveVelocity;
     private double omegaVelocity;
 
-    private Translation2d angle;
     private double originalDriftPercentage;
     private double driftPercentage;
     private double lastOriginalDriftPercentage;
@@ -175,13 +175,9 @@ public class PurePursuit {
                 new Translation2d(velocity, angle.getAngle()),
                 Rotation2d.fromRadians(omegaVelocity)), period, false);
 
-        if (this.getCurrentWaypointIndex() < this.waypoints.size() - 1 &&
+        if (currentIndex < this.waypoints.size() - 1 &&
                 (driftPercentage >= 0.9 || this.isAbleToContinueNextWaypoint())) {
-            this.currentWaypoint = this.waypoints.get(this.getCurrentWaypointIndex() + 1);
-
-            this.lastUpdate = System.nanoTime();
-            this.driftPercentage = 0;
-            return;
+            this.currentWaypoint = this.waypoints.get(currentIndex + 1);
         }
 
         this.lastUpdate = System.nanoTime();
