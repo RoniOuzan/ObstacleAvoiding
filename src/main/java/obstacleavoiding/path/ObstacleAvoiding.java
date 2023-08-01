@@ -161,6 +161,20 @@ public class ObstacleAvoiding {
             return new ArrayList<>(waypoints);
         }
 
+        for (int i = 1; i < trajectory.size() - 2; i++) {
+            Waypoint current = trajectory.get(i);
+            Waypoint next = trajectory.get(i + 1);
+            if (current.getDistance(next) < 1) {
+                Waypoint last = trajectory.get(i - 1);
+                Waypoint next2 = trajectory.get(i + 2);
+                Translation2d merged = current.getReferencedPosition().interpolate(next.getReferencedPosition(), 0.5);
+                if (!this.isObstacleDistributing(last.getReferencedPosition(), merged) && !this.isObstacleDistributing(merged, next2.getReferencedPosition())) {
+                    trajectory.set(i, new WaypointAutoHeading(merged));
+                    trajectory.remove(i + 1);
+                }
+            }
+        }
+
         printStateFinished("Finished", started);
         return trajectory;
     }
@@ -174,7 +188,7 @@ public class ObstacleAvoiding {
     }
 
     private void printStateFinished(String text, long started) {
-        System.out.println(text + ": " + (System.nanoTime() - started) / 1_000_000_000d);
+//        System.out.println(text + ": " + (System.nanoTime() - started) / 1_000_000_000d);
     }
 
     private boolean isCloseToCorner(Translation2d translation2d, Obstacle obstacle, double threshold) {
@@ -224,11 +238,11 @@ public class ObstacleAvoiding {
      *         if none found it will return an empty path.
      */
     public List<Obstacle> getDistributingObstacle(Translation2d initialPose, Translation2d finalPose) {
-        return this.extendedObstacles.parallelStream().filter(o -> o.isLineInside(initialPose, finalPose)).toList();
+        return this.extendedObstacles.parallelStream().filter(o -> o.isLineInteracts(initialPose, finalPose)).toList();
     }
 
     public boolean isObstacleDistributing(Translation2d initialPose, Translation2d finalPose) {
-        return this.extendedObstacles.parallelStream().anyMatch(o -> o.isLineInside(initialPose, finalPose));
+        return this.extendedObstacles.parallelStream().anyMatch(o -> o.isLineInteracts(initialPose, finalPose));
     }
 
     /**

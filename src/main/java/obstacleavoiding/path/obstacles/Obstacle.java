@@ -44,10 +44,6 @@ public class Obstacle {
                 this.corners.stream().mapToDouble(Translation2d::getY).average().orElse(0));
     }
 
-    public double getDirection(int index) {
-        return this.corners.get(index).minus(this.getCenter()).getAngle().getDegrees();
-    }
-
     public Obstacle getExtendedObstacle(double amount) {
         amount = Math.hypot(amount, amount);
         List<Translation2d> corners = new ArrayList<>(this.corners);
@@ -67,38 +63,33 @@ public class Obstacle {
         return new Obstacle(this.name, this.alliance, corners);
     }
 
-    public boolean isLineInside(Translation2d pose1, Translation2d pose2) {
-        int intersections = 0;
-
+    public boolean isLineInteracts(Translation2d pose1, Translation2d pose2) {
         for (int i = 0; i < this.getCorners().size(); i++) {
-            Translation2d p1 = this.getCorners().get(i);
-            Translation2d p2 = this.getCorners().get((i + 1) % this.getCorners().size());
+            Translation2d corner1 = this.getCorners().get(i);
+            Translation2d corner2 = this.getCorners().get((i + 1) % this.getCorners().size());
 
-            if (doSegmentsIntersect(pose1, pose2, p1, p2)) {
-                intersections++;
+            if (doSegmentsInteracts(pose1, pose2, corner1, corner2)) {
+                return true;
             }
         }
 
-        return intersections > 0;
+        return false;
     }
 
-    private boolean doSegmentsIntersect(Translation2d p1, Translation2d p2, Translation2d q1, Translation2d q2) {
-        int o1 = orientation(p1, p2, q1);
-        int o2 = orientation(p1, p2, q2);
-        int o3 = orientation(q1, q2, p1);
-        int o4 = orientation(q1, q2, p2);
+    private boolean doSegmentsInteracts(Translation2d pose1, Translation2d pose2, Translation2d corner1, Translation2d corner2) {
+        int o1 = orientation(pose1, pose2, corner1);
+        int o2 = orientation(pose1, pose2, corner2);
+        int o3 = orientation(corner1, corner2, pose1);
+        int o4 = orientation(corner1, corner2, pose2);
 
         if (o1 != o2 && o3 != o4) {
             return true;
         }
 
-        if (o1 == 0 && isPointOnSegment(p1, p2, q1))
-            return true;
-        if (o2 == 0 && isPointOnSegment(p1, p2, q2))
-            return true;
-        if (o3 == 0 && isPointOnSegment(q1, q2, p1))
-            return true;
-        return o4 == 0 && isPointOnSegment(q1, q2, p2);
+        return (o1 == 0 && isPointOnSegment(pose1, pose2, corner1)) ||
+                (o2 == 0 && isPointOnSegment(pose1, pose2, corner2)) ||
+                (o3 == 0 && isPointOnSegment(corner1, corner2, pose1)) ||
+                (o4 == 0 && isPointOnSegment(corner1, corner2, pose2));
     }
 
     private int orientation(Translation2d p, Translation2d q, Translation2d r) {
@@ -107,9 +98,8 @@ public class Obstacle {
             return 0; // Collinear
         } else if (val > 0) {
             return 1; // Clockwise orientation
-        } else {
-            return 2; // Counterclockwise orientation
         }
+        return -1; // Counterclockwise orientation
     }
 
     private boolean isPointOnSegment(Translation2d p, Translation2d q, Translation2d r) {
@@ -123,6 +113,7 @@ public class Obstacle {
         for (int i = 0, j = numPoints - 1; i < numPoints; j = i++) {
             Translation2d cornerI = this.getCorners().get(i);
             Translation2d cornerJ = this.getCorners().get(j);
+
             if ((cornerI.getY() > translation2d.getY()) != (cornerJ.getY() > translation2d.getY()) &&
                     (translation2d.getX() < (cornerJ.getX() - cornerI.getX()) * (translation2d.getY() - cornerI.getY()) / (cornerJ.getY() - cornerI.getY()) + cornerI.getX())) {
                 isInside = !isInside;

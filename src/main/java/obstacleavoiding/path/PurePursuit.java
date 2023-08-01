@@ -36,6 +36,7 @@ public class PurePursuit {
     private Constants constants;
 
     private final Robot robot;
+    private final double MAX_VELOCITY;
 
     private Translation2d angle;
     private double targetDriveVelocity;
@@ -46,6 +47,7 @@ public class PurePursuit {
     private double driftPercentage;
     private double lastOriginalDriftPercentage;
     private double lastDriftPercentage;
+
     private double slowPercentage;
     private double anglePercent;
 
@@ -65,6 +67,8 @@ public class PurePursuit {
         this.constants = constants;
         this.waypoints = waypoints;
 
+        MAX_VELOCITY = this.robot.getConstants().maxVel();
+
         this.driveController = new PIDController(1, 0, 0);
         this.omegaController = new PIDController(3, 0, 0);
         this.omegaController.enableContinuousInput(0, 2 * Math.PI);
@@ -80,6 +84,7 @@ public class PurePursuit {
         this.omegaVelocity = this.robot.getVelocity().getRotation().getDegrees();
         this.lastUpdate = System.nanoTime();
         this.lastDriftPercentage = 0;
+        this.slowPercentage = 0;
 
         this.isFinished = false;
     }
@@ -90,7 +95,6 @@ public class PurePursuit {
 
     public void update(double maxVel, double maxAccel, double maxOmegaVel, double maxOmegaAccel, double period) {
         this.period = period;
-        double MAX_VELOCITY = this.robot.getConstants().maxVel();
 
         if (!this.isRunning || this.isFinished)
             return;
@@ -104,10 +108,9 @@ public class PurePursuit {
         angle = normalize(this.getCurrentWaypoint().minus(this.robot.getPosition().getTranslation()));
 
         double maxDriftDistance = this.constants.maxDriftDistance;
-        if (currentIndex > 1) {
-            maxDriftDistance *= MathUtil.clamp(getPreviousWaypoint().getDistance(getCurrentWaypoint()) / (2 * this.constants.maxDriftDistance), 0, 1);
-            maxDriftDistance = Math.max(maxDriftDistance, 0.5);
-        }
+        maxDriftDistance *= MathUtil.clamp(getPreviousWaypoint().getDistance(getCurrentWaypoint()) / (1.5 * this.constants.maxDriftDistance), 0, 1);
+        maxDriftDistance = Math.max(maxDriftDistance, 0.5);
+
         driftPercentage = 1 - (MathUtil.clamp(this.getDistanceToCurrentWaypoint() / maxDriftDistance, 0, 1));
         driftPercentage = Math.pow(driftPercentage, this.constants.driftPercentLinearity);
         originalDriftPercentage = driftPercentage;
@@ -125,18 +128,16 @@ public class PurePursuit {
             }
         }
 
-        slowPercentage = 1 - (MathUtil.clamp(this.getDistanceToCurrentWaypoint() / this.constants.maxSlowDistance, 0, 1));
-        slowPercentage = Math.pow(slowPercentage, this.constants.slowPercentLinearity);
-
         double driftVelocity = maxVel;
         if (isNotLastWaypoint) {
-            driftVelocity = this.getNextWaypoint().minus(this.getCurrentWaypoint()).getAngle().minus(this.getCurrentWaypoint().minus(this.getPreviousWaypoint()).getAngle()).getDegrees();
-            driftVelocity = Math.abs(BumbleUtil.bound180Degrees(driftVelocity));
+            double turnAngle = this.getNextWaypoint().minus(this.getCurrentWaypoint()).getAngle().minus(this.getCurrentWaypoint().minus(this.getPreviousWaypoint()).getAngle()).getDegrees();
+            turnAngle = Math.abs(BumbleUtil.bound180Degrees(turnAngle));
 
-            driftVelocity *= slowPercentage;
-            driftVelocity = Math.pow((180 - driftVelocity) / 180, 2);
-            driftVelocity *= this.robot.getConstants().maxVel() - this.constants.minimumDriftVelocity;
-            driftVelocity += this.constants.minimumDriftVelocity;
+            double maxSlowDistance = (Math.pow(this.calculateDriftVelocity(turnAngle, 1), 2) - Math.pow(MAX_VELOCITY, 2)) / (2 * -this.constants.deceleration);
+            slowPercentage = 1 - (MathUtil.clamp(this.getDistanceToCurrentWaypoint() / maxSlowDistance, 0, 1));
+            slowPercentage = Math.pow(slowPercentage, this.constants.slowPercentLinearity);
+
+            driftVelocity = this.calculateDriftVelocity(turnAngle, slowPercentage);
         }
 
         double finalSlowDistance = Math.pow(MAX_VELOCITY, 2) / (2 * this.constants.deceleration);
@@ -155,7 +156,7 @@ public class PurePursuit {
         // double absoluteDistance = this.getDistance(lastHeadingWaypoint, nextHeadingWaypoint);
         // anglePercent = 1 - (this.getDistance(nextHeadingWaypoint) / absoluteDistance);
         // if (anglePercent >= 0.01) {
-        // anglePercent = Math.pow(anglePercent, this.constants.rotationPercentLinearity);
+        //     anglePercent = Math.pow(anglePercent, this.constants.rotationPercentLinearity);
         // }
         anglePercent = 1;
 
@@ -164,8 +165,8 @@ public class PurePursuit {
         targetAngle = BumbleUtil.boundPIRadians(targetAngle);
 
         double targetOmegaVelocity = this.omegaController.calculate(BumbleUtil.boundPIRadians(this.robot.getPosition().getRotation().getRadians()), targetAngle);
-        omegaVelocity += MathUtil.clamp(BumbleUtil.boundPIRadians(targetOmegaVelocity - omegaVelocity), -maxOmegaAccel * period, maxOmegaAccel * period);
-        omegaVelocity = MathUtil.clamp(BumbleUtil.boundPIRadians(omegaVelocity), -maxOmegaVel, maxOmegaVel);
+        omegaVelocity += MathUtil.clamp(targetOmegaVelocity - omegaVelocity, -maxOmegaAccel * period, maxOmegaAccel * period);
+        omegaVelocity = MathUtil.clamp(omegaVelocity, -maxOmegaVel, maxOmegaVel);
 
         this.last2Pose = this.lastPose;
         this.lastPose = this.robot.getPosition();
@@ -178,6 +179,9 @@ public class PurePursuit {
         if (currentIndex < this.waypoints.size() - 1 &&
                 (driftPercentage >= 0.9 || this.isAbleToContinueNextWaypoint())) {
             this.currentWaypoint = this.waypoints.get(currentIndex + 1);
+            this.lastDriftPercentage = 0;
+            this.driftPercentage = 0;
+            this.slowPercentage = 0;
         }
 
         this.lastUpdate = System.nanoTime();
@@ -188,10 +192,18 @@ public class PurePursuit {
         }
     }
 
+    private double calculateDriftVelocity(double angle, double slowPercentage) {
+        double driftVelocity = angle * slowPercentage;
+        driftVelocity = Math.pow((180 - driftVelocity) / 180, this.constants.turnVelocityLinearity);
+        driftVelocity *= MAX_VELOCITY - this.constants.minimumDriftVelocity;
+        driftVelocity += this.constants.minimumDriftVelocity;
+        return driftVelocity;
+    }
+
     private boolean isAbleToContinueNextWaypoint() {
         return !(this.getWaypoint(this.getCurrentWaypointIndex()) instanceof NavigationWaypoint) &&
                 !this.obstacleAvoiding.isObstacleDistributing(this.robot.getPosition().getTranslation(), this.getNextWaypoint()) &&
-                BumbleUtil.bound360Degrees(angle.getAngle().minus(this.robot.getPosition().getTranslation().minus(this.getCurrentWaypoint()).getAngle()).getDegrees()) <= 20;
+                BumbleUtil.bound360Degrees(angle.getAngle().minus(this.robot.getPosition().getTranslation().minus(this.getCurrentWaypoint()).getAngle()).getDegrees()) <= 10;
     }
 
     public List<RobotState> getEstimatedPath(double maxVel, double maxAccel, double maxOmegaVel, double maxOmegaAccel, double period) {
@@ -203,7 +215,7 @@ public class PurePursuit {
             purePursuit.update(maxVel, maxAccel, maxOmegaVel, maxOmegaAccel, period);
             poses.add(new RobotState(robot.getPosition(), robot.getVelocity().getTranslation().getNorm(),
                     MathUtil.limitDot(purePursuit.lastDriftPercentage, 3), MathUtil.limitDot(purePursuit.slowPercentage, 3),
-                    MathUtil.limitDot(purePursuit.getCurvatureRadius(), 3)));
+                    MathUtil.limitDot(purePursuit.getDistanceToCurrentWaypoint(), 3)));
         }
         return poses;
     }
@@ -234,10 +246,14 @@ public class PurePursuit {
     }
 
     public double getCurvatureRadius() {
-        double d1x = this.calculateDerivative(this.robot.getPosition().getX(), this.lastPose.getX());
-        double d1y = this.calculateDerivative(this.robot.getPosition().getY(), this.lastPose.getY());
-        double d2x = this.calculateDerivative(d1x, calculateDerivative(this.lastPose.getX(), this.last2Pose.getX()));
-        double d2y = this.calculateDerivative(d1y, calculateDerivative(this.lastPose.getY(), this.last2Pose.getY()));
+        Translation2d current = this.robot.getPosition().getTranslation();
+        Translation2d last = current.minus(new Translation2d(-1, lastPose.getTranslation().minus(current).getAngle()));
+        Translation2d last2 = last.minus(new Translation2d(-1, last2Pose.getTranslation().minus(last).getAngle()));
+
+        double d1x = this.calculateDerivative(current.getX(), last.getX());
+        double d1y = this.calculateDerivative(current.getY(), last.getY());
+        double d2x = this.calculateDerivative(d1x, calculateDerivative(last.getX(), last2.getX()));
+        double d2y = this.calculateDerivative(d1y, calculateDerivative(last.getY(), last2.getY()));
 
         return Math.pow((d1x * d1x) + (d1y * d1y), 1.5) / ((d1x * d2y) - (d1y * d2x));
     }
@@ -360,8 +376,8 @@ public class PurePursuit {
         this.constants = constants;
     }
 
-    public record Constants(double maxDriftDistance, double maxSlowDistance,
-                            double driftPercentLinearity, double slowPercentLinearity,
+    public record Constants(double maxDriftDistance, double driftPercentLinearity,
+                            double turnVelocityLinearity, double slowPercentLinearity,
                             double finalSlowPercentLinearity, double rotationPercentLinearity,
                             double deceleration, double minimumDriftVelocity,
                             double distanceTolerance, double velocityTolerance, double rotationTolerance) {}

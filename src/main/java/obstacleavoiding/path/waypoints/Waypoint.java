@@ -82,7 +82,7 @@ public class Waypoint {
     }
 
     public double getDistance(Waypoint other) {
-        return Math.hypot(this.x - other.x, this.y - other.y);
+        return this.getReferencedPosition().getDistance(other.getReferencedPosition());
     }
 
     public Translation2d getTranslation2d() {

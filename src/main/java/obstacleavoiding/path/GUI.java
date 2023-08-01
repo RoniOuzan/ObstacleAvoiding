@@ -43,7 +43,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     private static final int GRAPH_HISTORY = 0;
 
-    private static final double FPS = 30;
+    private static final double FPS = 50;
     public static final double ROBOT_SIZE = 0.91;
     public static final double HALF_ROBOT = ROBOT_SIZE / 2;
     private static final double TRACK_WIDTH = 0.6;
@@ -79,7 +79,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     private final List<Double> driveVelocities = new ArrayList<>();
     private final List<Double> targetDriveVelocities = new ArrayList<>();
     private final List<Double> driftPercentageVelocities = new ArrayList<>();
-    private final List<Double> slowPercentageVelocities = new ArrayList<>();
+    private final List<Double> slowPercentages = new ArrayList<>();
     private final List<Double> omegaVelocities = new ArrayList<>();
     private final List<Double> drivingAngles = new ArrayList<>();
     private final List<Double> robotAngle = new ArrayList<>();
@@ -114,8 +114,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
                 this.robot,
                 new PurePursuit.Constants(
                         1, 1.5,
-                        1.5, 1.5,
-                        1.5, 0.5,
+                        2, 1,
+                        1, 0.5,
                         6, 0,
                         0.03, 0.1, 0.7),
                 this.obstacleAvoiding.generateWaypointsBinary(this.defaultWaypoints)
@@ -130,7 +130,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         graphValues.put(() -> drivingAngles.stream().map(s -> MathUtil.inputModulus(s / 360 + 0.5, 0, 1)).toList(), new Color(0, 255, 255));
         graphValues.put(() -> robotAngle.stream().map(s -> MathUtil.inputModulus(s / 360 + 0.5, 0, 1)).toList(), new Color(135, 206, 235));
         graphValues.put(() -> distance.stream().map(d -> d / this.purePursuit.getPathDistance()).toList(), new Color(244, 123, 156));
-        graphValues.put(() -> curvatures.stream().map(c -> c / curvatures.stream().max(Comparator.comparing(d1 -> d1)).orElse(1d)).toList(), new Color(120, 120, 150));
+        graphValues.put(() -> slowPercentages, new Color(120, 120, 150));
 
         this.addGraph("Values", graphValues, 0, 1);
 
@@ -145,14 +145,14 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         }));
         values.add(new DoubleSliderTable("FPS", ValuesMode.SHOWCASE, FPS, 1, 50).setValueParser(this::setFPS));
         values.add(new DoubleSliderTable("MaxVel", ValuesMode.ALL, 4.5, 0, 5).onChange((l, c) -> this.estimatePath()));
-        values.add(new DoubleSliderTable("MaxAccel", ValuesMode.ALL, 12, 0, 20).onChange((l, c) -> this.estimatePath()));
+        values.add(new DoubleSliderTable("MaxAccel", ValuesMode.ALL, 8, 0, 20).onChange((l, c) -> this.estimatePath()));
         values.add(new DoubleSliderTable("MaxOmegaVel", ValuesMode.ALL, 360, 0, 720).onChange((l, c) -> this.estimatePath()));
         values.add(new DoubleSliderTable("MaxOmegaAccel", ValuesMode.ALL, 360, 0, 1080).onChange((l, c) -> this.estimatePath()));
 
         values.add(new DoubleSliderTable("MaxDriftDistance", ValuesMode.CALIBRATION, this.purePursuit.getConstants().maxDriftDistance(), 0, 5).onChange((l, c) -> this.estimatePath()));
         values.add(new DoubleSliderTable("DriftPercentLinearity", ValuesMode.CALIBRATION, this.purePursuit.getConstants().driftPercentLinearity(), 0, 5).onChange((l, c) -> this.estimatePath()));
 
-        values.add(new DoubleSliderTable("MaxSlowDistance", ValuesMode.CALIBRATION, this.purePursuit.getConstants().maxSlowDistance(), 0, 5).onChange((l, c) -> this.estimatePath()));
+        values.add(new DoubleSliderTable("TurnVelocityLinearity", ValuesMode.CALIBRATION, this.purePursuit.getConstants().turnVelocityLinearity(), 0, 5).onChange((l, c) -> this.estimatePath()));
         values.add(new DoubleSliderTable("SlowPercentLinearity", ValuesMode.CALIBRATION, this.purePursuit.getConstants().slowPercentLinearity(), 0, 5).onChange((l, c) -> this.estimatePath()));
 
         values.add(new DoubleSliderTable("FinalSlowLinearity", ValuesMode.CALIBRATION, this.purePursuit.getConstants().finalSlowPercentLinearity(), 0, 5).onChange((l, c) -> this.estimatePath()));
@@ -219,13 +219,6 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
                                 0f));
             }
         }
-
-        double curvatureRadius = this.purePursuit.getCurvatureRadius();
-        Translation2d curvature = this.robot.getPosition().getTranslation()
-                .plus(new Translation2d(
-                        curvatureRadius,
-                        this.purePursuit.getAngle().plus(Rotation2d.fromDegrees(90))));
-        this.drawPoint(curvature.getX(), curvature.getY(), Math.abs(curvatureRadius), Color.BLUE);
     }
 
     public void displayTrail() {
@@ -299,7 +292,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.driveVelocities.add(this.robot.getVelocity().getTranslation().getNorm());
             this.targetDriveVelocities.add(this.purePursuit.getTargetDriveVelocity());
             this.driftPercentageVelocities.add(this.purePursuit.getDriftPercentage());
-            this.slowPercentageVelocities.add(this.purePursuit.getSlowPercentage());
+            this.slowPercentages.add(this.purePursuit.getSlowPercentage());
             this.omegaVelocities.add(this.robot.getVelocity().getRotation().getDegrees());
             this.drivingAngles.add(this.robot.getVelocity().getTranslation().getAngle().getDegrees());
             this.robotAngle.add(this.robot.getPosition().getRotation().bound(0, 360).getDegrees());
@@ -312,7 +305,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             limitList(this.driveVelocities);
             limitList(this.targetDriveVelocities);
             limitList(this.driftPercentageVelocities);
-            limitList(this.slowPercentageVelocities);
+            limitList(this.slowPercentages);
             limitList(this.omegaVelocities);
             limitList(this.drivingAngles);
             limitList(this.robotAngle);
@@ -350,7 +343,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.driveVelocities.clear();
             this.targetDriveVelocities.clear();
             this.driftPercentageVelocities.clear();
-            this.slowPercentageVelocities.clear();
+            this.slowPercentages.clear();
             this.omegaVelocities.clear();
             this.drivingAngles.clear();
             this.robotAngle.clear();
@@ -364,8 +357,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     @Override
     public void update() {
         this.purePursuit.setConstants(new PurePursuit.Constants(
-                this.settings.getValue("MaxDriftDistance", 0d), this.settings.getValue("MaxSlowDistance", 0d),
-                this.settings.getValue("DriftPercentLinearity", 0d), this.settings.getValue("SlowPercentLinearity", 0d),
+                this.settings.getValue("MaxDriftDistance", 0d), this.settings.getValue("DriftPercentLinearity", 0d),
+                this.settings.getValue("TurnVelocityLinearity", 0d), this.settings.getValue("SlowPercentLinearity", 0d),
                 this.settings.getValue("FinalSlowLinearity", 0d), this.settings.getValue("RotationPercentLinearity", 0d),
                 this.settings.getValue("Deceleration", 0d), this.settings.getValue("MinimumDriftVelocity", 0d),
                 this.purePursuit.getConstants().distanceTolerance(), this.purePursuit.getConstants().velocityTolerance(), this.purePursuit.getConstants().rotationTolerance()
@@ -410,9 +403,12 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         Rotation2d angle = leftAxis.getNorm() < 0.01 ? this.robot.getVelocity().getTranslation().getAngle() : leftAxis.getAngle();
         double magnitude = Math.pow(Math.min(leftAxis.getNorm(), 1), 2) * this.robot.getConstants().maxVel();
 
-        this.robot.drive(new Pose2d(
-                new Translation2d(magnitude, angle),
-                 Rotation2d.fromDegrees(rightAxis)), getPeriod(), true);
+        Translation2d velocity = new Translation2d(magnitude, angle);
+
+        if (this.obstacleAvoiding.getObstacle(this.robot.getPosition().getTranslation().plus(velocity.times(this.getPeriod()))) != null)
+            return;
+
+        this.robot.drive(new Pose2d(velocity, Rotation2d.fromDegrees(rightAxis)), getPeriod(), true);
 
         if (this.settings.getValue("Auto Generate", false) && this.robot.isMoving()) {
             this.resetPath();
