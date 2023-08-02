@@ -210,6 +210,10 @@ public class PurePursuit {
         return MathUtil.clamp(omegaVelocity, -this.movementConstants.getMaxOmegaVel(), this.movementConstants.getMaxOmegaVel());
     }
 
+    public void stop() {
+        this.robot.drive(new Pose2d(), this.period, false);
+    }
+
     private void resetValues() {
         this.driftPercentage = 0;
         this.lastDriftPercentage = 0;
@@ -219,6 +223,10 @@ public class PurePursuit {
 
     private double limitAccel(double value, double target, double maxAccelPerSec) {
         return value + MathUtil.clamp(target - value, -maxAccelPerSec * this.period, maxAccelPerSec * this.period);
+    }
+
+    private Translation2d normalize(Translation2d translation2d) {
+        return translation2d.div(translation2d.getNorm() == 0 ? 1 : translation2d.getNorm());
     }
 
     public boolean isNotLastWaypoint() {
@@ -299,14 +307,6 @@ public class PurePursuit {
                 return i;
         }
         return -1;
-    }
-
-    public void stop() {
-        this.robot.drive(new Pose2d(), this.period, false);
-    }
-
-    private Translation2d normalize(Translation2d translation2d) {
-        return translation2d.div(translation2d.getNorm() == 0 ? 1 : translation2d.getNorm());
     }
 
     public List<Waypoint> getWaypoints() {
