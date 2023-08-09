@@ -104,7 +104,7 @@ public class ObstacleAvoiding {
 
                             Translation2d newMiddle = new Translation2d(x, y);
                             Rotation2d angleFromMiddle = newMiddle.minus(middle).getAngle();
-                            newMiddle = newMiddle.plus(new Translation2d(isCloseToCorner(newMiddle, obstacle, 0.3) ? 0.4 : 0.25, angleFromMiddle));
+                            newMiddle = newMiddle.plus(new Translation2d(isCloseToCorner(newMiddle, obstacle, 0.3) ? 0.35 : 0.25, angleFromMiddle));
 
                             int escapeTimes = 0;
                             while (this.getObstacle(newMiddle) != null) {
@@ -188,7 +188,7 @@ public class ObstacleAvoiding {
     }
 
     private void printStateFinished(String text, long started) {
-//        System.out.println(text + ": " + (System.nanoTime() - started) / 1_000_000_000d);
+        System.out.println(text + ": " + (System.nanoTime() - started) / 1_000_000_000d);
     }
 
     private boolean isCloseToCorner(Translation2d translation2d, Obstacle obstacle, double threshold) {

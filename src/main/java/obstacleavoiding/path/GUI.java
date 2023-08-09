@@ -390,10 +390,10 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.isControllerDrive = true;
 
         Translation2d leftAxis = new Translation2d(
-                MathUtil.limitDot(components.getAxes().lx, 3),
-                MathUtil.limitDot(components.getAxes().ly, 3)
+                MathUtil.limitDot(Math.max(components.getAxes().lx, 0.05), 3),
+                MathUtil.limitDot(Math.max(components.getAxes().ly, 0.05), 3)
         );
-        double rightAxis = Math.toDegrees(-Math.pow(MathUtil.limitDot(components.getAxes().rx, 3), 1) * this.robot.getConstants().maxVel());
+        double rightAxis = Math.toDegrees(-Math.pow(MathUtil.limitDot(Math.max(components.getAxes().rx, 0.05), 3), 1) * this.robot.getConstants().maxVel());
 
         Rotation2d angle = leftAxis.getNorm() < 0.01 ? this.robot.getVelocity().getTranslation().getAngle() : leftAxis.getAngle();
         double magnitude = Math.pow(Math.min(leftAxis.getNorm(), 1), 2) * this.robot.getConstants().maxVel();
