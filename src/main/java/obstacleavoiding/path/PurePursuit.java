@@ -56,6 +56,7 @@ public class PurePursuit {
     private double slowPercentage;
 
     private boolean isRunning = false;
+    private boolean isFinished = false;
 
     public PurePursuit(ObstacleAvoiding obstacleAvoiding, Robot robot, PurePursuitConstants constants, MovementConstants movementConstants) {
         this.waypoints = new ArrayList<>();
@@ -72,7 +73,9 @@ public class PurePursuit {
     }
 
     public void reset(List<Waypoint> waypoints) {
-        this.waypoints = this.obstacleAvoiding.generateWaypointsBinary(waypoints);
+        this.isFinished = false;
+
+        this.waypoints = this.obstacleAvoiding.generateWaypoints(waypoints);
         this.currentWaypoint = this.waypoints.get(1);
 
         this.driveVelocity = this.getDrivetrainVelocity();
@@ -90,7 +93,7 @@ public class PurePursuit {
         this.period = period;
         this.currentWaypointIndex = this.getCurrentWaypointIndex();
 
-        if (!this.isRunning || this.isFinished()) return;
+        if (!this.isRunning()) return;
 
         this.drivingAngle = this.calculateDrivingAngle();
         this.driveVelocity = this.calculateVelocity();
@@ -105,6 +108,10 @@ public class PurePursuit {
                 (driftPercentage >= 0.9 || this.isAbleToContinueNextWaypoint())) {
             this.currentWaypoint = this.waypoints.get(this.currentWaypointIndex + 1);
             this.resetValues();
+        }
+
+        if (this.isFinished()) {
+            this.isFinished = true;
         }
 
         this.lastUpdate = System.nanoTime();
@@ -335,7 +342,7 @@ public class PurePursuit {
     }
 
     public boolean isRunning() {
-        return this.isRunning && !this.isFinished();
+        return this.isRunning && !this.isFinished;
     }
 
     public void setRunning(boolean isRunning) {

@@ -39,7 +39,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     public static final int SETTINGS_WIDTH = 200;
 
     public static final double DEFAULT_MAX_VALUE = 16.54; // 8.27
-    public static final Dimension2d FIELD_DIMENSION = new Dimension2d(1713, 837);
+    public static final Dimension2d FIELD_DIMENSION = new Dimension2d((int) (1713 * 0.8), (int) (837 * 0.8));
     public static final Dimension2d FRAME_DIMENSION = FIELD_DIMENSION.plus(new Dimension2d(SETTINGS_WIDTH, 0));
     public static final double DEFAULT_MAX_Y = DEFAULT_MAX_VALUE * ((double) FIELD_DIMENSION.getY() / FIELD_DIMENSION.getX());
 
@@ -164,7 +164,6 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         values.add(new DoubleSliderTable("MinimumDriftVelocity", ValuesMode.CALIBRATION, this.purePursuit.getConstants().getMinimumDriftVelocity(), 0, 4.5).onChange((l, c) -> this.estimatePath()));
 
         values.add(new IntegerSliderTable("GraphHistory", ValuesMode.SHOWCASE, GRAPH_HISTORY, 0, 200).setValueParser(d -> graphHistory = d));
-        values.add(new BooleanTable("Filter", ValuesMode.SHOWCASE, true).setValueParser(this.obstacleAvoiding::setFiltering));
         values.add(new BooleanTable("Reset", ValuesMode.ALL, false).onTrue(this::reset).setAlways(false));
         values.add(new BooleanTable("Running", ValuesMode.ALL, true).setValueParser(this.purePursuit::setRunning));
         values.add(new BooleanTable("Extended Obstacles", ValuesMode.SHOWCASE, false));
@@ -469,6 +468,10 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.robot.drive(new Pose2d(
                 velocity.getTranslation().normalized().times(this.robot.getConstants().maxVel()),
                 velocity.getRotation()), getPeriod(), false);
+
+        if (this.settings.getValue("Auto Generate", false) && this.robot.isMoving()) {
+            this.resetPath();
+        }
     }
 
     @Override
@@ -481,8 +484,6 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
             this.settings.setValue("Extended Obstacles", !this.settings.getValue("Extended Obstacles", false));
         } else if (e.getKeyCode() == KeyEvent.VK_Y) {
             this.settings.setValue("Auto Generate", !this.settings.getValue("Auto Generate", false));
-        } else if (e.getKeyCode() == KeyEvent.VK_F) {
-            this.settings.setValue("Filter", !this.obstacleAvoiding.isFiltering());
         } else if (e.getKeyCode() == KeyEvent.VK_C) {
             this.settings.setValue("EstimatedPath", !this.settings.getValue("EstimatedPath", false));
         }
