@@ -39,7 +39,8 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
     public static final int SETTINGS_WIDTH = 200;
 
     public static final double DEFAULT_MAX_VALUE = 16.54; // 8.27
-    public static final Dimension2d FIELD_DIMENSION = new Dimension2d((int) (1713 * 0.8), (int) (837 * 0.8));
+    public static final double SCREEN_MULTIPLIER = 1;
+    public static final Dimension2d FIELD_DIMENSION = new Dimension2d(1713, 837).times(SCREEN_MULTIPLIER);
     public static final Dimension2d FRAME_DIMENSION = FIELD_DIMENSION.plus(new Dimension2d(SETTINGS_WIDTH, 0));
     public static final double DEFAULT_MAX_Y = DEFAULT_MAX_VALUE * ((double) FIELD_DIMENSION.getY() / FIELD_DIMENSION.getX());
 
@@ -167,6 +168,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         values.add(new BooleanTable("Reset", ValuesMode.ALL, false).onTrue(this::reset).setAlways(false));
         values.add(new BooleanTable("Running", ValuesMode.ALL, true).setValueParser(this.purePursuit::setRunning));
         values.add(new BooleanTable("Extended Obstacles", ValuesMode.SHOWCASE, false));
+        values.add(new BooleanTable("Linear Rotation", ValuesMode.ALL, true).onTrue(this::resetPath));
         values.add(new BooleanTable("Auto Generate", ValuesMode.SHOWCASE, false).onTrue(this::resetPath));
         values.add(new BooleanTable("Trail", ValuesMode.SHOWCASE, true));
         values.add(new BooleanTable("Path", ValuesMode.SHOWCASE, true));
@@ -181,7 +183,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.waypointSettings = new WaypointSettings(this.robot);
         this.add(this.waypointSettings);
 
-        this.purePursuit.reset(this.defaultWaypoints);
+        this.purePursuit.reset(this.settings.getValue("Linear Rotation", true), this.defaultWaypoints);
         this.start();
     }
 
@@ -315,7 +317,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     public void resetPath() {
         this.defaultWaypoints.set(0, new Waypoint(this.robot.getPosition().getTranslation(), this.robot.getPosition().getRotation(), Waypoint.RobotReferencePoint.CENTER));
-        this.purePursuit.reset(this.defaultWaypoints);
+        this.purePursuit.reset(this.settings.getValue("Linear Rotation", true), this.defaultWaypoints);
 
         this.estimatePath();
     }

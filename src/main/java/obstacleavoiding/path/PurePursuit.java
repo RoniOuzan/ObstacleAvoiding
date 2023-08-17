@@ -35,6 +35,7 @@ public class PurePursuit {
 
     private MovementConstants movementConstants;
     private PurePursuitConstants constants;
+    private boolean isLinearRotation = true;
 
     private List<Waypoint> waypoints;
     private Waypoint currentWaypoint;
@@ -72,11 +73,12 @@ public class PurePursuit {
         this.omegaController.enableContinuousInput(-Math.PI, Math.PI);
     }
 
-    public void reset(List<Waypoint> waypoints) {
+    public void reset(boolean isLinearRotation, List<Waypoint> waypoints) {
         this.isFinished = false;
 
         this.waypoints = this.obstacleAvoiding.generateWaypoints(waypoints);
         this.currentWaypoint = this.waypoints.get(1);
+        this.isLinearRotation = isLinearRotation;
 
         this.driveVelocity = this.getDrivetrainVelocity();
 
@@ -203,12 +205,14 @@ public class PurePursuit {
         int lastHeadingWaypoint = this.getLastHeadingWaypointIndex();
         int nextHeadingWaypoint = this.getNextHeadingWaypointIndex();
 
-        // double absoluteDistance = this.getDistance(lastHeadingWaypoint, nextHeadingWaypoint);
-        // double anglePercent = 1 - (this.getDistance(nextHeadingWaypoint) / absoluteDistance);
-        // if (anglePercent >= 0.01) {
-        //     anglePercent = Math.pow(anglePercent, this.constants.rotationPercentLinearity);
-        // }
         double anglePercent = 1;
+        if (this.isLinearRotation) {
+             double absoluteDistance = this.getDistance(lastHeadingWaypoint, nextHeadingWaypoint);
+             anglePercent = 1 - (this.getDistanceToWaypoint(nextHeadingWaypoint) / absoluteDistance);
+             if (anglePercent >= 0.01) {
+                 anglePercent = Math.pow(anglePercent, this.constants.getRotationPercentLinearity());
+             }
+        }
 
         double targetAngle = this.waypoints.get(lastHeadingWaypoint).getHeading().getRadians() +
                 (anglePercent * BumbleUtil.boundPIRadians(this.waypoints.get(nextHeadingWaypoint).getHeading().minus(this.waypoints.get(lastHeadingWaypoint).getHeading()).getRadians()));
@@ -368,7 +372,7 @@ public class PurePursuit {
         List<RobotState> poses = new ArrayList<>();
         Robot robot = new Robot(this.waypoints.get(0).getPose2d(), this.robot.getConstants());
         PurePursuit purePursuit = new PurePursuit(this.obstacleAvoiding, robot, this.constants, this.movementConstants);
-        purePursuit.reset(new ArrayList<>(this.waypoints));
+        purePursuit.reset(this.isLinearRotation, new ArrayList<>(this.waypoints));
         purePursuit.setRunning(true);
         while (!purePursuit.isFinished()) {
             purePursuit.update(period);
