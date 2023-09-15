@@ -242,6 +242,9 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
                     module.getLocation().getNorm(), module.getLocation().getAngle().plus(this.robot.getPosition().getRotation()))),
                     WHEEL_DIAMETER, WHEEL_WIDTH, module.getAngle().plus(this.robot.getPosition().getRotation()).getDegrees(), Color.DARK_GRAY.darker());
         }
+
+        this.drawPoint(this.robot.getPosition().getX(), this.robot.getPosition().getY(), this.settings.getValue("MaxDriftDistance", 0d), Color.BLUE);
+        this.fillPoint(this.purePursuit.getCurrentCircleIntersection(), 0.05, Color.WHITE);
     }
 
     public void displayObstacles() {

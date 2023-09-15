@@ -15,6 +15,8 @@ import obstacleavoiding.path.waypoints.Waypoint;
 import obstacleavoiding.path.waypoints.WaypointAutoHeading;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -98,6 +100,7 @@ public class PurePursuit {
         if (!this.isRunning()) return;
 
         this.drivingAngle = this.calculateDrivingAngle();
+//        this.drivingAngle = this.calculateDrivingAngle2();
         this.driveVelocity = this.calculateVelocity();
         this.omegaVelocity = this.calculateOmega();
 
@@ -106,8 +109,11 @@ public class PurePursuit {
                 new Translation2d(velocity, this.drivingAngle),
                 Rotation2d.fromRadians(omegaVelocity)), this.period, false);
 
+        // Math.abs(this.getNextWaypointPosition().minus(this.robot.getPosition().getTranslation()).getAngle().minus(this.robot.getVelocity().getTranslation().getAngle()).getDegrees()) <= 20
+        // driftPercentage >= 0.9
         if (this.currentWaypointIndex < this.waypoints.size() - 1 &&
-                (driftPercentage >= 0.9 || this.isAbleToContinueNextWaypoint())) {
+                (Math.abs(this.getNextWaypointPosition().minus(this.robot.getPosition().getTranslation()).getAngle().minus(this.robot.getVelocity().getTranslation().getAngle()).getDegrees()) <= 5
+                        || this.isAbleToContinueNextWaypoint())) {
             this.currentWaypoint = this.waypoints.get(this.currentWaypointIndex + 1);
             this.resetValues();
         }
@@ -129,6 +135,50 @@ public class PurePursuit {
                 !this.obstacleAvoiding.isObstacleDistributing(this.robot.getPosition().getTranslation(), this.getNextWaypointPosition()) &&
                 BumbleUtil.bound360Degrees(this.drivingAngle.minus(this.robot.getPosition().getTranslation().minus(this.getNextWaypointPosition()).getAngle()).getDegrees()) <= 10 &&
                 this.obstacleAvoiding.getObstacle(this.robot.getPosition().getTranslation()) == null;
+    }
+
+    private Rotation2d calculateDrivingAngle2() {
+        Translation2d target = this.getCurrentCircleIntersection();
+        if (!this.isNotLastWaypoint() && this.robot.getPosition().getTranslation().getDistance(this.getCurrentWaypointPosition()) < this.constants.getMaxDriftDistance()) {
+            target = this.getCurrentWaypointPosition();
+        }
+
+        return target.minus(this.robot.getPosition().getTranslation()).getAngle();
+    }
+
+    public Translation2d getCurrentCircleIntersection() {
+        if (!this.isNotLastWaypoint()) {
+            return this.getCurrentWaypointPosition();
+        }
+
+        List<Translation2d> intersections = this.getCircleIntersectionPoints(this.robot.getPosition().getTranslation(), this.constants.getMaxDriftDistance(), this.getPreviousWaypointPosition(), this.getCurrentWaypointPosition());
+        intersections.addAll(this.getCircleIntersectionPoints(this.robot.getPosition().getTranslation(), this.constants.getMaxDriftDistance(), this.getCurrentWaypointPosition(), this.getNextWaypointPosition()));
+        intersections.sort(Comparator.comparing(t -> t.getDistance(this.getNextWaypointPosition())));
+
+        return intersections.stream().min(Comparator.comparing(t -> t.getDistance(this.getNextWaypointPosition()))).orElse(this.robot.getPosition().getTranslation());
+    }
+
+    private List<Translation2d> getCircleIntersectionPoints(Translation2d circle, double radius, Translation2d p1, Translation2d p2) {
+        Translation2d lineDirection = p2.minus(p1);
+
+        Translation2d circleToLinePoint = p1.minus(circle);
+
+        double a = lineDirection.getX() * lineDirection.getX() + lineDirection.getY() * lineDirection.getY();
+        double b = 2 * (circleToLinePoint.getX() * lineDirection.getX() + circleToLinePoint.getY() * lineDirection.getY());
+        double c = circleToLinePoint.getX() * circleToLinePoint.getX() + circleToLinePoint.getY() * circleToLinePoint.getY() - (radius * radius);
+
+        double discriminant = b * b - 4 * a * c;
+
+        if (discriminant < 0) {
+            return new ArrayList<>();
+        } else if (discriminant == 0) {
+            return new ArrayList<>(List.of(p1.plus(lineDirection.times(-b / (2 * a)))));
+        } else {
+            return new ArrayList<>(Arrays.asList(
+                    p1.plus(lineDirection.times((-b + Math.sqrt(discriminant)) / (2 * a))),
+                    p1.plus(lineDirection.times((-b - Math.sqrt(discriminant)) / (2 * a)))
+            ));
+        }
     }
 
     private Rotation2d calculateDrivingAngle() {
