@@ -110,6 +110,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.defaultWaypoints = new ArrayList<>();
         this.defaultWaypoints.add(new Waypoint(this.robot.getPosition(), Waypoint.RobotReferencePoint.CENTER));
 //        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 2, DEFAULT_MAX_Y / 2, Rotation2d.fromDegrees(0), Waypoint.RobotReferencePoint.CENTER));
+        this.defaultWaypoints.add(new Waypoint(14.24, 2.85, Rotation2d.fromDegrees(0), Waypoint.RobotReferencePoint.CENTER));
         this.defaultWaypoints.add(new Waypoint(14.54, 2.85, Rotation2d.fromDegrees(0), Waypoint.RobotReferencePoint.CENTER));
 
         this.purePursuit = new PurePursuit(
@@ -394,10 +395,10 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.isControllerDrive = true;
 
         Translation2d leftAxis = new Translation2d(
-                MathUtil.limitDot(Math.max(components.getAxes().lx, 0.05), 3),
-                MathUtil.limitDot(Math.max(components.getAxes().ly, 0.05), 3)
+                MathUtil.limitDot(Math.max(Math.abs(components.getAxes().lx), 0.05) * components.getAxes().lx, 3),
+                MathUtil.limitDot(Math.max(Math.abs(components.getAxes().ly), 0.05) * components.getAxes().ly, 3)
         );
-        double rightAxis = Math.toDegrees(-Math.pow(MathUtil.limitDot(Math.max(components.getAxes().rx, 0.05), 3), 1) * this.robot.getConstants().maxVel());
+        double rightAxis = Math.toDegrees(-Math.pow(MathUtil.limitDot(Math.max(Math.abs(components.getAxes().rx), 0.05) * components.getAxes().rx, 3), 1) * this.robot.getConstants().maxVel());
 
         Rotation2d angle = leftAxis.getNorm() < 0.01 ? this.robot.getVelocity().getTranslation().getAngle() : leftAxis.getAngle();
         double magnitude = Math.pow(Math.min(leftAxis.getNorm(), 1), 2) * this.robot.getConstants().maxVel();
