@@ -117,9 +117,11 @@ public class PurePursuit {
 
         // boolean isFinishedCurrent = driftPercentage >= 0.9;
         boolean isFinishedCurrent = this.currentWaypointIndex < this.waypoints.size() - 1 &&
-                Math.abs(this.getNextWaypointPosition().minus(this.robot.getPosition().getTranslation()).getAngle().minus(this.drivingAngle).getDegrees()) <= 5;
+                Math.abs(this.getNextWaypointPosition().minus(this.robot.getPosition().getTranslation()).getAngle().minus(this.drivingAngle).getDegrees()) <= 5 &&
+                this.robot.getPosition().getTranslation().getDistance(this.getCurrentWaypointPosition()) <= this.getConstants().getMaxDriftDistance();
         if (this.currentWaypointIndex < this.waypoints.size() - 1 &&
                 (isFinishedCurrent || this.isAbleToContinueNextWaypoint())) {
+            System.out.println(this.drivingAngle + ", " + this.getNextWaypointPosition().minus(this.robot.getPosition().getTranslation()).getAngle());
             this.currentWaypoint = this.waypoints.get(this.currentWaypointIndex + 1);
             this.resetValues();
         }
@@ -137,11 +139,10 @@ public class PurePursuit {
     }
 
     private boolean isAbleToContinueNextWaypoint() {
-        return false;
-//        return !(this.getCurrentWaypoint() instanceof NavigationWaypoint) &&
-//                !this.obstacleAvoiding.isObstacleDistributing(this.robot.getPosition().getTranslation(), this.getNextWaypointPosition()) &&
-//                BumbleUtil.bound360Degrees(this.drivingAngle.minus(this.robot.getPosition().getTranslation().minus(this.getNextWaypointPosition()).getAngle()).getDegrees()) <= 10 &&
-//                this.obstacleAvoiding.getObstacle(this.robot.getPosition().getTranslation()) == null;
+        return !(this.getCurrentWaypoint() instanceof NavigationWaypoint) &&
+                !this.obstacleAvoiding.isObstacleDistributing(this.robot.getPosition().getTranslation(), this.getNextWaypointPosition()) &&
+                BumbleUtil.bound360Degrees(this.drivingAngle.minus(this.robot.getPosition().getTranslation().minus(this.getNextWaypointPosition()).getAngle()).getDegrees()) <= 10 &&
+                this.obstacleAvoiding.getObstacle(this.robot.getPosition().getTranslation()) == null;
     }
 
     private Rotation2d calculateDrivingAngle2() {
@@ -470,6 +471,8 @@ public class PurePursuit {
             poses.add(new RobotState(robot.getPosition(), robot.getVelocity().getTranslation().getNorm(),
                     0, MathUtil.limitDot(purePursuit.slowPercentage, 3),
                     MathUtil.limitDot(purePursuit.getDistanceToCurrentWaypoint(), 3)));
+
+            System.out.println("runninnng");
         }
         return poses;
     }

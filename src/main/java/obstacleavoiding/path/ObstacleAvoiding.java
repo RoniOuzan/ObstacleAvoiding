@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
  */
 public class ObstacleAvoiding {
 
-    private static final int MAX_PATH_LENGTH = 30;
+    private static final int MAX_PATH_LENGTH = 20;
 
     private List<Obstacle> obstacles;
     private List<Obstacle> extendedObstacles;

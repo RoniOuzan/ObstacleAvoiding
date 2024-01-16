@@ -1,6 +1,7 @@
 package obstacleavoiding.path.fields;
 
 public enum Fields {
+    CRESCENDO(new CrescendoField()),
     CHARGED_UP(new ChargedUpField()),
     RAPID_REACT(new RapidReactField()),
     INFINITE_RECHARGE(new InfiniteRecharge())

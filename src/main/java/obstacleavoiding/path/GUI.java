@@ -56,7 +56,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     private static final double MINI_ROBOT_SIZE = ROBOT_SIZE;
 
-    private static final Fields DEFAULT_FIELD = Fields.CHARGED_UP;
+    private static final Fields DEFAULT_FIELD = Fields.values()[0];
     private static final Alliance DEFAULT_ALLIANCE = Alliance.NONE;
 
     private static final String IMAGES_PATH = "src/main/java/obstacleavoiding/path/images/";
@@ -110,7 +110,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
         this.defaultWaypoints = new ArrayList<>();
         this.defaultWaypoints.add(new Waypoint(this.robot.getPosition(), Waypoint.RobotReferencePoint.CENTER));
 //        this.defaultWaypoints.add(new Waypoint(DEFAULT_MAX_VALUE / 2 + 2, DEFAULT_MAX_Y / 2, Rotation2d.fromDegrees(0), Waypoint.RobotReferencePoint.CENTER));
-        this.defaultWaypoints.add(new Waypoint(14.24, 2.85, Rotation2d.fromDegrees(0), Waypoint.RobotReferencePoint.CENTER));
+        // this.defaultWaypoints.add(new Waypoint(14.24, 2.85, Rotation2d.fromDegrees(0), Waypoint.RobotReferencePoint.CENTER));
         this.defaultWaypoints.add(new Waypoint(14.54, 2.85, Rotation2d.fromDegrees(0), Waypoint.RobotReferencePoint.CENTER));
 
         this.purePursuit = new PurePursuit(
@@ -538,7 +538,7 @@ public class GUI extends Frame implements ZeroLeftBottom, DrawCentered {
 
     @Override
     public void mousePressed(MouseEvent e, Translation2d mouseLocation) {
-        System.out.println("Clicked (" + mouseLocation.getX() + "," + mouseLocation.getY() + ")");
+        System.out.println("Clicked (" + (Math.round(mouseLocation.getX() * 1000d) / 1000d) + ", " + (Math.round(mouseLocation.getY() * 1000d) / 1000d) + ")");
 
         if (mouseLocation.getX() > this.maxValue)
             return;

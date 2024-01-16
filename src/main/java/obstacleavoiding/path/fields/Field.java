@@ -30,28 +30,28 @@ public abstract class Field {
         this.obstacles = new ArrayList<>(this.generateAllianceObstacles());
         this.obstacles.addAll(this.obstacles.stream().map(o -> this.fieldType.convertToOtherAllianceObstacle(o, this.getBounds())).toList());
         this.obstacles.addAll(this.generateGeneralObstacles());
-        this.obstacles.addAll(Arrays.asList(
-                        new Obstacle("RightX", Alliance.NONE,
-                                new Translation2d(this.width, this.height),
-                                new Translation2d(this.width + 3, this.height),
-                                new Translation2d(this.width + 3, 0),
-                                new Translation2d(this.width, 0)),
-                        new Obstacle("LeftX", Alliance.NONE,
-                                new Translation2d(0, this.height),
-                                new Translation2d(-3, this.height),
-                                new Translation2d(-3, -this.height),
-                                new Translation2d(0, -this.height)),
-                        new Obstacle("UpY", Alliance.NONE,
-                                new Translation2d(0, this.height + 3),
-                                new Translation2d(this.width, this.height + 3),
-                                new Translation2d(this.width, this.height),
-                                new Translation2d(0, this.height)),
-                        new Obstacle("DownY", Alliance.NONE,
-                                new Translation2d(0, -3),
-                                new Translation2d(this.width, -3),
-                                new Translation2d(this.width, 0),
-                                new Translation2d(0, 0))
-                        ));
+        // this.obstacles.addAll(Arrays.asList(
+        //                 new Obstacle("RightX", Alliance.NONE,
+        //                         new Translation2d(this.width, this.height),
+        //                         new Translation2d(this.width + 3, this.height),
+        //                         new Translation2d(this.width + 3, 0),
+        //                         new Translation2d(this.width, 0)),
+        //                 new Obstacle("LeftX", Alliance.NONE,
+        //                         new Translation2d(0, this.height),
+        //                         new Translation2d(-3, this.height),
+        //                         new Translation2d(-3, -this.height),
+        //                         new Translation2d(0, -this.height)),
+        //                 new Obstacle("UpY", Alliance.NONE,
+        //                         new Translation2d(0, this.height + 3),
+        //                         new Translation2d(this.width, this.height + 3),
+        //                         new Translation2d(this.width, this.height),
+        //                         new Translation2d(0, this.height)),
+        //                 new Obstacle("DownY", Alliance.NONE,
+        //                         new Translation2d(0, -3),
+        //                         new Translation2d(this.width, -3),
+        //                         new Translation2d(this.width, 0),
+        //                         new Translation2d(0, 0))
+        //                 ));
     }
 
     public Field(String name, FieldType fieldType) {
